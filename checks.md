@@ -2,13 +2,13 @@
 
 ## Current implementation — 2026-10-19
 
-The required provider is the normal signed-in ChatGPT website with 6 High selected in each role conversation. Local inference and the abandoned OAuth/Responses inference adapter have been removed. Never substitute either for this requirement.
+Normal signed-in ChatGPT with 6 High is the required and tested provider. Local inference and the abandoned model-inference OAuth/Responses adapter are removed.
 
-CHAI now supplies an authenticated MCP tool server. ChatGPT receives a persistent role job through its visible composer, fetches the job with chai_get_job, and returns schema-validated JSON with chai_submit_result. Outputs are not scraped from the page. The MCP OAuth pairing grants access to CHAI's PC tools only; it does not authorize model inference or extract ChatGPT credentials.
+CHAI sends job IDs/roles through visible ChatGPT input controls. Its installed MCP plugin fetches context and returns schema-validated results. No assistant text, cookies or private model endpoints are scraped. MCP OAuth authorizes CHAI PC tools only.
 
-Kali validation: typecheck, lint, build, 26 tests, native Electron E2E and SIGKILL recovery passed. Four new tests exercise real HTTP MCP, PKCE/consent/token controls, rejected/canceled jobs, and an approval-gated real file cycle. Scripted test answers are fixtures, not live-model evidence.
+Two real three-role tasks passed on Kali: a new-file task and an existing-file edit, each using seven actual ChatGPT role calls across two rounds. The installed AppImage retained pairing, conversation links and a pending plan across a normal app restart, then completed the edit after renewed approval.
 
-Live evidence: the CHAI plugin was created in the user's normal ChatGPT account; its actual tool pairing and authenticated MCP discovery succeeded. 6 High was observed in the browser. A live three-role file task is now under test; completion is not yet established. The public installer is still the older v0.1.0-alpha.1.
+Version 0.2.0-alpha.1 is built and installed on Kali. Typecheck, lint, 30 tests, native UI, SIGKILL recovery, AppImage extraction-mode E2E and dependency audit (zero vulnerabilities) pass. Both AppImage and amd64 Debian packages are built; AppImage is the launch-tested installed artifact. Whole-PC reboot is still unverified.
 
 ## A. Product truthfulness
 - [ ] CHAI launches as a native Chromium/Electron **Linux app** (not only `npm run dev` in a browser).
@@ -82,13 +82,13 @@ Live evidence: the CHAI plugin was created in the user's normal ChatGPT account;
 
 ## Executed current gates
 - [x] TypeScript, ESLint and production bundle pass on Kali.
-- [x] 26 tests pass, including real HTTP MCP with authorization and actual filesystem effects.
+- [x] 30 tests pass, including real HTTP MCP with authorization and actual filesystem effects.
 - [x] Native Electron UI approval/file/task cycle, renderer reload and application restart pass.
 - [x] Hard-kill recovery retains completed writes and refuses ambiguous command replay.
 - [x] ChatGPT session retained, 6 High visibly selected, CHAI plugin paired.
 - [x] Public HTTPS discovery and authenticated MCP requests observed.
-- [ ] Live browser-based three-role acceptance task complete.
-- [ ] Updated packaged application and installer verified.
+- [x] Live browser-based three-role new-file and existing-file tasks complete.
+- [x] Updated packaged application, safe installer upgrade and real profile restart verified.
 - [ ] Full-system reboot verified.
 
 Automated model fixtures do not count as live ChatGPT acceptance. Prior v0.1.0-alpha.1 release verification remains in docs/QA_2026-10-19.md.

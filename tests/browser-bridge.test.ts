@@ -276,3 +276,82 @@ test("actual HTTP MCP results drive three roles, approval, filesystem evidence a
     await s.close();
   }
 });
+
+test("browser result survives database restart; completed jobs are immutable and idempotent", async () => {
+  const base = mkdtempSync(join(tmpdir(), "chai-browser-recovery-"));
+  const db = join(base, "state.sqlite");
+  let store = new Store(db);
+  let bridge = new BrowserBridge(store);
+  const task = store.create("fixture", base, "browser", "browser");
+  const request = {
+    taskId: task.id,
+    callId: "persistent-call",
+    role: "manager" as const,
+    phase: "assignment",
+    model: "browser",
+    system: "fixture",
+    input: "{}",
+    schema: {},
+  };
+  const id = crypto.randomUUID();
+  store.db
+    .prepare("INSERT INTO browser_jobs VALUES(?,?,?,?,?,?,?,?)")
+    .run(
+      id,
+      request.callId,
+      task.id,
+      "manager",
+      JSON.stringify(request),
+      null,
+      "WAITING",
+      new Date().toISOString(),
+    );
+  store.db
+    .prepare("INSERT INTO browser_delivery VALUES(?,?)")
+    .run(id, new Date().toISOString());
+  store.close();
+  store = new Store(db);
+  bridge = new BrowserBridge(store);
+  bridge.connected = true;
+  bridge.deliver = async () => {
+    throw Error("Must not resend an already delivered job");
+  };
+  const pending = bridge.send(request, new AbortController().signal);
+  bridge.answer(id, "manager", brief);
+  assert.deepEqual(await pending, brief);
+  store.state(task.id, "DONE");
+  assert.deepEqual(bridge.answer(id, "manager", brief), {
+    accepted: true,
+    duplicate: true,
+  });
+  assert.throws(
+    () => bridge.answer(id, "manager", { ...brief, summary: "different" }),
+    /different/,
+  );
+  store.close();
+  store = new Store(db);
+  bridge = new BrowserBridge(store);
+  assert.deepEqual(
+    await bridge.send(request, new AbortController().signal),
+    brief,
+  );
+  assert.equal(bridge.jobs().length, 1);
+  store.close();
+});
+test("normal tool-server shutdown preserves pairing; explicit disconnect revokes it", async () => {
+  const s = await setup();
+  const grant = (await (await s.token(s.verifier)).json()) as {
+    access_token: string;
+  };
+  await s.server.close(false);
+  const resumed = new ToolServer(new BrowserBridge(s.store), async () => true);
+  try {
+    resumed.configure(origin);
+    assert.equal(resumed.bridge.connected, true);
+    await resumed.auth!.verifyAccessToken(grant.access_token);
+    await resumed.close();
+    await assert.rejects(resumed.auth!.verifyAccessToken(grant.access_token));
+  } finally {
+    s.store.close();
+  }
+});

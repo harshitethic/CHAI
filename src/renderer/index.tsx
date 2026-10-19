@@ -47,6 +47,7 @@ const blank: Snapshot = {
   workspace: null,
   version: "",
   bridge: {
+    preferredOrigin: "",
     state: "stopped",
     error: null,
     url: null,
@@ -70,6 +71,7 @@ function App() {
     [url, setUrl] = useState("https://example.com"),
     [x, setX] = useState(0),
     [y, setY] = useState(0);
+  const originLoaded = useRef(false);
   const input = useRef<HTMLTextAreaElement>(null),
     searchRef = useRef<HTMLInputElement>(null);
   const refresh = useCallback(async () => {
@@ -105,6 +107,12 @@ function App() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, []);
+  useEffect(() => {
+    if (data.version && !originLoaded.current) {
+      setOrigin(data.bridge.preferredOrigin);
+      originLoaded.current = true;
+    }
+  }, [data.version, data.bridge.preferredOrigin]);
   const call = async (r: Request) => {
     try {
       setError("");
@@ -723,7 +731,9 @@ function App() {
                   <p>
                     A temporary connection gets a new URL when restarted. For a
                     stable connection, route your HTTPS domain to this
-                    computer’s port 40671 and enter its origin.
+                    computer’s port 40671 and enter its origin. Stable
+                    connections reconnect when CHAI opens; tasks stay paused
+                    after a restart.
                   </p>
                   <input
                     aria-label="Stable HTTPS origin"

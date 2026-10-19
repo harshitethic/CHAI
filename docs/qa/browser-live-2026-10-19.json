@@ -1,0 +1,76 @@
+{
+  "date": "2026-10-19",
+  "provider": "Normal ChatGPT browser, 6 High visibly selected",
+  "transport": "Authenticated CHAI MCP plugin",
+  "goal": "Create chai-browser-proof.txt containing exactly: CHAI runs through normal ChatGPT. Verify its actual content. Use only that new file in the selected disposable workspace.",
+  "state": "DONE",
+  "rounds": 2,
+  "roleCalls": 7,
+  "report": {
+    "summary": "PASS. In the selected disposable workspace, an approved initial listing returned no entries. An approved write created only './chai-browser-proof.txt' (before: null) with exact content 'CHAI runs through normal ChatGPT.'. A subsequent approved read returned precisely the same complete string, with SHA-256 899a23290d421f15cf5ff5feb9568daa5635ef1fe62e3e9ef991b49ed2939e1d, matching the supplied file snapshot. Reviewer verdict: pass, with no issues. The observed actions were one listing, one file creation, and one verification read; no unrelated changes are evidenced.",
+    "limitations": [
+      "Verification is limited to the supplied CHAI execution evidence and Reviewer verdict; no independent external filesystem audit or additional tests were performed."
+    ]
+  },
+  "steps": [
+    {
+      "idx": 0,
+      "state": "SUCCEEDED",
+      "output": "{\"entries\":[]}"
+    },
+    {
+      "idx": 1,
+      "state": "SUCCEEDED",
+      "output": "Wrote chai-browser-proof.txt\n--- before\n(new file)\n+++ after\nCHAI runs through normal ChatGPT."
+    },
+    {
+      "idx": 2,
+      "state": "SUCCEEDED",
+      "output": "{\"content\":\"CHAI runs through normal ChatGPT.\",\"hash\":\"899a23290d421f15cf5ff5feb9568daa5635ef1fe62e3e9ef991b49ed2939e1d\"}"
+    }
+  ],
+  "roles": [
+    {
+      "role": "manager",
+      "phase": "assignment",
+      "status": "ANSWERED",
+      "created": "2026-10-19T08:31:57.755Z"
+    },
+    {
+      "role": "builder",
+      "phase": "proposal",
+      "status": "ANSWERED",
+      "created": "2026-10-19T08:35:06.087Z"
+    },
+    {
+      "role": "reviewer",
+      "phase": "independent-review",
+      "status": "ANSWERED",
+      "created": "2026-10-19T08:36:37.803Z"
+    },
+    {
+      "role": "manager",
+      "phase": "assignment",
+      "status": "ANSWERED",
+      "created": "2026-10-19T08:37:05.606Z"
+    },
+    {
+      "role": "builder",
+      "phase": "proposal",
+      "status": "ANSWERED",
+      "created": "2026-10-19T08:37:33.133Z"
+    },
+    {
+      "role": "reviewer",
+      "phase": "independent-review",
+      "status": "ANSWERED",
+      "created": "2026-10-19T08:38:38.358Z"
+    },
+    {
+      "role": "manager",
+      "phase": "final-report",
+      "status": "ANSWERED",
+      "created": "2026-10-19T08:38:58.506Z"
+    }
+  ]
+}

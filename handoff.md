@@ -2,31 +2,32 @@
 
 ## Current implementation — 2026-10-19
 
-The required provider is the normal signed-in ChatGPT website with 6 High selected in each role conversation. Local inference and the abandoned OAuth/Responses inference adapter have been removed. Never substitute either for this requirement.
+Normal signed-in ChatGPT with 6 High is the required and tested provider. Local inference and the abandoned model-inference OAuth/Responses adapter are removed.
 
-CHAI now supplies an authenticated MCP tool server. ChatGPT receives a persistent role job through its visible composer, fetches the job with chai_get_job, and returns schema-validated JSON with chai_submit_result. Outputs are not scraped from the page. The MCP OAuth pairing grants access to CHAI's PC tools only; it does not authorize model inference or extract ChatGPT credentials.
+CHAI sends job IDs/roles through visible ChatGPT input controls. Its installed MCP plugin fetches context and returns schema-validated results. No assistant text, cookies or private model endpoints are scraped. MCP OAuth authorizes CHAI PC tools only.
 
-Kali validation: typecheck, lint, build, 26 tests, native Electron E2E and SIGKILL recovery passed. Four new tests exercise real HTTP MCP, PKCE/consent/token controls, rejected/canceled jobs, and an approval-gated real file cycle. Scripted test answers are fixtures, not live-model evidence.
+Two real three-role tasks passed on Kali: a new-file task and an existing-file edit, each using seven actual ChatGPT role calls across two rounds. The installed AppImage retained pairing, conversation links and a pending plan across a normal app restart, then completed the edit after renewed approval.
 
-Live evidence: the CHAI plugin was created in the user's normal ChatGPT account; its actual tool pairing and authenticated MCP discovery succeeded. 6 High was observed in the browser. A live three-role file task is now under test; completion is not yet established. The public installer is still the older v0.1.0-alpha.1.
+Version 0.2.0-alpha.1 is built and installed on Kali. Typecheck, lint, 30 tests, native UI, SIGKILL recovery, AppImage extraction-mode E2E and dependency audit (zero vulnerabilities) pass. Both AppImage and amd64 Debian packages are built; AppImage is the launch-tested installed artifact. Whole-PC reboot is still unverified.
 
 ## Locations
 - Public source: https://github.com/harshitethic/CHAI
 - Implementation: /home/kali/Projects/CHAI on Kali.
 - Publishing checkout: /Users/harshitethic/Projects/CHAI on the user's Mac; use its existing gh authentication, never copy credentials.
 - Private runtime data: /home/kali/.config/chai-desktop. Browser partition persist:chai-chatgpt. Do not inspect cookies or credential stores.
-- Installed launcher still points to v0.1.0-alpha.1. Do not call that the browser-bridge release.
+- Installed launcher points to v0.2.0-alpha.1. The previous executable and launcher backups are retained.
 
-## Active verification
-CHAI is on the right monitor. The private .qa/control-browser-bridge.mjs harness operates the real app and inspects visible browser controls only. A disposable task writes chai-browser-proof.txt under .qa/live-browser-workspace. Job inputs contain only ID/role; context and results travel over authenticated MCP.
-The development quick tunnel is kept alive independently while the app restarts, with the same URL passed as stableOrigin. Its process and URL are private operational details in .qa; do not commit browser screenshots or session data.
+## Verified live results
+- New file: chai-browser-proof.txt = CHAI runs through normal ChatGPT.
+- After installed-app restart and approved existing-file edit: CHAI recovered and verified through normal ChatGPT.
+- Both tasks reached DONE after independent review and manager reporting. Actual file hashes and role phases are in docs/qa/browser-live-2026-10-19.json and docs/qa/browser-recovery-2026-10-19.json.
+- The same development tunnel was intentionally kept running during app restart; this does not establish whole-PC reboot continuity.
+- Private .qa/control-browser-bridge.mjs controls the installed real application. .qa contains private browser screenshots and must never be committed.
 
-## Next actions
-1. Finish the live file task through all four role phases and check the actual file/evidence.
-2. Verify interruption/resume of pending browser jobs without duplicate file effects.
-3. Fix discovered browser/transport bugs, update meaningful tests and rerun required gates.
-4. Build, install and smoke-test a new version before publishing it.
-5. Resolve persistent HTTPS transport and arrange a safe whole-PC reboot test.
-6. Continue the original backlog for broader terminal/desktop/browser capabilities.
+## Remaining work
+1. Publish the versioned CI-tested release and verify its downloadable asset.
+2. Resolve a persistent user-controlled HTTPS origin for reboot-stable pairing, or document reconnecting a newly created temporary URL.
+3. Arrange a safe whole-PC reboot after other work is saved; verify task history, login, tools and fresh task execution afterward.
+4. Implement the broader original backlog: agent-driven browser/desktop actions, general approved shell workflows and broader file management. Current tools remain bounded and honest.
 
-Do not claim full completion from fixtures or a plugin connection alone. The source follows the normal ChatGPT browser requirement; earlier local/OAuth-inference attempts are abandoned and retained only in git history.
+The core browser-role loop is functional, but the full original project is not complete. Do not equate an alpha release with all acceptance checks. Do not reinstall a local LLM, add model inference OAuth/API, or replace the browser workflow with manual JSON handoff.

@@ -34,4 +34,5 @@ jobs:
         run: |
           cd release
           sha256sum *.AppImage *.deb > SHA256SUMS
-          gh release create v0.1.0-alpha.1 *.AppImage *.deb SHA256SUMS --target "$GITHUB_SHA" --prerelease --title 'CHAI 0.1.0 alpha 1 — Local task engine' --notes-file ../docs/RELEASE_ALPHA.md
+          version=$(node -p "require('../package.json').version")
+          gh release create "v$version" *.AppImage *.deb SHA256SUMS --target "$GITHUB_SHA" --prerelease --title "CHAI $version — ChatGPT browser agents" --notes-file ../docs/RELEASE_BROWSER_ALPHA.md

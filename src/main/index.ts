@@ -100,8 +100,7 @@ async function remoteWindow(key: string, url: string, provider: boolean) {
     return;
   }
   const win = new BrowserWindow({
-    width: 1100,
-    height: 800,
+    ...main.getBounds(),
     title: provider
       ? `CHAI ${key} · normal ChatGPT`
       : "CHAI · Isolated browser",
@@ -192,7 +191,7 @@ async function remoteWindow(key: string, url: string, provider: boolean) {
       message: "This page could not load",
       detail:
         String(e) +
-        "\nChatGPT remains manual. Use the external-browser option if embedded sign-in is blocked.",
+        "\nThe browser role is paused until its page is available. Your task checkpoints remain saved.",
     });
   }
 }
@@ -214,7 +213,7 @@ async function deliverBrowserJob(role: Role, id: string, signal: AbortSignal) {
       const editor = document.querySelector('[contenteditable="true"][aria-label="Ask ChatGPT"], #prompt-textarea');
       const buttons = [...document.querySelectorAll('button')];
       const high = buttons.some(b => /(?:GPT[- ]?)?6\\s+High/i.test(b.innerText || b.getAttribute('aria-label') || ''));
-      if (!editor || !high) return false;
+      if (!editor || !high || buttons.some(b => b.getAttribute("aria-label") === "Stop")) return false;
       if (editor.textContent.trim()) return false;
       editor.focus(); return true;
     })()`);
@@ -444,6 +443,11 @@ app
             return false;
           store.db.exec("BEGIN");
           try {
+            store.db
+              .prepare(
+                "DELETE FROM browser_delivery WHERE id IN (SELECT id FROM browser_jobs WHERE taskId=?)",
+              )
+              .run(req.id);
             for (const table of [
               "events",
               "effects",
@@ -634,6 +638,18 @@ app
       }
     });
     void main.loadFile(join(__dirname, "index.html"));
+    const savedOrigin = store.setting("bridge-origin");
+    if (savedOrigin)
+      void toolRuntime
+        .start(savedOrigin)
+        .catch((error) =>
+          store.event(
+            "host",
+            "manager",
+            "BRIDGE_CONNECT_FAILED",
+            String(error),
+          ),
+        );
     main.on("close", () => {
       for (const t of store.tasks()) engine.pause(t.id);
       for (const win of windows.values()) win.close();
@@ -645,6 +661,6 @@ app
   });
 app.on("window-all-closed", () => app.quit());
 app.on("before-quit", () => {
-  void toolRuntime?.stop();
+  void toolRuntime?.shutdown();
   engine?.gateway.stop();
 });

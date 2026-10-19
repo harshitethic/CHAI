@@ -1,0 +1,80 @@
+{
+  "date": "2026-10-19",
+  "version": "0.2.0-alpha.1",
+  "runtime": "Installed AppImage on Kali",
+  "provider": "Normal ChatGPT browser, 6 High",
+  "state": "DONE",
+  "goal": "Read the existing chai-browser-proof.txt in the selected disposable workspace, then replace only that file with exactly: CHAI recovered and verified through normal ChatGPT. Verify the actual resulting content. Do not modify any other file.",
+  "rounds": 2,
+  "roleCalls": 7,
+  "report": {
+    "summary": "PASS. CHAI's recorded approved operations show that the existing 'chai-browser-proof.txt' in the selected disposable workspace was read with exact content 'CHAI runs through normal ChatGPT.' (SHA-256 899a23290d421f15cf5ff5feb9568daa5635ef1fe62e3e9ef991b49ed2939e1d). A successful hash-guarded write replaced only that relative-path file with exactly 'CHAI recovered and verified through normal ChatGPT.'. A separate successful post-write read verified the complete resulting content as exactly that target string (SHA-256 dd784e1590d46b7cd1e1be4a4371991ee670e1ccfd3190ddcd943c2279ce30b1). Reviewer verdict: pass, with no issues. The evidence records no other file operations.",
+    "limitations": [
+      "Findings rely on the supplied CHAI operation records, file snapshot and Reviewer verdict; no independent filesystem audit or additional tests were performed.",
+      "The evidence shows no unrelated file operations, but cannot independently prove the absence of external modifications outside the recorded CHAI actions."
+    ]
+  },
+  "actualContent": "CHAI recovered and verified through normal ChatGPT.",
+  "actualSha256": "dd784e1590d46b7cd1e1be4a4371991ee670e1ccfd3190ddcd943c2279ce30b1",
+  "restart": {
+    "tested": "Normal application restart at pending approval",
+    "pairingRetained": true,
+    "completedRoleCallsBeforeAndAfter": 2,
+    "approvalRevoked": true,
+    "wholePcReboot": false
+  },
+  "steps": [
+    {
+      "idx": 0,
+      "state": "SUCCEEDED",
+      "output": "{\"content\":\"CHAI runs through normal ChatGPT.\",\"hash\":\"899a23290d421f15cf5ff5feb9568daa5635ef1fe62e3e9ef991b49ed2939e1d\"}"
+    },
+    {
+      "idx": 1,
+      "state": "SUCCEEDED",
+      "output": "Wrote chai-browser-proof.txt\n--- before\nCHAI runs through normal ChatGPT.\n+++ after\nCHAI recovered and verified through normal ChatGPT."
+    },
+    {
+      "idx": 2,
+      "state": "SUCCEEDED",
+      "output": "{\"content\":\"CHAI recovered and verified through normal ChatGPT.\",\"hash\":\"dd784e1590d46b7cd1e1be4a4371991ee670e1ccfd3190ddcd943c2279ce30b1\"}"
+    }
+  ],
+  "roles": [
+    {
+      "role": "manager",
+      "phase": "assignment",
+      "status": "ANSWERED"
+    },
+    {
+      "role": "builder",
+      "phase": "proposal",
+      "status": "ANSWERED"
+    },
+    {
+      "role": "reviewer",
+      "phase": "independent-review",
+      "status": "ANSWERED"
+    },
+    {
+      "role": "manager",
+      "phase": "assignment",
+      "status": "ANSWERED"
+    },
+    {
+      "role": "builder",
+      "phase": "proposal",
+      "status": "ANSWERED"
+    },
+    {
+      "role": "reviewer",
+      "phase": "independent-review",
+      "status": "ANSWERED"
+    },
+    {
+      "role": "manager",
+      "phase": "final-report",
+      "status": "ANSWERED"
+    }
+  ]
+}

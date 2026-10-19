@@ -20,7 +20,8 @@ export class BrowserBridge implements AgentAdapter {
       id TEXT PRIMARY KEY, callKey TEXT NOT NULL, taskId TEXT NOT NULL,
       role TEXT NOT NULL, body TEXT NOT NULL, response TEXT,
       status TEXT NOT NULL, created TEXT NOT NULL);
-      CREATE INDEX IF NOT EXISTS browser_jobs_call ON browser_jobs(callKey);`);
+      CREATE INDEX IF NOT EXISTS browser_jobs_call ON browser_jobs(callKey);
+      CREATE TABLE IF NOT EXISTS browser_delivery(id TEXT PRIMARY KEY,sent TEXT NOT NULL);`);
   }
   jobs() {
     return this.store.db
@@ -41,16 +42,18 @@ export class BrowserBridge implements AgentAdapter {
       throw new ProviderUnavailable(
         "Browser request lacks a persistent task identity.",
       );
-    if (!this.connected)
-      throw new ProviderUnavailable(
-        "Connect the CHAI tools plugin to normal ChatGPT first.",
-      );
     signal.throwIfAborted();
     let row = this.store.db
       .prepare(
         "SELECT * FROM browser_jobs WHERE callKey=? AND status!='CANCELED' ORDER BY rowid DESC LIMIT 1",
       )
       .get(request.callId);
+    if (row?.status === "ANSWERED") return JSON.parse(String(row.response));
+    if (!this.connected)
+      throw new ProviderUnavailable(
+        "Connect the CHAI tools plugin to normal ChatGPT first.",
+      );
+
     if (!row) {
       const id = randomUUID();
       this.store.db
@@ -78,7 +81,15 @@ export class BrowserBridge implements AgentAdapter {
     const id = String(row.id);
     if (row.status === "ANSWERED") return JSON.parse(String(row.response));
     try {
-      if (this.deliver) await this.deliver(request.role, id, signal);
+      const delivered = this.store.db
+        .prepare("SELECT 1 FROM browser_delivery WHERE id=?")
+        .get(id);
+      if (this.deliver && !delivered) {
+        await this.deliver(request.role, id, signal);
+        this.store.db
+          .prepare("INSERT OR IGNORE INTO browser_delivery VALUES(?,?)")
+          .run(id, new Date().toISOString());
+      }
       const deadline = Date.now() + 10 * 60 * 1000;
       while (Date.now() < deadline) {
         signal.throwIfAborted();
@@ -131,8 +142,13 @@ export class BrowserBridge implements AgentAdapter {
     };
   }
   answer(id: string, role: Role, value: unknown) {
-    const job = this.get(id, role);
-    const parsed = validateRoleOutput(job.phase, value);
+    const existing = this.store.db
+      .prepare("SELECT * FROM browser_jobs WHERE id=?")
+      .get(z.uuid().parse(id));
+    if (!existing || existing.role !== role || existing.status === "CANCELED")
+      throw Error("No active job for this role.");
+    const phase = (JSON.parse(String(existing.body)) as AgentRequest).phase;
+    const parsed = validateRoleOutput(phase, value);
     const encoded = JSON.stringify(parsed);
     if (encoded.length > 120000) throw Error("Answer is too large.");
     const row = this.store.db
@@ -146,6 +162,7 @@ export class BrowserBridge implements AgentAdapter {
         throw Error("This job already has a different accepted answer.");
       return { accepted: true, duplicate: true };
     }
+    this.get(id, role);
     this.store.db
       .prepare(
         "UPDATE browser_jobs SET response=?,status='ANSWERED' WHERE id=? AND status='WAITING'",

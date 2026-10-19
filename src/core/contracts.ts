@@ -97,6 +97,7 @@ export interface Snapshot {
   workspace: string | null;
   version: string;
   bridge: {
+    preferredOrigin: string;
     state: string;
     error: string | null;
     url: string | null;

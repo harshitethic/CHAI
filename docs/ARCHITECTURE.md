@@ -1,5 +1,7 @@
 # CHAI Architecture — Implementation Blueprint
 
+> This is the original architecture specification. The current shipped/source boundaries are documented in [IMPLEMENTATION.md](IMPLEMENTATION.md). Its historical local/mock/API-provider options are superseded by the user's normal-ChatGPT-only requirement.
+
 ## Design principle
 
 **Chat views are user/model interfaces; the local orchestrator is the system of record.** No browser tab owns privileged tools, work state, approval policies or retry logic. A browser timeout must never delete the queue. No claim that a tab can act as a full autonomous model endpoint when provider support is absent.

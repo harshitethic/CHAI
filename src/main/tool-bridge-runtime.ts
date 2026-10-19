@@ -97,6 +97,7 @@ export class ToolBridgeRuntime {
       }
       if (generation !== this.generation) return;
       server.configure(origin);
+      this.bridge.store.setting("bridge-origin", stableOrigin ?? "");
       this.url = server.publicUrl + "/mcp";
       this.state = "ready";
     } catch (error) {
@@ -107,7 +108,7 @@ export class ToolBridgeRuntime {
       throw error;
     }
   }
-  private async dispose() {
+  private async dispose(revoke = true) {
     this.bridge.connected = false;
     const tunnel = this.tunnel,
       server = this.server;
@@ -115,9 +116,15 @@ export class ToolBridgeRuntime {
     this.server = undefined;
     this.url = null;
     tunnel?.kill("SIGTERM");
-    await server?.close();
+    await server?.close(revoke);
+  }
+  async shutdown() {
+    ++this.generation;
+    this.state = "stopped";
+    await this.dispose(false);
   }
   async stop() {
+    this.bridge.store.setting("bridge-origin", "");
     ++this.generation;
     this.state = "stopped";
     this.error = null;
@@ -125,6 +132,7 @@ export class ToolBridgeRuntime {
   }
   snapshot() {
     return {
+      preferredOrigin: this.bridge.store.setting("bridge-origin") ?? "",
       state: this.state,
       error: this.error,
       url: this.url,

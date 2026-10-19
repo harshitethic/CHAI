@@ -7,7 +7,11 @@ A Chromium-based Linux desktop application with a persistent Manager, Builder an
 ## Current status
 CHAI uses normal ChatGPT browser conversations for reasoning. Choose **6 High** in each role window. A custom ChatGPT plugin connects those conversations to CHAI's persistent job/result tools. There is no local model or model-inference API adapter.
 
-The MCP connection has been paired and authenticated with the real ChatGPT browser on Kali. The complete live three-role acceptance test is still in progress. The published v0.1.0-alpha.1 installer predates this integration.
+**Live browser tasks work on Kali.** Manager, Builder and Reviewer completed both a new-file task and an existing-file edit using real 6 High ChatGPT conversations. The installed app retained pairing and its plan across restart, then resumed with fresh approval.
+
+The browser-agent build is **0.2.0-alpha.1**. See [releases](https://github.com/harshitethic/CHAI/releases) for CI-tested packages and checksums. Full-system reboot and the broader original automation backlog remain unfinished.
+
+![Actual verified browser task in CHAI](docs/qa/browser-verified-task.png)
 
 ## Connect
 1. Open Connections and start the tool connection.
@@ -40,7 +44,7 @@ npm start
 npm run package
 ```
 
-26 tests, native Electron UI and SIGKILL recovery pass on Kali. The MCP integration tests use explicitly scripted answers and real HTTP/file operations; they do not prove live model reasoning.
+30 tests, native Electron UI, SIGKILL recovery and installed AppImage E2E pass on Kali. The MCP integration tests use explicitly scripted answers and real HTTP/file operations; they do not prove live model reasoning.
 
 Task data and tool-access records are in an owner-only SQLite directory, not encrypted. ChatGPT login remains in its isolated Chromium profile. No session cookies or assistant text are extracted.
 

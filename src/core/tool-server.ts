@@ -225,9 +225,9 @@ export class ToolServer {
     );
     return mcp;
   }
-  async close() {
+  async close(revoke = true) {
     this.bridge.connected = false;
-    this.auth?.disconnectAll();
+    if (revoke) this.auth?.disconnectAll();
     this.http.closeAllConnections();
     await new Promise<void>((resolve) => this.http.close(() => resolve()));
   }
