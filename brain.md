@@ -2,7 +2,7 @@
 
 **Project name:** CHAI  
 **Expanded:** Chat Has Actions Inside  
-**Tagline:** Your chatbot. Now with hands.  
+**Tagline:** Stop chatting. Start doing.
 **Maintainer target:** GitHub user `harshitethic`  
 **Target repository:** `harshitethic/CHAI` (verify existence)  
 **Primary machine:** user-authorized Kali Linux desktop, likely multi-monitor  
@@ -57,3 +57,7 @@ A ChatGPT browser chat is conversational; it normally cannot reliably persist mu
 ## Rules for the next engineer/agent
 
 Read `handoff.md` first. Reconcile the filesystem and GitHub before proceeding. Do not overwrite existing code based on the spec alone. Continue from the last objectively verified milestone. Report any mismatch between docs and running code. Preserve repo work unrelated to CHAI. Commit and push progress with real checks when credentials are available. No blind high-risk actions.
+
+## Verified implementation checkpoint — 2026-10-19
+
+Source exists at https://github.com/harshitethic/CHAI; Kali checkout `/home/kali/Projects/CHAI`; installed launcher `/home/kali/.local/bin/chai`. Native source, packaged binary, AppImage extraction mode, real X11 file cycle, isolated ChatGPT origin and controlled desktop/browser tools have been tested. App restart and SIGKILL recovery pass; full reboot and manual sign-in do not yet have evidence. Three-role orchestration is deterministic, with optional Ollama plan generation. No live local model was found. See handoff.md and docs/QA_2026-10-19.md.

@@ -1,6 +1,6 @@
 # TASKS — Execution Backlog
 
-**Status:** Specification bundle created; implementation NOT STARTED by this ZIP. An executing coding agent must update the checkboxes with verified evidence.
+**Status:** Working local-engine alpha implemented, installed and tested on Kali. The original full-product backlog below remains a future scope contract; completed alpha evidence is recorded in docs/QA_2026-10-19.md. Do not mistake the full backlog for shipped autonomous ChatGPT functionality.
 
 Priority: P0 must be addressed for a responsible prototype; P1 before stable public release; P2 afterwards.
 
@@ -82,3 +82,15 @@ Priority: P0 must be addressed for a responsible prototype; P1 before stable pub
 ## Maintenance protocol
 
 For a checked item add proof in `handoff.md` or the appropriate test report: commit + command/test result + screenshot when UI-related. Do not bulk-check tasks based on a generated scaffold.
+
+## Alpha implementation evidence (2026-10-19)
+
+- [x] Native Electron shell with original dark/coral UI, six working navigation screens, workspace selection and actual task history.
+- [x] SQLite WAL, exact-plan approvals, expiration, real file/terminal execution, deterministic three-role verification, logs, pause/stop and recovery.
+- [x] 12 core tests, native E2E, installed AppImage extraction-mode E2E, real X11 desktop smoke and controlled host-tool tests passed.
+- [x] Real SIGKILL recovery retained completed write and refused ambiguous command replay.
+- [x] AppImage and Debian packages built; user-only installer installed CHAI without system changes.
+- [x] Zero npm audit vulnerabilities on Kali after dependency fixes.
+- [ ] Live local-model inference and autonomous reasoning loop. No local model is installed/detected.
+- [ ] User manual ChatGPT login and whole-system reboot acceptance.
+- [ ] Final GitHub CI/release outcome: see handoff.md for latest remote evidence.

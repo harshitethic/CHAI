@@ -2,6 +2,8 @@
 
 **Stop chatting. Start doing.**
 
+![CHAI running on Kali](screenshots/home.png)
+
 A local-first Electron desktop workspace for Linux: preview a plan, approve real file or terminal actions, and inspect the evidence in three role panels.
 
 > **Development alpha.** ChatGPT is interactive/manual only. Opening three views does not create API access or bypass service limits. Offline recipes are deterministic; the reviewer checks recorded evidence, not general semantic correctness. See `handoff.md` for the exact verified build status.
@@ -15,6 +17,10 @@ A local-first Electron desktop workspace for Linux: preview a plan, approve real
 - ChatGPT windows with an isolated shared Chromium partition, manual sign-in and no credential extraction. Structured JSON handoff to local execution.
 - Optional Ollama plan generation at localhost. An installed model is required; no model is bundled or downloaded automatically.
 - Separately approved browser navigation/click/screenshot and X11 desktop click/capture controls. These are human-triggered tools, not an autonomous visual agent.
+
+## Install the alpha
+
+Download the Linux package from [Releases](https://github.com/harshitethic/CHAI/releases). On systems without FUSE 2, run the AppImage with `APPIMAGE_EXTRACT_AND_RUN=1`. For a user-only app-menu installation: `sh scripts/install-local.sh /path/to/CHAI-0.1.0-alpha.1.AppImage`. No system package changes or autostart are made.
 
 ## Run from source
 

@@ -1,6 +1,6 @@
 # CHECKS — Verification Gates
 
-All items are **UNVERIFIED** until the coding agent has actually run the corresponding test. A checked box requires command output, artifact, commit or screenshot evidence in `handoff.md`.
+This file retains the full-product acceptance rubric. Verified alpha scope is recorded in docs/QA_2026-10-19.md and handoff.md; unchecked broader items are not claimed complete.
 
 ## A. Product truthfulness
 - [ ] CHAI launches as a native Chromium/Electron **Linux app** (not only `npm run dev` in a browser).
@@ -71,3 +71,15 @@ All items are **UNVERIFIED** until the coding agent has actually run the corresp
 8. If provider-login check is possible, open official ChatGPT site; manually sign in and verify session remains in restricted pane without secrets being exported.
 
 **Pass condition:** Every step backed by observed result and recorded in HANDOFF. A broken, simulated or omitted step fails the gate.
+
+## Executed alpha gates
+
+- [x] Actual native Linux/Electron launch, actual file action, approval before action and persisted task identity.
+- [x] Sandbox/context isolation/no Node confirmed for local and remote views; remote page has no CHAI bridge.
+- [x] Traversal, symlink, hardlink, secret-name, oversized-file and forged schema rejection.
+- [x] Stop terminates process group and blocks queued action; approval expiration tested.
+- [x] SQLite reopen, renderer reload, application restart and hard process kill recovery tested.
+- [x] Packaged executable and installed AppImage extraction mode tested on Kali.
+- [x] Official ChatGPT URL opened with no credentials read; sign-in still manual-pending.
+- [x] All dependency audit entries resolved on tested Kali lockfile.
+- [ ] No full-system reboot claim; no live local-model or autonomous ChatGPT claim.
