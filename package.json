@@ -14,7 +14,7 @@
     "lint": "eslint src tests",
     "test": "tsx --test tests/core.test.ts",
     "test:e2e": "node tests/electron.mjs",
-    "package": "npm run build && electron-builder --linux AppImage deb",
+    "package": "npm run build && electron-builder --linux AppImage deb --publish never",
     "check": "npm run typecheck && npm run lint && npm test && npm run build",
     "format": "prettier --write src tests scripts/*.mjs package.json tsconfig.json eslint.config.mjs",
     "test:crash": "node tests/crash.mjs"
