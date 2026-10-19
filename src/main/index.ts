@@ -371,6 +371,7 @@ app
         },
       ]),
     );
+    engine.gateway.gitConsent = confirm;
     computer = new ComputerTools(store, engine.gateway, () => main, confirm);
     engine.gateway.computer = (task, action, signal) =>
       computer.execute(task, action, signal);

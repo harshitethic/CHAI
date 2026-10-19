@@ -81,6 +81,7 @@ const boundary =
   "For run, explicitly list required relative file paths in files; only those files are copied to read-only /workspace. Use /tmp for temporary outputs. Host home, secrets, browser sessions and network are unavailable. " +
   "Example: {tool:'run',program:'python3',args:['check.py'],files:['check.py'],timeoutSeconds:20}. Python isolated mode: add /workspace to sys.path inside scripts that import sibling modules. Node uses jitless mode. " +
   "mkdir creates workspace directories; search finds literal text in scoped files. browser and desktop tools require the task capabilities shown in input. browser preview opens local HTML; open accepts authorized HTTPS origins. observe returns current text, controls and screenshot. click/type/key require snapshot and ref from a recent observation. Browser refs may be reused for a short batch of clicks when the document and targets remain unchanged (last eight observations, ten-minute expiry); every input returns a new observation. Desktop actions require its current screenshot snapshot and window-relative coordinates. Never invent refs or coordinates. Make a new observe step if context is stale. Screenshots are returned by chai_get_job. " +
+  "git status/diff inspect selected existing text file snapshots against HEAD. git commit requires paths and message; CHAI shows the exact diff for local confirmation and creates a dedicated local review branch without changing the current branch or staging area. No push or deletion; initial commits and linked worktrees are unsupported. Do not claim a commit without its returned branch and hash. " +
   "No host shell, deletion or package downloads. Sandbox outputs are evidence, not host file changes. Nonzero exitCode or termination indicates a failed check; repair and rerun. " +
   "The local policy controls authorization: an existing user workspace grant permits routine actions without repeated approval. You cannot grant or broaden permissions. Do not return reasoning traces; give concise decisions and evidence-based summaries.";
 
@@ -222,7 +223,8 @@ export class Coordinator {
           action?.tool === "mkdir" ||
           action?.tool === "search" ||
           action?.tool === "browser" ||
-          action?.tool === "desktop"
+          action?.tool === "desktop" ||
+          action?.tool === "git"
         )
           output = JSON.parse(String(row.output));
         if (action?.tool === "write")

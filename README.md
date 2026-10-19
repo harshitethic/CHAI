@@ -15,7 +15,9 @@ CHAI uses normal ChatGPT browser conversations for reasoning. Choose **6 High** 
 
 ![Counter page verified through CHAI browser actions](docs/qa/browser-counter-preview.jpg)
 
-The computer-tools build is **0.4.0-alpha.1**. See [releases](https://github.com/harshitethic/CHAI/releases) for CI-tested packages and checksums. Full-system reboot and the broader original automation backlog remain unfinished.
+**0.5 live verification:** ChatGPT repaired a Python function, proved the unchanged test passed, inspected the selected diff and created a native-confirmed review commit. HEAD and the staging index stayed unchanged; an unrelated staged edit was preserved. [Evidence](docs/qa/git-live-2026-10-19.json).
+
+The review-commit build is **0.5.0-alpha.1**. See [releases](https://github.com/harshitethic/CHAI/releases) for CI-tested packages and checksums. Full-system reboot and the broader original automation backlog remain unfinished.
 
 ![Actual verified browser task in CHAI](docs/qa/browser-verified-task.png)
 
@@ -26,7 +28,7 @@ The computer-tools build is **0.4.0-alpha.1**. See [releases](https://github.com
 4. Open Manager, Builder and Reviewer. Select 6 High and enable CHAI Desktop in the conversations.
 5. Choose a dedicated workspace, choose **Autonomous in this workspace**, and start the task. Starting grants reads, edits and isolated tests for that task. Use **Review each plan** if you prefer per-round approval.
 
-Enable browser access separately to preview project pages or allow exact HTTPS origins. Select a disposable X11 application window separately for desktop screenshots and input. These observations are shared with ChatGPT.
+Enable browser access separately to preview project pages or allow exact HTTPS origins. Select a disposable X11 application window separately for desktop screenshots and input. These observations are shared with ChatGPT. Git commits always require a separate native confirmation showing the exact selected-file patch, message and review branch.
 
 A temporary tunnel requires cloudflared and gets a new URL when recreated. To retain the connection across restarts, provide an HTTPS origin forwarded to loopback port 40671. A whole-PC reboot with persistent transport is not yet verified. Provider limits still apply; CHAI pauses instead of rotating sessions to bypass them.
 
@@ -39,12 +41,13 @@ A temporary tunnel requires cloudflared and gets a new URL when recreated. To re
 - Failed test evidence returns to Reviewer/Builder for repair; autonomous tasks allow up to 12 rounds, 60 role calls and 144 actions.
 - Agent-driven isolated browser previews, observed-element clicks/typing/keys, screenshots, authorized HTTPS origins and sensitive-action confirmations.
 - Selected-window X11 observations, clicks/typing/keys, screenshot coordinates and process/focus/geometry checks.
+- Selected-file Git diffs and locally confirmed review-branch commits. Current branch and staging index are preserved; no push, repository hooks or signing commands.
 - Charcoal interface, keyboard shortcuts, task search, role timelines and activity logs.
 
 The current gateway is bounded. Arbitrary whole-desktop control, network/package installation and host shell development tasks remain outside the current bounded tools. Sandbox commands can run generated code but cannot mutate host files. Model proposals cannot grant permissions. Existing tasks from removed inference adapters remain disabled.
 
 ## Development
-Requires modern Node.js/npm, Python 3, Bubblewrap (`/usr/bin/bwrap`) and Linux desktop libraries. Selected-window X11 control also requires xdotool and x11-utils. Sandboxed Node tests require `/usr/bin/node`. AppImage users must install these system dependencies; the Debian package declares them.
+Requires modern Node.js/npm, Python 3, Bubblewrap (`/usr/bin/bwrap`), Git and Linux desktop libraries. Selected-window X11 control also requires xdotool and x11-utils. Sandboxed Node tests require `/usr/bin/node`. AppImage users must install these system dependencies; the Debian package declares them.
 
 ```sh
 npm ci
@@ -56,7 +59,7 @@ npm start
 npm run package
 ```
 
-42 tests, browser interaction/X11 checks, native Electron UI, SIGKILL recovery and installed AppImage E2E pass on Kali. The MCP integration tests use explicitly scripted answers and real HTTP/file operations; they do not prove live model reasoning.
+50 tests, browser interaction/X11 checks, native Electron UI, SIGKILL recovery and installed AppImage E2E pass on Kali. The MCP integration tests use explicitly scripted answers and real HTTP/file operations; they do not prove live model reasoning.
 
 Selected workspace contents, task goals and execution evidence are sent to your ChatGPT conversations through the tool connection. Task data and tool-access records are in an owner-only SQLite directory, not encrypted. ChatGPT login remains in its isolated Chromium profile. No session cookies or assistant text are extracted.
 

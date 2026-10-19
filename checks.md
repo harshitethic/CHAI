@@ -1,13 +1,14 @@
 # CHECKS — Verification Gates
 
-## Latest status — 0.4.0-alpha.1, 2026-10-19
+## Latest status — 0.5.0-alpha.1, 2026-10-19
 
-The current implementation extends the verified normal-ChatGPT workflow with scoped agent-driven browser and selected-window X11 tools, screenshot evidence, mkdir and bounded search. Browser/window permissions are explicit task capabilities; workspace grants do not activate them. No inference API or local model was added.
+Selected-file Git inspection and native-confirmed local review commits are implemented. Commits use an isolated temporary index, preserve current HEAD and staging, and create a new task-specific branch without push. Git runs offline in Bubblewrap; hooks, clean filters, external diff helpers and signing are excluded from this commit path.
 
-Verification: 42 tests, typecheck/lint/build, browser interaction guards, real X11 capture/input, native UI with local preview, AppImage execution, SIGKILL recovery and zero-vulnerability dependency audit. The dedicated Kali HTTPS endpoint uses a persistent named tunnel with an enabled user service. Whole-PC reboot remains unverified and requires saving other work first.
+Verified: 50 automated tests, typecheck/lint/build, native approval/decline and actual commit, browser/X11 guards, crash recovery and zero-vulnerability audit. A real normal-ChatGPT task reached DONE after a baseline test failure, one-file fix, unchanged passing test, selected diff and approved commit: two rounds, seven role calls, one workspace grant and one native Git confirmation. HEAD and staging-index byte hash matched their baselines; an unrelated staged edit stayed untouched. Evidence: docs/qa/git-live-2026-10-19.json and docs/qa/git-confirmation.png.
 
-Current evidence and boundaries are in README.md, docs/RELEASE_BROWSER_ALPHA.md and docs/PRIVACY.md. Older entries below preserve the original backlog and historical milestones; unchecked historical items are not a current test report. General host shell/network/package installation, unrestricted file management and arbitrary desktop automation are not implemented.
+Release publication and downloaded-artifact installation are the remaining 0.5 delivery gates at this source commit; record their outcomes separately. Whole-PC reboot still needs a safe user-arranged restart window. Broader host shell/network/package installation, unrestricted file management, arbitrary desktop automation and unattended app startup remain outside this bounded alpha.
 
+Older entries below retain historical milestones and the original brief; they are not the current test report.
 
 ## Current implementation — 2026-10-19
 

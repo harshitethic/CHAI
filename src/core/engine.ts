@@ -160,6 +160,7 @@ export class Engine {
       "search",
       "browser",
       "desktop",
+      "git",
     ]);
     if (t.plan.actions.slice(t.cursor).some((a) => !allowed.has(a.tool)))
       return;
@@ -287,7 +288,8 @@ export class Engine {
           (a.tool === "command" ||
             a.tool === "run" ||
             a.tool === "browser" ||
-            a.tool === "desktop")
+            a.tool === "desktop" ||
+            a.tool === "git")
         )
           throw Error(
             "Interrupted action has unknown outcome; create a new task after inspecting evidence. It will not be replayed.",
@@ -367,17 +369,26 @@ export class Engine {
               ? await this.gateway.command(t.root, a, signal)
               : a.tool === "run"
                 ? JSON.stringify(await this.gateway.sandbox(t.root, a, signal))
-                : a.tool === "browser" || a.tool === "desktop"
-                  ? JSON.stringify(await this.executeComputer(t, a, signal))
-                  : JSON.stringify(
-                      await this.gateway.file(
+                : a.tool === "git"
+                  ? JSON.stringify(
+                      await this.gateway.git(
                         t.root,
-                        a.tool,
-                        a.path,
-                        a.tool === "search" ? { query: a.query } : {},
+                        a,
+                        "chai/" + id + "-" + idx,
                         signal,
                       ),
-                    );
+                    )
+                  : a.tool === "browser" || a.tool === "desktop"
+                    ? JSON.stringify(await this.executeComputer(t, a, signal))
+                    : JSON.stringify(
+                        await this.gateway.file(
+                          t.root,
+                          a.tool,
+                          a.path,
+                          a.tool === "search" ? { query: a.query } : {},
+                          signal,
+                        ),
+                      );
           this.store.event(
             id,
             "reviewer",

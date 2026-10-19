@@ -1,0 +1,147 @@
+{
+  "version": "0.5.0-alpha.1",
+  "date": "2026-10-19",
+  "taskId": "1348cf96-1d34-4cc2-8d5c-820562ad03f8",
+  "provider": "Normal signed-in ChatGPT, 6 High, persistent Manager/Builder/Reviewer via CHAI Desktop MCP",
+  "state": "DONE",
+  "rounds": 2,
+  "roleCalls": 7,
+  "actions": 7,
+  "workspaceGrants": 1,
+  "nativeGitConfirmations": 1,
+  "chatgptApprovalPromptsObserved": 2,
+  "chatgptApprovalNote": "Separate provider prompts were inspected. First was allowed once by the test operator; second resolved while being inspected, before an operator click succeeded. Native Git confirmation was separately inspected and allowed once.",
+  "baseline": {
+    "head": "a108b5586f7ebef2eccbf1f1724a0e31d4ae2d71",
+    "indexSha256": "975f6b026ff8d0ae8432ebd850d2b466e9b4c4a59744e922faa208477eae71a9"
+  },
+  "checks": {
+    "headUnchanged": true,
+    "indexByteHashUnchanged": true,
+    "committedFiles": [
+      "format_name.py"
+    ],
+    "unrelatedStagedEditPreserved": true,
+    "unchangedTestHash": "0b88ae67e805cf966f5bf77264ddcb57b3aee3e6d4608899dbe21794459941c1",
+    "pushed": false
+  },
+  "review": {
+    "verdict": "pass",
+    "summary": "The full CHAI evidence supports completion. Both original files were read. The unchanged original 'format_name.py' failed the isolated Python test with exitCode 1 and an AssertionError on surrounding whitespace. A single successful write changed only 'format_name.py' to `return ' '.join(part for part in (first.strip(), last.strip()) if part)`, which strips each input and joins nonempty parts correctly. The identical `python3 test_format_name.py` command, with both relative input files and 20-second timeout, then exited 0 and printed 'PASS: whitespace and empty names'. The test file SHA-256 remained 0b88ae67e805cf966f5bf77264ddcb57b3aee3e6d4608899dbe21794459941c1 across runs. The successful Git diff was scoped solely to 'format_name.py' and showed exactly that change. A successful CHAI Git commit operation scoped only to 'format_name.py' used the exact requested message 'Fix name formatting for whitespace and empty values' and returned local review branch 'chai/1348cf96-1d34-4cc2-8d5c-820562ad03f8-6' and commit 'd527db82243a43ead332a35aa416852da3b2c129', with pushed=false. Only the intended file write and scoped Git actions are evidenced; no test or unrelated.txt edits, branch switch, or push are shown. The successful commit result is recorded; no separate native-confirmation event is provided, so none is independently claimed.",
+    "issues": []
+  },
+  "report": {
+    "summary": "PASS \u2014 CHAI's recorded execution and independent Reviewer verdict confirm the requested correction and local review-branch commit. Both 'format_name.py' and 'test_format_name.py' were read. The untouched original implementation failed the isolated `python3 test_format_name.py` run (both files provided explicitly, 20-second timeout) with exitCode 1 and an AssertionError on surrounding whitespace. CHAI then wrote only 'format_name.py', changing the implementation to `return ' '.join(part for part in (first.strip(), last.strip()) if part)`, trimming both names and joining nonempty values with one space. The identical Python test command then returned exitCode 0 and 'PASS: whitespace and empty names'. The test file hash remained unchanged (SHA-256 0b88ae67e805cf966f5bf77264ddcb57b3aee3e6d4608899dbe21794459941c1). CHAI successfully inspected a Git diff scoped only to 'format_name.py'. A successful native CHAI Git commit action used only ['format_name.py'] and the exact message 'Fix name formatting for whitespace and empty values', returning local review branch 'chai/1348cf96-1d34-4cc2-8d5c-820562ad03f8-6', commit 'd527db82243a43ead332a35aa416852da3b2c129', and pushed=false. Reviewer verdict: pass with no issues. No edits to 'test_format_name.py' or 'unrelated.txt', branch switching, or pushing are shown by the provided actions.",
+    "limitations": [
+      "The Git commit succeeded according to CHAI's returned branch and commit hash, but the supplied evidence does not separately expose a native-confirmation event, so separate confirmation is not independently asserted.",
+      "The tests ran in CHAI's isolated offline Python sandbox with explicit input files; no external runtime, deployment or remote Git push was tested.",
+      "The absence of unrelated edits or branch switching is based on the supplied CHAI action evidence, not an independent audit of the entire Git workspace."
+    ]
+  },
+  "effects": [
+    {
+      "idx": 0,
+      "state": "SUCCEEDED",
+      "output": {
+        "content": "def format_name(first, last):\n    return first + ' ' + last\n",
+        "hash": "7d16820373708cf61342db627228024a3071c2b9a91660d0c82ef565843fcf7a"
+      }
+    },
+    {
+      "idx": 1,
+      "state": "SUCCEEDED",
+      "output": {
+        "content": "import sys\nsys.path.insert(0, '/workspace')\nfrom format_name import format_name\nassert format_name(' Ada ', ' Lovelace ') == 'Ada Lovelace'\nassert format_name('', ' Lovelace ') == 'Lovelace'\nassert format_name('Ada', '') == 'Ada'\nprint('PASS: whitespace and empty names')\n",
+        "hash": "0b88ae67e805cf966f5bf77264ddcb57b3aee3e6d4608899dbe21794459941c1"
+      }
+    },
+    {
+      "idx": 2,
+      "state": "SUCCEEDED",
+      "output": {
+        "exitCode": 1,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/workspace/test_format_name.py\", line 4, in <module>\n    assert format_name(' Ada ', ' Lovelace ') == 'Ada Lovelace'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n",
+        "termination": null,
+        "durationMs": 21,
+        "files": [
+          {
+            "path": "test_format_name.py",
+            "sha256": "0b88ae67e805cf966f5bf77264ddcb57b3aee3e6d4608899dbe21794459941c1"
+          },
+          {
+            "path": "format_name.py",
+            "sha256": "7d16820373708cf61342db627228024a3071c2b9a91660d0c82ef565843fcf7a"
+          }
+        ],
+        "isolation": "bubblewrap"
+      }
+    },
+    {
+      "idx": 3,
+      "state": "SUCCEEDED",
+      "output": "Wrote format_name.py\n--- before\ndef format_name(first, last):\n    return first + ' ' + last\n\n+++ after\ndef format_name(first, last):\n    return ' '.join(part for part in (first.strip(), last.strip()) if part)\n"
+    },
+    {
+      "idx": 4,
+      "state": "SUCCEEDED",
+      "output": {
+        "exitCode": 0,
+        "stdout": "PASS: whitespace and empty names\n",
+        "stderr": "",
+        "termination": null,
+        "durationMs": 9,
+        "files": [
+          {
+            "path": "test_format_name.py",
+            "sha256": "0b88ae67e805cf966f5bf77264ddcb57b3aee3e6d4608899dbe21794459941c1"
+          },
+          {
+            "path": "format_name.py",
+            "sha256": "f95b909766b3de5d2fae09af79dc6cea3695ee2c8ff3d821850fec1505d9e967"
+          }
+        ],
+        "isolation": "bubblewrap"
+      }
+    },
+    {
+      "idx": 5,
+      "state": "SUCCEEDED",
+      "output": {
+        "head": "a108b5586f7ebef2eccbf1f1724a0e31d4ae2d71",
+        "files": [
+          {
+            "path": "format_name.py",
+            "sha256": "f95b909766b3de5d2fae09af79dc6cea3695ee2c8ff3d821850fec1505d9e967",
+            "mode": "100644"
+          }
+        ],
+        "patch": "diff --git a/format_name.py b/format_name.py\nindex e638efa..cb52948 100644\n--- a/format_name.py\n+++ b/format_name.py\n@@ -1,2 +1,2 @@\n def format_name(first, last):\n-    return first + ' ' + last\n+    return ' '.join(part for part in (first.strip(), last.strip()) if part)\n",
+        "changed": true,
+        "isolation": "bubblewrap"
+      }
+    },
+    {
+      "idx": 6,
+      "state": "SUCCEEDED",
+      "output": {
+        "head": "a108b5586f7ebef2eccbf1f1724a0e31d4ae2d71",
+        "files": [
+          {
+            "path": "format_name.py",
+            "sha256": "f95b909766b3de5d2fae09af79dc6cea3695ee2c8ff3d821850fec1505d9e967",
+            "mode": "100644"
+          }
+        ],
+        "patch": "diff --git a/format_name.py b/format_name.py\nindex e638efa..cb52948 100644\n--- a/format_name.py\n+++ b/format_name.py\n@@ -1,2 +1,2 @@\n def format_name(first, last):\n-    return first + ' ' + last\n+    return ' '.join(part for part in (first.strip(), last.strip()) if part)\n",
+        "changed": true,
+        "isolation": "bubblewrap",
+        "branch": "chai/1348cf96-1d34-4cc2-8d5c-820562ad03f8-6",
+        "commit": "d527db82243a43ead332a35aa416852da3b2c129",
+        "tree": "aad21a2af81952b6872345d132473de6721da66c",
+        "author": "CHAI <chai@localhost>",
+        "pushed": false
+      }
+    }
+  ]
+}

@@ -154,6 +154,25 @@ export const actionSchema = z.discriminatedUnion("tool", [
         .optional(),
     })
     .strict(),
+  z
+    .object({
+      tool: z.literal("git"),
+      operation: z.enum(["status", "diff", "commit"]),
+      paths: z
+        .array(sandboxPath)
+        .min(1)
+        .max(12)
+        .refine((xs) => new Set(xs).size === xs.length, "Duplicate paths"),
+      message: z.string().min(1).max(2000).optional(),
+      expectedHead: z
+        .string()
+        .regex(/^[a-f0-9]{40,64}$/)
+        .optional(),
+      expectedHashes: z
+        .record(z.string(), z.string().regex(/^[a-f0-9]{64}$/))
+        .optional(),
+    })
+    .strict(),
 ]);
 export const planSchema = z
   .object({

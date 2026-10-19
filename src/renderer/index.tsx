@@ -403,7 +403,7 @@ function App() {
                   </select>
                   <span>
                     {permission === "workspace"
-                      ? "Starting authorizes file edits and isolated tests for this task. Stop or revoke anytime."
+                      ? "Starting authorizes file edits, Git inspection and isolated tests. Git commits require a separate confirmation. Stop or revoke anytime."
                       : "Preview and approve each round before it runs."}
                   </span>
                 </label>
@@ -962,6 +962,12 @@ function App() {
                   temporary output directory. Host credentials and browser
                   sessions are not mounted. Destructive host tools remain
                   unavailable.
+                </p>
+                <p>
+                  Git review commits require confirmation of the exact
+                  selected-file diff. They create a local CHAI branch while
+                  preserving your current branch and staging area. CHAI does not
+                  push commits.
                 </p>
                 <h3>Data on this computer</h3>
                 <p>

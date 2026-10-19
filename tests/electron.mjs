@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { _electron as electron } from "playwright";
 import { mkdtempSync, mkdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -212,6 +213,95 @@ try {
     0,
   );
 
+  // Test-only dialog driver exercises the actual production confirmation path.
+  const git = (...args) =>
+    execFileSync("/usr/bin/git", args, {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        PATH: "/usr/bin:/bin",
+        GIT_CONFIG_NOSYSTEM: "1",
+        GIT_CONFIG_GLOBAL: "/dev/null",
+      },
+    }).trim();
+  git("init", "-q");
+  git("config", "user.name", "UI fixture");
+  git("config", "user.email", "fixture@example.invalid");
+  git("add", ".");
+  git("commit", "-qm", "Initial UI fixture");
+  const gitHead = git("rev-parse", "HEAD");
+  const gitIndex = readFileSync(join(root, ".git/index"));
+  await app.evaluate(({ dialog }) => {
+    globalThis.gitConfirmations = [];
+    globalThis.allowGit = false;
+    const original = dialog.showMessageBox.bind(dialog);
+    dialog.showMessageBox = async (...args) => {
+      const options = args.at(-1);
+      if (options.message === "Create CHAI Git review commit?") {
+        globalThis.gitConfirmations.push(options);
+        return {
+          response: globalThis.allowGit ? 1 : 0,
+          checkboxChecked: false,
+        };
+      }
+      return original(...args);
+    };
+  });
+  for (const allow of [false, true]) {
+    await app.evaluate((_, value) => {
+      globalThis.allowGit = value;
+    }, allow);
+    const gitId = await page.evaluate(
+      (allow) =>
+        window.chai.request({
+          op: "create",
+          mode: "assisted",
+          model: "",
+          permission: "workspace",
+          goal: "Verify Git confirmation",
+          plan: JSON.stringify({
+            summary: "Review selected edit",
+            actions: [
+              {
+                tool: "write",
+                path: "notes.txt",
+                content: allow ? "approved change" : "declined commit change",
+              },
+              {
+                tool: "git",
+                operation: "commit",
+                paths: ["notes.txt"],
+                message: "Verified UI review commit",
+              },
+            ],
+          }),
+        }),
+      allow,
+    );
+    let current;
+    for (let n = 0; n < 150; n++) {
+      current = (
+        await page.evaluate(() => window.chai.request({ op: "snapshot" }))
+      ).tasks.find((t) => t.id === gitId);
+      if (["DONE", "FAILED"].includes(current.state)) break;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    assert.equal(current.state, allow ? "DONE" : "FAILED", current.error ?? "");
+    if (allow)
+      assert.equal(
+        git("show", "refs/heads/chai/" + gitId + "-1:notes.txt"),
+        "approved change",
+      );
+    else
+      assert.equal(git("for-each-ref", "refs/heads/chai/" + gitId + "-1"), "");
+  }
+  const confirmations = await app.evaluate(() => globalThis.gitConfirmations);
+  assert.equal(confirmations.length, 2);
+  assert.equal(confirmations[0].defaultId, 0);
+  assert.deepEqual(confirmations[0].buttons, ["Cancel", "Allow once"]);
+  assert.match(confirmations[1].detail, /approved change/);
+  assert.equal(git("rev-parse", "HEAD"), gitHead);
+  assert.deepEqual(readFileSync(join(root, ".git/index")), gitIndex);
   await page.screenshot({ path: ".qa/autonomous-work.png" });
   await app.close();
   app = await launch();
@@ -239,7 +329,7 @@ try {
   assert.deepEqual(errors, []);
   await app.close();
   console.log(
-    "PASS: native Electron task, approval, actual file, renderer reload, app restart, hardened preferences, invalid IPC, autonomous UI flow, real sandbox execution, four widths.",
+    "PASS: native Electron task, approval, actual file, renderer reload, app restart, hardened preferences, invalid IPC, autonomous UI flow, real sandbox execution, local browser, Git confirmation/branch commit, four widths.",
   );
 } finally {
   await app.close().catch(() => {});

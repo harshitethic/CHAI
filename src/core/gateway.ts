@@ -1,3 +1,10 @@
+import {
+  gitAction,
+  gitHead,
+  gitLegacyInspection,
+  type GitAction,
+  type GitConsent,
+} from "./git";
 import { createHash } from "node:crypto";
 import { sandboxRun, type RunAction } from "./sandbox";
 import { spawn } from "node:child_process";
@@ -20,6 +27,17 @@ export function workspace(path: string) {
   return root;
 }
 export class Gateway {
+  gitConsent?: GitConsent;
+  git(root: string, action: GitAction, branch: string, signal: AbortSignal) {
+    return gitAction(
+      this,
+      workspace(root),
+      action,
+      branch,
+      signal,
+      this.gitConsent,
+    );
+  }
   computer?: (
     task: Task,
     action: Extract<Action, { tool: "browser" | "desktop" }>,
@@ -131,6 +149,8 @@ export class Gateway {
     action: Extract<Action, { tool: "command" }>,
     signal: AbortSignal,
   ) {
+    if (action.command === "git-status" || action.command === "git-diff")
+      return gitLegacyInspection(this, workspace(root), action.command, signal);
     const commands: Record<string, [string, string[]]> = {
       pwd: ["/usr/bin/pwd", []],
       "node-version": ["/usr/bin/node", ["--version"]],
@@ -168,9 +188,15 @@ export class Gateway {
     const written = new Map<string, string>();
     for (const action of actions) {
       if (action.tool === "write") written.set(action.path, action.content);
-      if (action.tool !== "run") continue;
+      if (action.tool !== "run" && action.tool !== "git") continue;
+      if (action.tool === "git")
+        action.expectedHead = await gitHead(
+          this,
+          workspace(root),
+          signal ?? new AbortController().signal,
+        );
       const hashes: Record<string, string> = Object.create(null);
-      for (const path of action.files) {
+      for (const path of action.tool === "git" ? action.paths : action.files) {
         const planned = written.get(path);
         if (planned !== undefined)
           hashes[path] = createHash("sha256").update(planned).digest("hex");
