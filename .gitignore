@@ -1,0 +1,10 @@
+node_modules/
+dist/
+release/
+refs/
+.private-design-refs/
+*.sqlite*
+.env*
+!templates/.env.example
+.qa/
+*.log

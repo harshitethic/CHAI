@@ -1,0 +1,84 @@
+{
+  "name": "chai-desktop",
+  "version": "0.1.0-alpha.1",
+  "description": "CHAI \u2014 Chat Has Actions Inside. Stop chatting. Start doing.",
+  "author": "Harshit Sharma",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "main": "dist/main.cjs",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "electron .",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src tests",
+    "test": "tsx --test tests/core.test.ts",
+    "test:e2e": "node tests/electron.mjs",
+    "package": "npm run build && electron-builder --linux AppImage deb",
+    "check": "npm run typecheck && npm run lint && npm test && npm run build"
+  },
+  "dependencies": {
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "zod": "4.1.12",
+    "lucide-react": "0.468.0"
+  },
+  "devDependencies": {
+    "electron": "44.9.0",
+    "electron-builder": "26.15.3",
+    "esbuild": "0.25.12",
+    "typescript": "5.9.3",
+    "@types/node": "24.10.0",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "tsx": "4.20.6",
+    "eslint": "9.39.1",
+    "typescript-eslint": "8.71.2",
+    "@playwright/test": "1.56.1"
+  },
+  "build": {
+    "appId": "com.harshitethic.chai",
+    "productName": "CHAI",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**",
+      "package.json"
+    ],
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Development",
+      "maintainer": "Harshit Sharma <harshitethic@users.noreply.github.com>",
+      "executableName": "chai",
+      "icon": "assets/icon.png",
+      "syncDesktopName": true
+    },
+    "deb": {
+      "depends": [
+        "libgtk-3-0",
+        "libnss3",
+        "libasound2",
+        "libgbm1",
+        "python3"
+      ]
+    },
+    "asarUnpack": [
+      "dist/files.py"
+    ]
+  },
+  "homepage": "https://github.com/harshitethic/CHAI",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/harshitethic/CHAI.git"
+  },
+  "desktopName": "chai.desktop",
+  "overrides": {
+    "app-builder-lib": {
+      "@electron/get": "5.1.0"
+    }
+  }
+}

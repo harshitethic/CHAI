@@ -1,0 +1,30 @@
+# Rename to .gitignore in the created application repository
+node_modules/
+dist/
+out/
+release/
+coverage/
+.playwright/
+test-results/
+.env
+.env.*
+!.env.example
+*.log
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.db
+*.db-wal
+*.db-shm
+*.pem
+*.key
+.p12
+# Private design screenshots copied from user-provided reference assets
+refs/
+.private-design-refs/
+# Browser profile/session data must never be committed
+.user-data/
+profiles/
+sessions/
+.local-secrets/
+.DS_Store
