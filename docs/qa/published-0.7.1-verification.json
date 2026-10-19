@@ -1,0 +1,27 @@
+{
+  "version": "0.7.1-alpha.1",
+  "verifiedAt": "2026-10-19T14:02:33.918Z",
+  "release": "https://github.com/harshitethic/CHAI/releases/tag/v0.7.1-alpha.1",
+  "sourceCommit": "9d5217b923119ab893c679e85128835fa887cd4a",
+  "ci": "https://github.com/harshitethic/CHAI/actions/runs/39264494661",
+  "releaseRun": "https://github.com/harshitethic/CHAI/actions/runs/39264497233",
+  "ciConclusion": "success",
+  "releaseConclusion": "success",
+  "appImageSha256": "45cc5baf2952810fdb0dfc14f31748c3b7b05775eb61daa7ce5e0ec210fd27f4",
+  "publicDownloadChecksum": "pass",
+  "publicAppImageNativeWorkbench": "pass",
+  "installedVersion": "0.7.1-alpha.1",
+  "taskCount": 7,
+  "previousLiveTask": "DONE",
+  "retainedOutputs": 2,
+  "toolPairingRetained": true,
+  "x11Detected": true,
+  "settingsDisplayed": true,
+  "normalLauncherRunning": true,
+  "scope": "Preserves the four stated boundaries. Does not add host execution, OAuth-only app clients, Wayland input or unlimited background operation.",
+  "limitations": [
+    "Wayland rejection tested by environment simulation under X11.",
+    "Whole-PC reboot remains unverified.",
+    "No new live ChatGPT task claimed for this boundary/UI patch."
+  ]
+}
