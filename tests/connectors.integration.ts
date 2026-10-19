@@ -68,6 +68,24 @@ if (process.env.CHAI_CONNECTOR_FIXTURE) {
       signal,
     )) as { content: { text: string }[] };
     assert.equal(result.content[0].text, "verified");
+    client.save(
+      "fixture",
+      `https://localhost:${process.env.CHAI_FIXTURE_PORT}/mcp`,
+      "invalid-fixture-token",
+    );
+    await assert.rejects(
+      client.execute(
+        task,
+        {
+          tool: "connector",
+          name: "fixture",
+          operation: "tools",
+          arguments: "{}",
+        },
+        signal,
+      ),
+      /authentication failed.*OAuth-only app connections are not implemented/,
+    );
     console.log("AUTHENTICATED_MCP_PASS");
   } finally {
     store.close();

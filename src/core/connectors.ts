@@ -57,7 +57,14 @@ export class Connectors {
         );
         if (url.origin !== new URL(config.url).origin)
           throw Error("Connector left its configured origin");
-        return fetch(input, { ...init, redirect: "error" });
+        const response = await fetch(input, { ...init, redirect: "error" });
+        if (response.status === 401) {
+          await response.body?.cancel();
+          throw Error(
+            "App connection authentication failed. Check the bearer token in Connections. OAuth-only app connections are not implemented.",
+          );
+        }
+        return response;
       },
       requestInit: {
         redirect: "error",

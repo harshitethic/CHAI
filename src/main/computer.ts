@@ -9,6 +9,7 @@ import { randomUUID } from "node:crypto";
 import { extname } from "node:path";
 
 import { projectFile, projectWrite } from "../core/project";
+import { requireDesktopSupport } from "../core/desktop-support";
 import type { Action, Capabilities, Task } from "../core/contracts";
 import type { Gateway } from "../core/gateway";
 import type { Store } from "../core/store";
@@ -54,11 +55,7 @@ export class ComputerTools {
     readonly consent: (title: string, detail: string) => Promise<boolean>,
   ) {}
   async selectDesktop(): Promise<Capabilities["desktop"] | null> {
-    if (
-      process.platform !== "linux" ||
-      process.env.XDG_SESSION_TYPE === "wayland"
-    )
-      throw Error("Selected-window control currently requires Linux X11.");
+    requireDesktopSupport();
     const sources = (
       await desktopCapturer.getSources({
         types: ["window"],
@@ -447,8 +444,7 @@ export class ComputerTools {
   ) {
     const grant = task.capabilities?.desktop;
     if (!grant) throw Error("No desktop window authorized.");
-    if (process.env.XDG_SESSION_TYPE === "wayland")
-      throw Error("Desktop control requires X11.");
+    requireDesktopSupport();
     const xid = grant.id.split(":")[1];
     const run = (args: string[]) =>
       this.gateway.run("/usr/bin/xdotool", args, task.root, signal);

@@ -432,7 +432,8 @@ function App() {
                   </label>
                   <p>
                     Run commands, install project dependencies and start dev
-                    servers. Your original folder stays separate.
+                    servers inside Bubblewrap. Your original folder stays
+                    separate. No unrestricted PC shell access.
                   </p>
                   {projectAccess ? (
                     <label>
@@ -487,6 +488,8 @@ function App() {
                   </p>
                   <button
                     type="button"
+                    disabled={!data.desktopSupport?.available}
+                    title={data.desktopSupport?.reason}
                     onClick={async () => {
                       const target = await call({ op: "desktop-select" });
                       if (target)
@@ -497,6 +500,9 @@ function App() {
                   >
                     Choose desktop window
                   </button>
+                  <p>
+                    {data.desktopSupport?.reason ?? "Checking desktop support…"}
+                  </p>
                   {desktopTarget && (
                     <span>
                       {desktopTarget.title}{" "}
@@ -998,6 +1004,8 @@ function App() {
                     Browser click
                   </button>
                   <button
+                    disabled={!data.desktopSupport?.available}
+                    title={data.desktopSupport?.reason}
                     onClick={() => void call({ op: "desktop-click", x, y })}
                   >
                     X11 desktop click
@@ -1035,6 +1043,12 @@ function App() {
                     />
                     Open CHAI when I sign in to Linux
                   </label>
+                  <p>
+                    Closing to the tray keeps authorized tasks running. Quit
+                    stops processes; saved logs remain. Recovery pauses for
+                    uncertain actions, and ChatGPT sign-in, approvals and
+                    service limits still apply.
+                  </p>
                   <p>Local data. Explicit permissions. No telemetry.</p>
                 </div>
               </div>
@@ -1048,17 +1062,36 @@ function App() {
                   unfinished tasks; Resume retains the original workspace scope.
                 </p>
                 <p>
-                  Python, Node and Bash run in Bubblewrap with only selected
-                  file snapshots, no network, a read-only workspace and a
-                  temporary output directory. Host credentials and browser
-                  sessions are not mounted. Destructive host tools remain
-                  unavailable.
+                  Project commands run in a writable isolated copy inside
+                  Bubblewrap. Network access requires a separate task grant.
+                  Without project access, script execution uses selected file
+                  snapshots in an offline sandbox. Host home directories,
+                  credentials and browser sessions are not mounted. There is no
+                  unrestricted PC shell access.
                 </p>
                 <p>
-                  Git review commits require confirmation of the exact
-                  selected-file diff. They create a local CHAI branch while
-                  preserving your current branch and staging area. CHAI does not
-                  push commits.
+                  Git commits require confirmation of the diff. Project mode
+                  uses an independent checkout; legacy selected-file commits
+                  preserve your source branch and staging area. Publishing a
+                  draft PR requires its own confirmation, task network access
+                  and an authenticated GitHub CLI.
+                </p>
+                <h3>Supported connections and desktop</h3>
+                <p>
+                  External apps use HTTPS MCP with optional encrypted bearer
+                  tokens. OAuth-only app connections are not implemented.
+                  ChatGPT’s OAuth pairing with CHAI is a separate connection.
+                </p>
+                <p>
+                  {data.desktopSupport?.reason ?? "Checking desktop support…"}
+                </p>
+                <h3>Background limits</h3>
+                <p>
+                  Each follow-up allows up to 12 rounds, 60 role calls and 144
+                  new actions in workspace mode; review mode allows 3 rounds, 15
+                  calls and 36 actions. Up to six command sessions can run at
+                  once, with a two-hour maximum per command. The Work view shows
+                  recorded progress and what needs your attention.
                 </p>
                 <h3>Data on this computer</h3>
                 <p>

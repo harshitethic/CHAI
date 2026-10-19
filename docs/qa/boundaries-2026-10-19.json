@@ -1,0 +1,21 @@
+{
+  "version": "0.7.1-alpha.1",
+  "environment": "Kali Linux X11",
+  "checks": [
+    "typecheck",
+    "lint",
+    "63 automated tests",
+    "build",
+    "HTTPS MCP bearer success and native consent",
+    "HTTP 401 authentication guidance",
+    "Wayland and XWayland environment rejection",
+    "manual desktop-click and task desktop-select IPC rejection before input",
+    "unsupported desktop UI control disabled",
+    "native workbench E2E: isolated failure/repair/pass, preview, tray continuation, persisted evidence"
+  ],
+  "limitations": [
+    "Wayland checks simulate environment indicators under X11; no live Wayland automation",
+    "Existing 0.7 live ChatGPT evidence remains applicable; no new model run claimed",
+    "Whole-PC reboot remains unverified"
+  ]
+}

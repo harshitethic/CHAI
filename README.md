@@ -9,7 +9,7 @@
     <img src="https://img.shields.io/badge/platform-Linux-aaa6a2" alt="Linux" />
     <img src="https://img.shields.io/badge/status-alpha-e59173" alt="Alpha" />
   </p>
-  <p><a href="https://github.com/harshitethic/CHAI/releases/tag/v0.7.0-alpha.1"><strong>Download 0.7 alpha</strong></a> · <a href="#get-started">Get started</a> · <a href="docs/PRIVACY.md">Privacy</a> · <a href="docs/IMPLEMENTATION.md">Architecture</a></p>
+  <p><a href="https://github.com/harshitethic/CHAI/releases/tag/v0.7.1-alpha.1"><strong>Download 0.7.1 alpha</strong></a> · <a href="#get-started">Get started</a> · <a href="docs/PRIVACY.md">Privacy</a> · <a href="docs/IMPLEMENTATION.md">Architecture</a></p>
 </div>
 
 ![CHAI's actual progress view showing a completed ChatGPT task and its recorded actions](docs/qa/progress-workspace.jpg)
@@ -63,26 +63,26 @@ CHAI's three roles still use normal signed-in ChatGPT conversations with **6 Hig
 
 The Git run completed in **two rounds and seven role calls**, with one workspace grant and one native Git confirmation. Separate ChatGPT approval prompts still applied.
 
-**62 automated tests** cover the core workflows and boundaries. Native Electron tests cover actual files, sandbox execution, browser previews, Git confirmation, progress display, pause/reload/error behavior and four window widths. Release CI also tests the packaged executable. Scripted tests and live ChatGPT runs are recorded separately.
+**63 automated tests** cover the core workflows and boundaries. Native Electron tests cover actual files, sandbox execution, browser previews, Git confirmation, progress display, pause/reload/error behavior and four window widths. Release CI also tests the packaged executable. Scripted tests and live ChatGPT runs are recorded separately.
 
 ## Get started
 
 ### 1. Install on Linux
 
-Download the AppImage and `SHA256SUMS` from the [release](https://github.com/harshitethic/CHAI/releases/tag/v0.7.0-alpha.1). A Debian amd64 package is also available.
+Download the AppImage and `SHA256SUMS` from the [release](https://github.com/harshitethic/CHAI/releases/tag/v0.7.1-alpha.1). A Debian amd64 package is also available.
 
 Required: Python 3 with venv support, Bubblewrap, Git, Node and npm. Selected-window control requires X11, `xdotool`, `x11-utils`, Python GI and the AT-SPI typelib. Document libraries install inside the task project when network access is authorized. GitHub publication additionally requires `gh auth login` on this machine.
 
 ```sh
 sha256sum --check --ignore-missing SHA256SUMS
-chmod +x CHAI-0.7.0-alpha.1.AppImage
-APPIMAGE_EXTRACT_AND_RUN=1 ./CHAI-0.7.0-alpha.1.AppImage
+chmod +x CHAI-0.7.1-alpha.1.AppImage
+APPIMAGE_EXTRACT_AND_RUN=1 ./CHAI-0.7.1-alpha.1.AppImage
 ```
 
 For a user-only installation from a source checkout:
 
 ```sh
-sh scripts/install-local.sh /path/to/CHAI-0.7.0-alpha.1.AppImage 0.7.0-alpha.1
+sh scripts/install-local.sh /path/to/CHAI-0.7.1-alpha.1.AppImage 0.7.1-alpha.1
 # Add --upgrade when replacing an existing CHAI installation.
 ```
 
@@ -116,6 +116,13 @@ The folder and files must exist. Sandbox scripts that import sibling Python modu
 ## Boundaries that matter
 
 CHAI is a working alpha with a deliberately bounded tool set. It is not a drop-in replacement for every ChatGPT Work or Codex workflow.
+
+Four limits apply even in autonomous mode:
+
+1. Commands execute inside isolated projects or file-snapshot sandboxes. There is no unrestricted PC shell access.
+2. External app connections support HTTPS MCP with optional bearer authentication. OAuth-only app connections are not implemented; ChatGPT’s OAuth pairing with CHAI is separate.
+3. Desktop input supports X11. Wayland, including sessions exposing XWayland, is rejected before input; the UI explains why desktop input is unavailable.
+4. Background work has fixed budgets and pauses for uncertain actions or provider restrictions. Closing to the tray continues authorized work; quitting stops processes and preserves their logs.
 
 | Area | Current boundary |
 | --- | --- |

@@ -1,5 +1,14 @@
 # CHAI handoff — 2026-10-19
 
+## 0.7.1 boundary update — 2026-10-19
+
+The four stated boundaries remain in place: isolated execution, HTTPS/bearer external MCP connections, X11 desktop input and bounded background continuation. Settings and README now describe them explicitly. This update does not add unrestricted host execution, an OAuth app client, Wayland input or unlimited unattended operation.
+
+Desktop support detection now covers Wayland/XWayland and missing displays at both task and manual-click entry points; unsupported UI controls are disabled. HTTP 401 responses from app connectors explain supported authentication. Settings no longer incorrectly claim all commands are offline/read-only or that confirmed project PR publication is unavailable.
+
+Verified on Kali: typecheck, lint, build, 63 unit/integration tests, HTTPS bearer authentication/declined action/401 guidance, and native workbench E2E including simulated Wayland IPC rejection, disabled control, real isolated fail/fix/pass, preview, tray continuation and saved-session recovery. Wayland rejection is tested by environment simulation under X11; no Wayland automation support is claimed. No new live ChatGPT task was necessary for this boundary/UI patch. Publication and installed-binary verification are tracked separately.
+
+
 ## Current status — 0.7.0-alpha.1, 2026-10-19
 
 Published and installed: [CHAI 0.7.0-alpha.1](https://github.com/harshitethic/CHAI/releases/tag/v0.7.0-alpha.1), source `a72aec0`. CI and release workflow passed. The exact downloaded AppImage passed SHA256 verification and both native suites on Kali, including the packaged startup entry. The installed profile retained the completed live task, two outputs and saved authenticated tool pairing. See [publication verification](docs/qa/published-0.7-verification.json). Live project repair/browser verification and the same-task PDF follow-up both reached DONE. One-time Kali GitHub CLI login and a safe whole-PC reboot window remain environmental gates.

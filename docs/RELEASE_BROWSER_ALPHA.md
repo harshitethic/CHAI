@@ -1,3 +1,15 @@
+# CHAI 0.7.1-alpha.1 — Clear capability boundaries
+
+- Keep command execution isolated, with no unrestricted PC shell.
+- Explain HTTPS/bearer app connections and distinguish them from ChatGPT’s OAuth pairing. Authentication failures now give actionable guidance.
+- Reject Wayland and XWayland desktop input consistently, including the manual click tool; disable unsupported controls with an explanation.
+- Show background budgets, tray/quit behavior and pauses for uncertain actions or provider restrictions.
+- Correct outdated Settings descriptions of project execution and confirmed GitHub publication.
+
+This is a boundary and clarity update. It does not add host shell access, an OAuth app client, Wayland automation or unlimited unattended operation. Existing 0.7 feature and live-run evidence is retained below.
+
+---
+
 # CHAI 0.7.0-alpha.1
 
 Nine capability areas now have working implementations: isolated project commands and dependency installs; persistent terminal sessions; local-server browser verification; same-task follow-ups; paginated repository context and patches; project branches/commits and GitHub adapter; tray/startup/recovery controls; document outputs and authenticated MCP app connections; expanded browser/X11 interaction.

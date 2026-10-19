@@ -392,6 +392,7 @@ export interface Snapshot {
   preview?: { url: string; image?: string; title?: string; errors?: string[] };
   background?: boolean;
   startup?: boolean;
+  desktopSupport?: { available: boolean; reason: string };
   connectors?: { name: string; url: string }[];
   bridge: {
     preferredOrigin: string;

@@ -19,6 +19,7 @@ import { pathToFileURL } from "node:url";
 import { writeFileSync, mkdirSync, existsSync, rmSync } from "node:fs";
 import { ProjectRuntime, projectFile, projectWrite } from "../core/project";
 import { Connectors } from "../core/connectors";
+import { desktopSupport, requireDesktopSupport } from "../core/desktop-support";
 import { spawn } from "node:child_process";
 import { Store } from "../core/store";
 import { Engine } from "../core/engine";
@@ -504,6 +505,7 @@ app
             preview: req.id ? computer.preview(req.id) : undefined,
             background: store.setting("background") === "true",
             startup: store.setting("startup") === "true",
+            desktopSupport: desktopSupport(),
             connectors: engine.gateway.connectors!.list(),
           };
         case "followup":
@@ -924,6 +926,7 @@ app
           );
           return true;
         case "desktop-click":
+          requireDesktopSupport();
           if (
             !(await confirm(
               "Click on your desktop?",

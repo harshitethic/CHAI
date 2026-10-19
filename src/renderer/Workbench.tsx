@@ -573,6 +573,11 @@ export function ConnectorSettings({
         remote actions show a native review. Bearer tokens are encrypted with
         your system keyring.
       </p>
+      <p>
+        OAuth-only app connections are not implemented. Use an endpoint that
+        supports bearer authentication or no authentication. This is separate
+        from the OAuth pairing used to connect ChatGPT to CHAI’s tools.
+      </p>
       {data.connectors?.map((c) => (
         <div className="toolbar" key={c.name}>
           <strong>{c.name}</strong>

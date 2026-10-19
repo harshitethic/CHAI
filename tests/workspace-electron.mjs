@@ -55,6 +55,54 @@ try {
   await page
     .getByRole("heading", { name: "Stop chatting. Start doing." })
     .waitFor();
+  // Simulate Wayland indicators under the X11 test runner: no native input
+  // or confirmation may be reached through either desktop IPC entry point.
+  const savedDisplay = await app.evaluate(() => {
+    const saved = process.env.WAYLAND_DISPLAY;
+    process.env.WAYLAND_DISPLAY = "wayland-fixture";
+    return saved;
+  });
+  try {
+    const support = await page.evaluate(
+      async () =>
+        (await window.chai.request({ op: "snapshot" })).desktopSupport,
+    );
+    assert.equal(support.available, false);
+    for (const request of [
+      { op: "desktop-select" },
+      { op: "desktop-click", x: 0, y: 0 },
+    ]) {
+      const error = await page.evaluate(async (request) => {
+        try {
+          await window.chai.request(request);
+          return "unexpected success";
+        } catch (error) {
+          return String(error);
+        }
+      }, request);
+      assert.match(error, /Wayland desktop control is not implemented/);
+    }
+    await page
+      .getByText("Project, browser and app access", { exact: true })
+      .click();
+    await page.waitForFunction(
+      () => document.querySelector("button[title*='Wayland']")?.disabled,
+    );
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Choose desktop window" })
+        .isDisabled(),
+      true,
+    );
+    await page
+      .getByText("Project, browser and app access", { exact: true })
+      .click();
+  } finally {
+    await app.evaluate((_electron, saved) => {
+      if (saved === undefined) delete process.env.WAYLAND_DISPLAY;
+      else process.env.WAYLAND_DISPLAY = saved;
+    }, savedDisplay);
+  }
   const actions = [
     { tool: "read", path: "sum.cjs" },
     {
