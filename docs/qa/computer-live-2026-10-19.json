@@ -1,0 +1,472 @@
+{
+  "date": "2026-10-19",
+  "provider": "Normal signed-in ChatGPT, 6 High, three persistent role conversations",
+  "version": "0.4.0-alpha.1",
+  "tasks": [
+    {
+      "id": "51c2b96c-e656-4e5e-ab35-d16eaf66383f",
+      "goal": "Build counter-demo/index.html, a self-contained attractive counter page with initial visible Count: 0, an Increment button and Reset button. Use mkdir for the subfolder. Write a small Node test with no dependencies for counter behavior and run it using the sandbox. Then use the actual CHAI browser preview tool to open the page, observe controls, click Increment twice and verify visible Count: 2, click Reset and verify Count: 0. Use browser observations and screenshots as evidence; do not claim clicks based only on source inspection. Work autonomously until verified. Only this demo folder and its tests should be modified.",
+      "state": "FAILED",
+      "error": "Error: Agent context budget exceeded; split this task into smaller goals.",
+      "rounds": 4,
+      "roleCalls": 10,
+      "capabilities": {
+        "browser": true,
+        "origins": []
+      },
+      "workspaceGrants": 1,
+      "manualPlanApprovals": 0,
+      "report": null,
+      "effects": [
+        {
+          "index": 0,
+          "state": "SUCCEEDED",
+          "action": {
+            "tool": "list",
+            "path": "."
+          },
+          "result": {
+            "entries": [
+              "sum_values.py",
+              "chai-browser-proof.txt",
+              "test_sum_values.py"
+            ]
+          }
+        },
+        {
+          "index": 1,
+          "state": "SUCCEEDED",
+          "action": {
+            "tool": "mkdir",
+            "path": "counter-demo"
+          },
+          "result": {
+            "directory": "counter-demo",
+            "exists": true
+          }
+        },
+        {
+          "index": 2,
+          "state": "SUCCEEDED",
+          "action": {
+            "tool": "write",
+            "path": "counter-demo/index.html",
+            "expectedHash": null
+          },
+          "result": {
+            "sha256": "955092760abae5584062df39281282381813f8125ff431149820f8dcd515f02b",
+            "bytes": 6283
+          }
+        },
+        {
+          "index": 3,
+          "state": "SUCCEEDED",
+          "action": {
+            "tool": "write",
+            "path": "counter-demo/test_counter.js",
+            "expectedHash": null
+          },
+          "result": {
+            "sha256": "843baee320b284df209ab40f12daba8daca9e9f04a3fb7bc624ca78d0097c265",
+            "bytes": 2276
+          }
+        },
+        {
+          "index": 4,
+          "state": "SUCCEEDED",
+          "action": {
+            "tool": "run",
+            "program": "node",
+            "args": [
+              "counter-demo/test_counter.js"
+            ],
+            "files": [
+              "counter-demo/test_counter.js",
+              "counter-demo/index.html"
+            ],
+            "timeoutSeconds": 20
+          },
+          "result": {
+            "exitCode": 0,
+            "stdout": "PASS: counter renders 0, increments 1 -> 2, resets 0, and increments again.\n",
+            "stderr": "",
+            "termination": null,
+            "durationMs": 25,
+            "files": [
+              {
+                "path": "counter-demo/test_counter.js",
+                "sha256": "843baee320b284df209ab40f12daba8daca9e9f04a3fb7bc624ca78d0097c265"
+              },
+              {
+                "path": "counter-demo/index.html",
+                "sha256": "955092760abae5584062df39281282381813f8125ff431149820f8dcd515f02b"
+              }
+            ],
+            "isolation": "bubblewrap"
+          }
+        },
+        {
+          "index": 5,
+          "state": "SUCCEEDED",
+          "action": {
+            "tool": "browser",
+            "operation": "preview",
+            "path": "counter-demo/index.html"
+          },
+          "result": {
+            "url": "chai-preview://51c2b96c-e656-4e5e-ab35-d16eaf66383f/counter-demo/index.html",
+            "title": "Counter Studio \u2014 A little progress, beautifully counted",
+            "text": "THE LITTLE THINGS ADD UP\n+\nCounter Studio\n\nEvery click is a little bit of progress. Make it count.\n\nCount: 0\n\nIncrement\nReset\n\nTap Increment to keep going, or Reset for a fresh start.\n\nA simple tool for the joy of progress.",
+            "controls": [
+              {
+                "ref": "e0",
+                "tag": "button",
+                "type": "button",
+                "label": "Increment",
+                "disabled": false
+              },
+              {
+                "ref": "e1",
+                "tag": "button",
+                "type": "button",
+                "label": "Reset",
+                "disabled": false
+              }
+            ],
+            "snapshot": "1a291236-f85e-417f-bd55-cc88bd811225",
+            "imageId": "b06a8112-13da-48c0-9c99-6645e3b19016",
+            "imageWidth": 1360,
+            "imageHeight": 971
+          }
+        },
+        {
+          "index": 6,
+          "state": "SUCCEEDED",
+          "action": {
+            "tool": "browser",
+            "operation": "observe"
+          },
+          "result": {
+            "url": "chai-preview://51c2b96c-e656-4e5e-ab35-d16eaf66383f/counter-demo/index.html",
+            "title": "Counter Studio \u2014 A little progress, beautifully counted",
+            "text": "THE LITTLE THINGS ADD UP\n+\nCounter Studio\n\nEvery click is a little bit of progress. Make it count.\n\nCount: 0\n\nIncrement\nReset\n\nTap Increment to keep going, or Reset for a fresh start.\n\nA simple tool for the joy of progress.",
+            "controls": [
+              {
+                "ref": "e0",
+                "tag": "button",
+                "type": "button",
+                "label": "Increment",
+                "disabled": false
+              },
+              {
+                "ref": "e1",
+                "tag": "button",
+                "type": "button",
+                "label": "Reset",
+                "disabled": false
+              }
+            ],
+            "snapshot": "0a897dc9-ae65-48dd-9107-aa08f292719a",
+            "imageId": "9a53951a-18da-4870-ba95-8849e6ed129e",
+            "imageWidth": 1360,
+            "imageHeight": 971
+          }
+        },
+        {
+          "index": 7,
+          "state": "SUCCEEDED",
+          "action": {
+            "tool": "browser",
+            "operation": "click",
+            "snapshot": "0a897dc9-ae65-48dd-9107-aa08f292719a",
+            "ref": "e0"
+          },
+          "result": {
+            "url": "chai-preview://51c2b96c-e656-4e5e-ab35-d16eaf66383f/counter-demo/index.html",
+            "title": "Counter Studio \u2014 A little progress, beautifully counted",
+            "text": "THE LITTLE THINGS ADD UP\n+\nCounter Studio\n\nEvery click is a little bit of progress. Make it count.\n\nCount: 1\n\nIncrement\nReset\n\nTap Increment to keep going, or Reset for a fresh start.\n\nA simple tool for the joy of progress.",
+            "controls": [
+              {
+                "ref": "e0",
+                "tag": "button",
+                "type": "button",
+                "label": "Increment",
+                "disabled": false
+              },
+              {
+                "ref": "e1",
+                "tag": "button",
+                "type": "button",
+                "label": "Reset",
+                "disabled": false
+              }
+            ],
+            "snapshot": "267ff5b3-330b-4200-894c-4262db263b56",
+            "imageId": "69fe07d9-ffb5-4791-a819-d811dc552b60",
+            "imageWidth": 1360,
+            "imageHeight": 971
+          }
+        },
+        {
+          "index": 8,
+          "state": "SUCCEEDED",
+          "action": {
+            "tool": "browser",
+            "operation": "observe"
+          },
+          "result": {
+            "url": "chai-preview://51c2b96c-e656-4e5e-ab35-d16eaf66383f/counter-demo/index.html",
+            "title": "Counter Studio \u2014 A little progress, beautifully counted",
+            "text": "THE LITTLE THINGS ADD UP\n+\nCounter Studio\n\nEvery click is a little bit of progress. Make it count.\n\nCount: 1\n\nIncrement\nReset\n\nTap Increment to keep going, or Reset for a fresh start.\n\nA simple tool for the joy of progress.",
+            "controls": [
+              {
+                "ref": "e0",
+                "tag": "button",
+                "type": "button",
+                "label": "Increment",
+                "disabled": false
+              },
+              {
+                "ref": "e1",
+                "tag": "button",
+                "type": "button",
+                "label": "Reset",
+                "disabled": false
+              }
+            ],
+            "snapshot": "ccaf67db-e60a-431c-8d2f-bbfb29da5803",
+            "imageId": "b34497b2-ba15-4539-b137-c7aee4c3fdde",
+            "imageWidth": 1360,
+            "imageHeight": 971
+          }
+        }
+      ]
+    },
+    {
+      "id": "2b8a1b5e-1eae-43e9-a70b-92825ad74c78",
+      "goal": "Finish verification of the existing counter-demo project after CHAI's context-compaction fix. Inspect counter-demo/index.html and counter-demo/test_counter.js, run the existing Node test with both files in the sandbox, and open counter-demo/index.html with the real CHAI browser preview. Then click Increment twice and Reset once, verifying captured browser text Count: 1, Count: 2, then Count: 0. Browser input automatically returns an observation/screenshot; a short batch of three clicks may reuse the same observed snapshot with stable Increment/Reset refs because the document does not navigate. Do not invent refs. Keep all existing files unchanged unless a genuine test fails. Completion needs actual recorded browser actions and successful Node execution.",
+      "state": "DONE",
+      "error": null,
+      "rounds": 3,
+      "roleCalls": 10,
+      "capabilities": {
+        "browser": true,
+        "origins": []
+      },
+      "workspaceGrants": 1,
+      "manualPlanApprovals": 0,
+      "report": {
+        "summary": "PASS \u2014 the existing counter-demo project was verified end-to-end. CHAI successfully read 'counter-demo/index.html' and 'counter-demo/test_counter.js'. The isolated Node command 'node counter-demo/test_counter.js' ran with both relative files supplied and a 20-second timeout, exited 0, and printed 'PASS: counter renders 0, increments 1 -> 2, resets 0, and increments again.' Real CHAI browser preview opened the local HTML and showed initial 'Count: 0' with enabled Increment and Reset controls. Three genuine successful browser clicks using observed control refs and a valid reusable snapshot returned captured browser text and screenshot/image IDs: first Increment -> 'Count: 1' (7f2f462a-1f3b-49d8-9f0c-b00396234068), second Increment -> 'Count: 2' (150e6834-1271-42d8-a9ac-d343a860a613), Reset -> 'Count: 0' (949ce762-921d-412c-b409-083c49f9264c). Independent Reviewer verdict: pass, no issues. No write actions were recorded in this verification job; existing file hashes remained consistent.",
+        "limitations": [
+          "Verification is grounded in CHAI's supplied read, isolated Node execution, browser action/observation and screenshot evidence and the independent Reviewer verdict; no separate host filesystem audit was performed.",
+          "The browser checks cover the requested initial, two increments and reset sequence in CHAI preview; no external deployment, broader cross-browser testing, or other app behaviors were verified."
+        ]
+      },
+      "effects": [
+        {
+          "index": 0,
+          "state": "SUCCEEDED",
+          "action": {
+            "tool": "read",
+            "path": "counter-demo/index.html"
+          },
+          "result": {
+            "hash": "955092760abae5584062df39281282381813f8125ff431149820f8dcd515f02b",
+            "bytes": 6283
+          }
+        },
+        {
+          "index": 1,
+          "state": "SUCCEEDED",
+          "action": {
+            "tool": "read",
+            "path": "counter-demo/test_counter.js"
+          },
+          "result": {
+            "hash": "843baee320b284df209ab40f12daba8daca9e9f04a3fb7bc624ca78d0097c265",
+            "bytes": 2276
+          }
+        },
+        {
+          "index": 2,
+          "state": "SUCCEEDED",
+          "action": {
+            "tool": "run",
+            "program": "node",
+            "args": [
+              "counter-demo/test_counter.js"
+            ],
+            "files": [
+              "counter-demo/test_counter.js",
+              "counter-demo/index.html"
+            ],
+            "timeoutSeconds": 20
+          },
+          "result": {
+            "exitCode": 0,
+            "stdout": "PASS: counter renders 0, increments 1 -> 2, resets 0, and increments again.\n",
+            "stderr": "",
+            "termination": null,
+            "durationMs": 26,
+            "files": [
+              {
+                "path": "counter-demo/test_counter.js",
+                "sha256": "843baee320b284df209ab40f12daba8daca9e9f04a3fb7bc624ca78d0097c265"
+              },
+              {
+                "path": "counter-demo/index.html",
+                "sha256": "955092760abae5584062df39281282381813f8125ff431149820f8dcd515f02b"
+              }
+            ],
+            "isolation": "bubblewrap"
+          }
+        },
+        {
+          "index": 3,
+          "state": "SUCCEEDED",
+          "action": {
+            "tool": "browser",
+            "operation": "preview",
+            "path": "counter-demo/index.html"
+          },
+          "result": {
+            "url": "chai-preview://2b8a1b5e-1eae-43e9-a70b-92825ad74c78/counter-demo/index.html",
+            "title": "Counter Studio \u2014 A little progress, beautifully counted",
+            "text": "THE LITTLE THINGS ADD UP\n+\nCounter Studio\n\nEvery click is a little bit of progress. Make it count.\n\nCount: 0\n\nIncrement\nReset\n\nTap Increment to keep going, or Reset for a fresh start.\n\nA simple tool for the joy of progress.",
+            "controls": [
+              {
+                "ref": "e0",
+                "tag": "button",
+                "type": "button",
+                "label": "Increment",
+                "disabled": false
+              },
+              {
+                "ref": "e1",
+                "tag": "button",
+                "type": "button",
+                "label": "Reset",
+                "disabled": false
+              }
+            ],
+            "snapshot": "96ea5e4a-31d9-4772-96ee-a1a6cb7248ce",
+            "imageId": "6f9a8569-7d65-4a25-92af-fc1d1819f477",
+            "imageWidth": 1360,
+            "imageHeight": 971
+          }
+        },
+        {
+          "index": 4,
+          "state": "SUCCEEDED",
+          "action": {
+            "tool": "browser",
+            "operation": "click",
+            "snapshot": "96ea5e4a-31d9-4772-96ee-a1a6cb7248ce",
+            "ref": "e0"
+          },
+          "result": {
+            "url": "chai-preview://2b8a1b5e-1eae-43e9-a70b-92825ad74c78/counter-demo/index.html",
+            "title": "Counter Studio \u2014 A little progress, beautifully counted",
+            "text": "THE LITTLE THINGS ADD UP\n+\nCounter Studio\n\nEvery click is a little bit of progress. Make it count.\n\nCount: 1\n\nIncrement\nReset\n\nTap Increment to keep going, or Reset for a fresh start.\n\nA simple tool for the joy of progress.",
+            "controls": [
+              {
+                "ref": "e0",
+                "tag": "button",
+                "type": "button",
+                "label": "Increment",
+                "disabled": false
+              },
+              {
+                "ref": "e1",
+                "tag": "button",
+                "type": "button",
+                "label": "Reset",
+                "disabled": false
+              }
+            ],
+            "snapshot": "63773e1b-95ed-47cc-82e7-58eac0c71cf3",
+            "imageId": "7f2f462a-1f3b-49d8-9f0c-b00396234068",
+            "imageWidth": 1360,
+            "imageHeight": 971
+          }
+        },
+        {
+          "index": 5,
+          "state": "SUCCEEDED",
+          "action": {
+            "tool": "browser",
+            "operation": "click",
+            "snapshot": "96ea5e4a-31d9-4772-96ee-a1a6cb7248ce",
+            "ref": "e0"
+          },
+          "result": {
+            "url": "chai-preview://2b8a1b5e-1eae-43e9-a70b-92825ad74c78/counter-demo/index.html",
+            "title": "Counter Studio \u2014 A little progress, beautifully counted",
+            "text": "THE LITTLE THINGS ADD UP\n+\nCounter Studio\n\nEvery click is a little bit of progress. Make it count.\n\nCount: 2\n\nIncrement\nReset\n\nTap Increment to keep going, or Reset for a fresh start.\n\nA simple tool for the joy of progress.",
+            "controls": [
+              {
+                "ref": "e0",
+                "tag": "button",
+                "type": "button",
+                "label": "Increment",
+                "disabled": false
+              },
+              {
+                "ref": "e1",
+                "tag": "button",
+                "type": "button",
+                "label": "Reset",
+                "disabled": false
+              }
+            ],
+            "snapshot": "d824a2fd-5d16-47fa-80a0-286993f2d881",
+            "imageId": "150e6834-1271-42d8-a9ac-d343a860a613",
+            "imageWidth": 1360,
+            "imageHeight": 971
+          }
+        },
+        {
+          "index": 6,
+          "state": "SUCCEEDED",
+          "action": {
+            "tool": "browser",
+            "operation": "click",
+            "snapshot": "96ea5e4a-31d9-4772-96ee-a1a6cb7248ce",
+            "ref": "e1"
+          },
+          "result": {
+            "url": "chai-preview://2b8a1b5e-1eae-43e9-a70b-92825ad74c78/counter-demo/index.html",
+            "title": "Counter Studio \u2014 A little progress, beautifully counted",
+            "text": "THE LITTLE THINGS ADD UP\n+\nCounter Studio\n\nEvery click is a little bit of progress. Make it count.\n\nCount: 0\n\nIncrement\nReset\n\nTap Increment to keep going, or Reset for a fresh start.\n\nA simple tool for the joy of progress.",
+            "controls": [
+              {
+                "ref": "e0",
+                "tag": "button",
+                "type": "button",
+                "label": "Increment",
+                "disabled": false
+              },
+              {
+                "ref": "e1",
+                "tag": "button",
+                "type": "button",
+                "label": "Reset",
+                "disabled": false
+              }
+            ],
+            "snapshot": "15f099b8-7eac-4407-92a1-0812026e290d",
+            "imageId": "949ce762-921d-412c-b409-083c49f9264c",
+            "imageWidth": 1360,
+            "imageHeight": 971
+          }
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "First task exposed a context budget defect after creation, Node execution and one browser click; it was not marked complete.",
+    "The fix deduplicates file evidence and increases the bounded request budget; a fresh verification task follows.",
+    "ChatGPT approval prompts were manually reviewed and allowed: one in the first task and two in the fresh task. These are separate from CHAI plan approvals.",
+    "Whole-PC reboot remains unverified."
+  ]
+}

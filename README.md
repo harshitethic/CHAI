@@ -11,6 +11,10 @@ CHAI uses normal ChatGPT browser conversations for reasoning. Choose **6 High** 
 
 **0.3 live verification:** ChatGPT inspected a broken Python function, created four tests, observed three failures, fixed the function and reran the same tests successfully. One workspace grant, seven role calls, zero manual plan approvals. [Execution evidence](docs/qa/autonomous-live-2026-10-19.json).
 
+**0.4 live verification:** ChatGPT inspected a counter page, ran its Node test, opened it in CHAI's browser and used real Increment/Reset clicks. Screenshot-backed observations show **0 → 1 → 2 → 0**; independent review passed. Three rounds, ten role calls and one workspace grant. ChatGPT's own approval prompts were handled separately. [Evidence](docs/qa/computer-live-2026-10-19.json).
+
+![Counter page verified through CHAI browser actions](docs/qa/browser-counter-preview.jpg)
+
 The computer-tools build is **0.4.0-alpha.1**. See [releases](https://github.com/harshitethic/CHAI/releases) for CI-tested packages and checksums. Full-system reboot and the broader original automation backlog remain unfinished.
 
 ![Actual verified browser task in CHAI](docs/qa/browser-verified-task.png)

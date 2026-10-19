@@ -12,6 +12,8 @@ Normal signed-in ChatGPT drives Manager, Builder and Reviewer. Select 6 High in 
 - Persistent HTTPS origins are supported. The deployed Kali instance uses a dedicated Cloudflare tunnel and user service; tunnel credentials stay on that machine.
 
 ## Verified
+A live three-role ChatGPT task inspected the generated counter demo, ran its Node test successfully, opened the actual page and clicked Increment twice and Reset once. Captured browser text/screenshots show **0 → 1 → 2 → 0**. Independent review passed and the task reached DONE: three rounds, ten role calls, one workspace grant, zero CHAI per-plan approvals. Two ChatGPT approval prompts were reviewed separately. The first creation task exposed a context-budget defect; evidence compaction and a regression test fixed it before the fresh verification run. Sanitized records: docs/qa/computer-live-2026-10-19.json.
+
 42 automated tests pass. Browser tests exercise real preview, click/type behavior, credential/origin restrictions, stale references and consent denial. Real X11 tests exercise selected-window capture, click/type, coordinate bounds and process replacement. Native UI tests now exercise local browser previews as well as real sandbox execution. SIGKILL recovery and dependency audit pass. CI tests the packaged executable before publication.
 
 ## Install
