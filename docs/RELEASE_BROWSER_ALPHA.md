@@ -12,7 +12,7 @@ Normal signed-in ChatGPT drives Manager, Builder and Reviewer. Select 6 High in 
 - Persistent HTTPS origins are supported. The deployed Kali instance uses a dedicated Cloudflare tunnel and user service; tunnel credentials stay on that machine.
 
 ## Verified
-41 automated tests pass. Browser tests exercise real preview, click/type behavior, credential/origin restrictions, stale references and consent denial. Real X11 tests exercise selected-window capture, click/type, coordinate bounds and process replacement. Native UI tests now exercise local browser previews as well as real sandbox execution. SIGKILL recovery and dependency audit pass. CI tests the packaged executable before publication.
+42 automated tests pass. Browser tests exercise real preview, click/type behavior, credential/origin restrictions, stale references and consent denial. Real X11 tests exercise selected-window capture, click/type, coordinate bounds and process replacement. Native UI tests now exercise local browser previews as well as real sandbox execution. SIGKILL recovery and dependency audit pass. CI tests the packaged executable before publication.
 
 ## Install
 Download the AppImage and SHA256SUMS and verify its checksum. Requires Python 3 and Bubblewrap; sandbox Node execution requires /usr/bin/node. Selected-window control requires xdotool, x11-utils and an X11 session. The amd64 Debian package declares these dependencies.

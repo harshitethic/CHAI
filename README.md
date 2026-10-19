@@ -52,7 +52,7 @@ npm start
 npm run package
 ```
 
-41 tests, browser interaction/X11 checks, native Electron UI, SIGKILL recovery and installed AppImage E2E pass on Kali. The MCP integration tests use explicitly scripted answers and real HTTP/file operations; they do not prove live model reasoning.
+42 tests, browser interaction/X11 checks, native Electron UI, SIGKILL recovery and installed AppImage E2E pass on Kali. The MCP integration tests use explicitly scripted answers and real HTTP/file operations; they do not prove live model reasoning.
 
 Selected workspace contents, task goals and execution evidence are sent to your ChatGPT conversations through the tool connection. Task data and tool-access records are in an owner-only SQLite directory, not encrypted. ChatGPT login remains in its isolated Chromium profile. No session cookies or assistant text are extracted.
 

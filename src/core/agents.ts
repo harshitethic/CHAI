@@ -80,7 +80,7 @@ const boundary =
   "Tools: relative-path read/list/write, fixed commands pwd, git-status, git-diff (stat only), node-version; run executes Python, Node or Bash in an isolated offline Linux sandbox. " +
   "For run, explicitly list required relative file paths in files; only those files are copied to read-only /workspace. Use /tmp for temporary outputs. Host home, secrets, browser sessions and network are unavailable. " +
   "Example: {tool:'run',program:'python3',args:['check.py'],files:['check.py'],timeoutSeconds:20}. Python isolated mode: add /workspace to sys.path inside scripts that import sibling modules. Node uses jitless mode. " +
-  "mkdir creates workspace directories; search finds literal text in scoped files. browser and desktop tools require the task capabilities shown in input. browser preview opens local HTML; open accepts authorized HTTPS origins. observe returns current text, controls and screenshot. click/type/key require snapshot and ref from the latest observation. Desktop actions require its current screenshot snapshot and window-relative coordinates. Never invent refs or coordinates. Make a new observe step if context is stale. Screenshots are returned by chai_get_job. " +
+  "mkdir creates workspace directories; search finds literal text in scoped files. browser and desktop tools require the task capabilities shown in input. browser preview opens local HTML; open accepts authorized HTTPS origins. observe returns current text, controls and screenshot. click/type/key require snapshot and ref from a recent observation. Browser refs may be reused for a short batch of clicks when the document and targets remain unchanged (last eight observations, ten-minute expiry); every input returns a new observation. Desktop actions require its current screenshot snapshot and window-relative coordinates. Never invent refs or coordinates. Make a new observe step if context is stale. Screenshots are returned by chai_get_job. " +
   "No host shell, deletion or package downloads. Sandbox outputs are evidence, not host file changes. Nonzero exitCode or termination indicates a failed check; repair and rerun. " +
   "The local policy controls authorization: an existing user workspace grant permits routine actions without repeated approval. You cannot grant or broaden permissions. Do not return reasoning traces; give concise decisions and evidence-based summaries.";
 
@@ -119,7 +119,7 @@ export class Coordinator {
     signal.throwIfAborted();
     const agent = this.initialize(task);
     const request = redact(JSON.stringify(input));
-    if (request.length > 36000)
+    if (request.length > 110000)
       throw Error(
         "Agent context budget exceeded; split this task into smaller goals.",
       );
@@ -238,7 +238,11 @@ export class Coordinator {
     const writes = new Map<string, string>();
     for (const action of task.plan?.actions.slice(0, task.cursor) ?? [])
       if (action.tool === "write") writes.set(action.path, action.content);
-    const files = [];
+    const files: {
+      path: string;
+      content?: string | null;
+      sha256?: string | null;
+    }[] = [];
     for (const [path, expected] of writes) {
       const actual = await this.gateway.file(
         task.root,
@@ -284,12 +288,52 @@ export class Coordinator {
     );
     const recent = new Set(computer.slice(-4));
     const evidence = {
-      outputs: outputs.map((o) =>
-        (o.action?.tool === "browser" || o.action?.tool === "desktop") &&
-        !recent.has(o)
-          ? { ...o, output: { superseded: true } }
-          : o,
-      ),
+      outputs: outputs.map((o) => {
+        if (o.action?.tool === "write")
+          return {
+            ...o,
+            action: {
+              tool: "write" as const,
+              path: o.action.path,
+              expectedHash: o.action.expectedHash,
+            },
+            output: {
+              afterSha256: createHash("sha256")
+                .update(String((o.output as { after: unknown }).after))
+                .digest("hex"),
+              contentInFiles: true,
+            },
+          };
+        const readPath = o.action?.tool === "read" ? o.action.path : undefined;
+        if (readPath && files.some((f) => f.path === readPath))
+          return {
+            ...o,
+            output: {
+              hash: (o.output as { hash: unknown }).hash,
+              contentInFiles: true,
+            },
+          };
+        if (
+          (o.action?.tool === "browser" || o.action?.tool === "desktop") &&
+          !recent.has(o)
+        ) {
+          const result = o.output as {
+            text?: string;
+            title?: string;
+            imageId?: string;
+          };
+          return {
+            ...o,
+            output: {
+              superseded: true,
+              text: result.text?.slice(0, 1200),
+              title: result.title,
+              imageId: result.imageId,
+            },
+          };
+        }
+        return o;
+      }),
       files,
     };
     if (JSON.stringify(evidence).length > 70000)

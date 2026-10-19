@@ -134,30 +134,28 @@ test("MCP images belong to the assigned active task and cannot cross roles or ta
     const own = s.store.image(task.id, Buffer.from("fixture image")),
       foreign = s.store.image(other.id, Buffer.from("foreign image"));
     const jobId = crypto.randomUUID();
-    s.store.db
-      .prepare("INSERT INTO browser_jobs VALUES(?,?,?,?,?,?,?,?)")
-      .run(
-        jobId,
-        "fixture",
-        task.id,
-        "builder",
-        JSON.stringify({
-          phase: "proposal",
-          system: "fixture",
-          schema: {},
-          input: JSON.stringify({
-            evidence: {
-              outputs: [
-                { output: { imageId: own } },
-                { output: { imageId: foreign } },
-              ],
-            },
-          }),
+    s.store.db.prepare("INSERT INTO browser_jobs VALUES(?,?,?,?,?,?,?,?)").run(
+      jobId,
+      "fixture",
+      task.id,
+      "builder",
+      JSON.stringify({
+        phase: "proposal",
+        system: "fixture",
+        schema: {},
+        input: JSON.stringify({
+          evidence: {
+            outputs: [
+              { output: { imageId: own } },
+              { output: { imageId: foreign } },
+            ],
+          },
         }),
-        null,
-        "WAITING",
-        new Date().toISOString(),
-      );
+      }),
+      null,
+      "WAITING",
+      new Date().toISOString(),
+    );
     const images = bridge.images(jobId, "builder");
     assert.equal(images.length, 1);
     assert.equal(
@@ -168,6 +166,70 @@ test("MCP images belong to the assigned active task and cannot cross roles or ta
     s.store.state(task.id, "PAUSED");
     assert.throws(() => bridge.images(jobId, "builder"));
   } finally {
+    s.store.close();
+    rmSync(s.base, { recursive: true, force: true });
+  }
+});
+
+test("multi-round evidence retains fresh files once and supports bounded computer context", async () => {
+  const s = setup();
+  try {
+    const content = "verified source line\n".repeat(1800);
+    const id = await s.engine.create(
+      "Large page",
+      s.root,
+      "assisted",
+      "",
+      JSON.stringify({
+        summary: "Write page",
+        actions: [{ tool: "write", path: "page.txt", content }],
+      }),
+      "workspace",
+    );
+    await s.engine.idle();
+    const { Coordinator } = await import("../src/core/agents");
+    let called = false;
+    const coordinator = new Coordinator(s.store, s.gateway, {
+      name: "test",
+      async send() {
+        called = true;
+        return {
+          summary: "bounded",
+          builderTask: "Observe",
+          acceptance: ["Observed"],
+        };
+      },
+    });
+    const task = s.store.get(id);
+    const evidence = await coordinator.evidence(
+      task,
+      new AbortController().signal,
+    );
+    assert.equal(evidence.files[0].content, content);
+    assert(!("content" in evidence.outputs[0].action!));
+    assert(JSON.stringify(evidence).length < content.length + 5000);
+    const { z } = await import("zod");
+    await coordinator.call(
+      task,
+      "manager",
+      "assignment",
+      "",
+      { evidence },
+      z.object({
+        summary: z.string(),
+        builderTask: z.string(),
+        acceptance: z.array(z.string()),
+      }),
+      new AbortController().signal,
+    );
+    assert(called);
+    writeFileSync(join(s.root, "page.txt"), "unexpected change");
+    await assert.rejects(
+      coordinator.evidence(task, new AbortController().signal),
+      /Evidence changed/,
+    );
+  } finally {
+    s.engine.stop();
     s.store.close();
     rmSync(s.base, { recursive: true, force: true });
   }

@@ -4,7 +4,7 @@
 
 The current implementation extends the verified normal-ChatGPT workflow with scoped agent-driven browser and selected-window X11 tools, screenshot evidence, mkdir and bounded search. Browser/window permissions are explicit task capabilities; workspace grants do not activate them. No inference API or local model was added.
 
-Verification: 41 tests, typecheck/lint/build, browser interaction guards, real X11 capture/input, native UI with local preview, AppImage execution, SIGKILL recovery and zero-vulnerability dependency audit. The dedicated Kali HTTPS endpoint uses a persistent named tunnel with an enabled user service. Whole-PC reboot remains unverified and requires saving other work first.
+Verification: 42 tests, typecheck/lint/build, browser interaction guards, real X11 capture/input, native UI with local preview, AppImage execution, SIGKILL recovery and zero-vulnerability dependency audit. The dedicated Kali HTTPS endpoint uses a persistent named tunnel with an enabled user service. Whole-PC reboot remains unverified and requires saving other work first.
 
 Current evidence and boundaries are in README.md, docs/RELEASE_BROWSER_ALPHA.md and docs/PRIVACY.md. Older entries below preserve the original backlog and historical milestones; unchecked historical items are not a current test report. General host shell/network/package installation, unrestricted file management and arbitrary desktop automation are not implemented.
 
