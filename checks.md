@@ -85,3 +85,7 @@ This file retains the full-product acceptance rubric. Verified alpha scope is re
 - [ ] Full-system reboot and live local-model acceptance remain pending. Automated ChatGPT transport is unsupported.
 
 - [x] Independent GitHub CI and release workflow passed; published artifacts and checksums verified by release API.
+
+## Manual sign-in verification — 2026-10-19
+
+User completed ChatGPT sign-in. Visually verified the authenticated home after closing and reopening only the manager provider window; the isolated session persisted. Initially incomplete page resolved on reopen. CHAI and provider are on the right monitor. No credentials, cookies or tokens were read. This verifies window-reopen persistence, not whole-app restart or reboot persistence. Automatic ChatGPT orchestration remains unimplemented; manual handoff is unchanged.

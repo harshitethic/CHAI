@@ -61,3 +61,7 @@ Read `handoff.md` first. Reconcile the filesystem and GitHub before proceeding. 
 ## Verified implementation checkpoint — 2026-10-19
 
 Source exists at https://github.com/harshitethic/CHAI; Kali checkout `/home/kali/Projects/CHAI`; installed launcher `/home/kali/.local/bin/chai`. Native source, packaged binary, AppImage extraction mode, real X11 file cycle, isolated ChatGPT origin and controlled desktop/browser tools have been tested. App restart and SIGKILL recovery pass; full reboot and manual sign-in do not yet have evidence. Three-role orchestration is deterministic, with optional Ollama plan generation. No live local model was found. See handoff.md and docs/QA_2026-10-19.md.
+
+## Manual sign-in verification — 2026-10-19
+
+User completed ChatGPT sign-in. Visually verified the authenticated home after closing and reopening only the manager provider window; the isolated session persisted. Initially incomplete page resolved on reopen. CHAI and provider are on the right monitor. No credentials, cookies or tokens were read. This verifies window-reopen persistence, not whole-app restart or reboot persistence. Automatic ChatGPT orchestration remains unimplemented; manual handoff is unchanged.

@@ -15,12 +15,12 @@
 Working local task-engine alpha. Manager is a persistent scheduler, Builder a guarded executor, Reviewer a deterministic evidence checker. Offline recipes explicitly say not AI. Ollama can propose bounded plans if a local model is installed. ChatGPT views are manual, isolated and do not extract credentials/output. No autonomous ChatGPT browser agent or rate-limit bypass is implemented.
 
 ## Human-only remaining gates
-1. Manual sign-in on the official ChatGPT page inside Connections.
+1. Manual sign-in completed and visually verified after reopening the manager view (2026-10-19).
 2. Choose/authorize a locally installed model or an appropriate model download for live inference; neither Ollama nor LM Studio was available at the inspected localhost endpoints.
 3. User-safe whole-system reboot, then open CHAI and confirm retained history. Do not reboot the active desktop without arranging this.
 
 ## Next action
-CHAI is open on the center Kali monitor. Have the user sign in using Connections → Open manager. Separately arrange a safe full reboot and choose/authorize a local model for live inference. Then implement remaining full-product backlog; do not claim the deterministic alpha is a complete autonomous agent. No unrelated repository was modified.
+CHAI and its signed-in manager view are open on the right Kali monitor. Manual sign-in is verified; closing and reopening the provider view resolved an initially incomplete page. Separately arrange a safe full reboot and choose/authorize a local model for live inference. Then implement remaining full-product backlog; do not claim the deterministic alpha is a complete autonomous agent. No unrelated repository was modified.
 
 ## Published checksums
 
