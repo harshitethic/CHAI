@@ -521,6 +521,8 @@ test("follow-up keeps task identity and completed effects, supersedes pending pl
     assert.equal(after.plan!.actions.length, 1);
     assert.equal(after.messages![0].text, "Now add a README");
     assert.match(input, /Now add a README/);
+    assert.equal(JSON.parse(input).goal, "Now add a README");
+    assert.equal(JSON.parse(input).originalGoal, t.goal);
     assert.equal(f.store.actionEvidence(t.id).length, 1);
   } finally {
     f.store.db.close();
