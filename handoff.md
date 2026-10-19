@@ -27,3 +27,5 @@ CHAI is open on the center Kali monitor. Have the user sign in using Connections
 - AppImage: `743ec0dcf7fb6a1b5431677b3fa02660b04d3244681b072afba27980767222a3`
 - Debian: `d3432abdeaae0b60801d9289ed9198c6c2a7f8f161da5e4ad94e07c6c0cc1b63`
 - Installed single-instance test passed: a second launch exits while the original coordinator remains alive.
+
+Published-asset verification: downloaded the actual GitHub release AppImage back to Kali, verified its SHA256 against published SHA256SUMS, and ran the full native E2E successfully. Replaced the installed user AppImage with this verified published artifact. The existing visible app is the equivalent locally built runtime; the next launch uses the published binary.
