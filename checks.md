@@ -92,3 +92,9 @@ Version 0.2.0-alpha.1 is built and installed on Kali. Typecheck, lint, 30 tests,
 - [ ] Full-system reboot verified.
 
 Automated model fixtures do not count as live ChatGPT acceptance. Prior v0.1.0-alpha.1 release verification remains in docs/QA_2026-10-19.md.
+
+
+## 0.3 update — 2026-10-19
+Autonomous task-scoped workspace authorization now covers discovery, writes, isolated execution and repair without repeated approvals. Revoke removes the grant and pauses tools. Review-each-plan remains available. Bubblewrap Python/Node/Bash has explicit input hashes, no host network/credentials, read-only staged workspace and bounded runtime/output. Normal signed-in ChatGPT is the only live reasoning provider.
+
+Verified live: four Python tests, three original failures, repair, unchanged tests passing; seven role calls, one workspace grant, zero manual plan approvals. See docs/qa/autonomous-live-2026-10-19.json. All 38 automated tests, typecheck/lint/build, native UI, crash recovery, AppImage execution and dependency audit pass. No full-machine reboot or general autonomous browser/desktop workflow is claimed.

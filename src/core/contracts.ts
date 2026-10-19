@@ -1,4 +1,15 @@
 import { z } from "zod";
+const sandboxPath = z
+  .string()
+  .min(1)
+  .max(300)
+  .refine(
+    (p) =>
+      !p.startsWith("/") &&
+      !p.includes(String.fromCharCode(0)) &&
+      p.split("/").every((s) => s !== "" && s !== "." && s !== ".."),
+    "Use a normalized relative file path",
+  );
 export const actionSchema = z.discriminatedUnion("tool", [
   z
     .object({
@@ -29,6 +40,28 @@ export const actionSchema = z.discriminatedUnion("tool", [
         "wait",
       ]),
       seconds: z.number().int().min(1).max(60).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      tool: z.literal("run"),
+      program: z.enum(["python3", "node", "bash"]),
+      args: z
+        .array(
+          z
+            .string()
+            .max(8000)
+            .refine((s) => !s.includes(String.fromCharCode(0))),
+        )
+        .max(40),
+      files: z
+        .array(sandboxPath)
+        .max(60)
+        .refine((xs) => new Set(xs).size === xs.length, "Duplicate inputs"),
+      timeoutSeconds: z.number().int().min(1).max(60).default(20),
+      expectedHashes: z
+        .record(z.string(), z.string().regex(/^[a-f0-9]{64}$/))
+        .optional(),
     })
     .strict(),
 ]);
@@ -64,6 +97,7 @@ export interface Task {
   approved: boolean;
   created: string;
   error: string | null;
+  autonomous?: boolean;
   agent?: {
     round: number;
     calls: number;
@@ -122,6 +156,7 @@ export const requestSchema = z.discriminatedUnion("op", [
       mode: z.enum(["recipe", "assisted", "browser"]),
       model: z.string().max(100),
       plan: z.string().max(110000).optional(),
+      permission: z.enum(["review", "workspace"]).optional(),
     })
     .strict(),
   z
@@ -129,6 +164,7 @@ export const requestSchema = z.discriminatedUnion("op", [
     .strict(),
   z.object({ op: z.literal("resume"), id: z.uuid() }).strict(),
   z.object({ op: z.literal("pause"), id: z.uuid() }).strict(),
+  z.object({ op: z.literal("revoke"), id: z.uuid() }).strict(),
   z.object({ op: z.literal("undo"), id: z.uuid() }).strict(),
   z.object({ op: z.literal("stop") }).strict(),
   z

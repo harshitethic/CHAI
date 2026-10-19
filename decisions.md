@@ -79,3 +79,9 @@ Use official ChatGPT custom MCP plugins for model outputs. Send job-only instruc
 
 ## ADR-016 · Development HTTPS transport
 A CHAI-owned cloudflared quick tunnel can expose only the authenticated loopback tool server. It does not affect unrelated tunnels. Its hostname changes when recreated, so a persistent HTTPS forwarding origin is required for unattended reboot continuity. Development testing retains the same tunnel while restarting the app; that is not evidence of whole-PC reboot support.
+
+
+## 0.3 update — 2026-10-19
+Autonomous task-scoped workspace authorization now covers discovery, writes, isolated execution and repair without repeated approvals. Revoke removes the grant and pauses tools. Review-each-plan remains available. Bubblewrap Python/Node/Bash has explicit input hashes, no host network/credentials, read-only staged workspace and bounded runtime/output. Normal signed-in ChatGPT is the only live reasoning provider.
+
+Verified live: four Python tests, three original failures, repair, unchanged tests passing; seven role calls, one workspace grant, zero manual plan approvals. See docs/qa/autonomous-live-2026-10-19.json. All 38 automated tests, typecheck/lint/build, native UI, crash recovery, AppImage execution and dependency audit pass. No full-machine reboot or general autonomous browser/desktop workflow is claimed.

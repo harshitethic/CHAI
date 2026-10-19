@@ -407,12 +407,15 @@ app
             req.mode,
             req.model,
             req.plan,
+            req.permission,
           );
         }
         case "approve":
           return engine.approve(req.id, req.allow);
         case "resume":
           return engine.resume(req.id);
+        case "revoke":
+          return engine.revoke(req.id);
         case "pause":
           return engine.pause(req.id);
         case "stop":
@@ -452,6 +455,7 @@ app
               "events",
               "effects",
               "approvals",
+              "task_grants",
               "agent_calls",
               "browser_jobs",
             ])

@@ -1,5 +1,5 @@
 import { Store } from "./store";
-import { Gateway } from "./gateway";
+import { workspace, Gateway } from "./gateway";
 import { recipe } from "./providers";
 import { Coordinator, ProviderUnavailable, type AgentAdapter } from "./agents";
 import { planSchema, redact, type Task, type Plan } from "./contracts";
@@ -43,8 +43,24 @@ export class Engine {
     mode: Task["mode"],
     model: string,
     plan?: string,
+    permission: "review" | "workspace" = "review",
   ) {
-    const t = this.store.create(goal, root, mode, model);
+    const t = this.store.create(goal, workspace(root), mode, model);
+    if (permission === "workspace") {
+      this.store.db
+        .prepare("INSERT INTO task_grants VALUES(?,?,?)")
+        .run(t.id, t.root, new Date().toISOString());
+      t.autonomous = true;
+      this.store.put(t);
+      this.store.event(
+        t.id,
+        "manager",
+        "WORKSPACE_AUTHORIZED",
+        "User authorized routine file actions and isolated execution for this task in " +
+          t.root +
+          ". No repeated round approvals. Revoke or Stop at any time.",
+      );
+    }
     if (mode === "assisted" && !plan) {
       this.store.state(
         t.id,
@@ -77,6 +93,7 @@ export class Engine {
         );
       if (t.mode === "browser") {
         await this.coordinator.prepare(t, ctrl.signal);
+        this.continueAuthorized(t.id);
         return;
       }
       const plan: Plan =
@@ -84,6 +101,7 @@ export class Engine {
           ? recipe(t.goal)
           : planSchema.parse(JSON.parse(raw ?? ""));
       if (ctrl.signal.aborted) return;
+      await this.gateway.prepareRuns(t.root, plan.actions, ctrl.signal);
       t.plan = plan;
       t.state = "WAITING_APPROVAL";
       this.store.put(t);
@@ -100,6 +118,7 @@ export class Engine {
         "REVIEW_CRITERIA",
         "Reread each written file and compare exact content; require successful exit codes and captured evidence. This verifier is deterministic, not an independent reasoning model.",
       );
+      this.continueAuthorized(t.id);
     } catch (e) {
       if (!ctrl.signal.aborted) {
         const message = redact(String(e));
@@ -114,7 +133,39 @@ export class Engine {
       if (this.active.get(t.id) === ctrl) this.active.delete(t.id);
     }
   }
-  approve(id: string, allow: boolean) {
+  private continueAuthorized(id: string) {
+    const t = this.store.get(id);
+    if (
+      t.state !== "WAITING_APPROVAL" ||
+      !t.plan ||
+      !this.store.hasWorkspaceGrant(t)
+    )
+      return;
+    const allowed = new Set(["read", "list", "write", "command", "run"]);
+    if (t.plan.actions.slice(t.cursor).some((a) => !allowed.has(a.tool)))
+      return;
+    this.store.event(
+      id,
+      "manager",
+      "WORKSPACE_GRANT_USED",
+      "Continuing the exact recorded plan under the user's existing workspace authorization.",
+    );
+    this.approve(id, true, true);
+  }
+  revoke(id: string) {
+    this.store.db.prepare("DELETE FROM task_grants WHERE taskId=?").run(id);
+    this.pause(id);
+    const task = this.store.get(id);
+    task.autonomous = false;
+    this.store.put(task);
+    this.store.event(
+      id,
+      "manager",
+      "WORKSPACE_REVOKED",
+      "Workspace authorization revoked. Active tools stopped; fresh approval required.",
+    );
+  }
+  approve(id: string, allow: boolean, fromGrant = false) {
     const t = this.store.get(id);
     if (t.mode === "local" || t.mode === "chatgpt")
       throw new ProviderUnavailable(
@@ -137,7 +188,9 @@ export class Engine {
       id,
       "manager",
       "PLAN_APPROVED",
-      "User approved the exact plan once (15-minute expiry).",
+      fromGrant
+        ? "Exact plan authorized by the user workspace grant (15-minute execution lease)."
+        : "User approved the exact plan once (15-minute expiry).",
     );
     this.enqueue(id);
   }
@@ -149,7 +202,11 @@ export class Engine {
       });
   }
   async idle() {
-    await this.queue;
+    let pending;
+    do {
+      pending = this.queue;
+      await pending;
+    } while (pending !== this.queue);
   }
   async execute(id: string) {
     let t = this.store.get(id);
@@ -175,8 +232,9 @@ export class Engine {
             id,
             "manager",
             "APPROVAL_EXPIRED",
-            "Review the plan again before continuing.",
+            "Execution lease expired.",
           );
+          this.continueAuthorized(id);
           return;
         }
         const a = t.plan!.actions[idx],
@@ -189,7 +247,10 @@ export class Engine {
           this.store.put(t);
           continue;
         }
-        if (effect?.state === "STARTED" && a.tool === "command")
+        if (
+          effect?.state === "STARTED" &&
+          (a.tool === "command" || a.tool === "run")
+        )
           throw Error(
             "Interrupted command has unknown outcome; create a new task after inspecting evidence. It will not be replayed.",
           );
@@ -266,13 +327,15 @@ export class Engine {
           output =
             a.tool === "command"
               ? await this.gateway.command(t.root, a, signal)
-              : JSON.stringify(
-                  await this.gateway.file(t.root, a.tool, a.path, {}, signal),
-                );
+              : a.tool === "run"
+                ? JSON.stringify(await this.gateway.sandbox(t.root, a, signal))
+                : JSON.stringify(
+                    await this.gateway.file(t.root, a.tool, a.path, {}, signal),
+                  );
           this.store.event(
             id,
             "reviewer",
-            "CHECK_PASSED",
+            a.tool === "run" ? "EXECUTION_CAPTURED" : "CHECK_PASSED",
             `${a.tool}: gateway completed successfully with captured output.`,
           );
         }
@@ -307,7 +370,22 @@ export class Engine {
       if (t.mode === "browser") {
         if (!t.agent) this.coordinator.initialize(t).phase = "execute";
         const complete = await this.coordinator.review(t, signal);
-        if (!complete) return;
+        if (!complete) {
+          this.continueAuthorized(id);
+          return;
+        }
+      }
+      if (t.mode !== "browser") {
+        for (const row of this.store.db
+          .prepare("SELECT idx,output FROM effects WHERE taskId=?")
+          .all(id)) {
+          if (t.plan!.actions[Number(row.idx)].tool !== "run") continue;
+          const result = JSON.parse(String(row.output));
+          if (result.exitCode !== 0 || result.termination)
+            throw Error(
+              "Sandbox check failed; inspect captured execution evidence.",
+            );
+        }
       }
       if (signal.aborted) return;
       this.store.state(id, "DONE");
@@ -387,6 +465,7 @@ export class Engine {
     t.state = "WAITING_APPROVAL";
     t.approved = false;
     this.store.put(t);
+    this.continueAuthorized(id);
   }
   stop() {
     for (const t of this.store.tasks())

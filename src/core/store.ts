@@ -17,7 +17,8 @@ export class Store {
   CREATE TABLE IF NOT EXISTS effects(id TEXT PRIMARY KEY,taskId TEXT NOT NULL,idx INTEGER NOT NULL,state TEXT NOT NULL,before TEXT,after TEXT,output TEXT);
   CREATE TABLE IF NOT EXISTS approvals(taskId TEXT PRIMARY KEY,plan TEXT NOT NULL,expires INTEGER NOT NULL);
   CREATE TABLE IF NOT EXISTS agent_calls(id TEXT PRIMARY KEY,taskId TEXT NOT NULL,role TEXT NOT NULL,round INTEGER NOT NULL,status TEXT NOT NULL,request TEXT NOT NULL,response TEXT,updated TEXT NOT NULL);
-  PRAGMA user_version=2;`);
+  CREATE TABLE IF NOT EXISTS task_grants(taskId TEXT PRIMARY KEY,root TEXT NOT NULL,granted TEXT NOT NULL);
+  PRAGMA user_version=3;`);
   }
   put(task: Task) {
     this.db
@@ -86,6 +87,12 @@ export class Store {
     this.put(t);
     this.event(t.id, "manager", "TASK_CREATED", goal);
     return t;
+  }
+  hasWorkspaceGrant(task: Task) {
+    const grant = this.db
+      .prepare("SELECT root FROM task_grants WHERE taskId=?")
+      .get(task.id);
+    return !!grant && grant.root === task.root;
   }
   close() {
     this.db.close();

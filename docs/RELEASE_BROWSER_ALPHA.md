@@ -1,29 +1,29 @@
-# CHAI 0.2.0 alpha 1 — normal ChatGPT browser agents
+# CHAI 0.3.0 alpha 1 — autonomous workspace coding
 
-CHAI now runs Manager, Builder and Reviewer through normal signed-in ChatGPT conversations, with 6 High selected in the browser. A CHAI MCP plugin carries persistent job instructions and structured results. No local LLM or model-inference API is used.
+Normal signed-in ChatGPT drives Manager, Builder and Reviewer. Select 6 High in the role conversations. No local LLM or separate inference API is used.
 
-Verified live on Kali: all three roles performed a disposable file task across two rounds and seven real role calls. Discovery alone was rejected as incomplete; after approval, CHAI wrote the file, reread it, obtained an independent review and a manager report. See docs/qa/browser-live-2026-10-19.json and the real application screenshot.
+## New in 0.3
+- Start with **Autonomous in this workspace** to authorize routine reads, edits and isolated tests for the task. Discovery and repair rounds continue without repeated plan approvals. Review-each-plan mode remains available.
+- Revoke access cancels active work and removes the grant. Stop and Pause remain available. Restart pauses unfinished tasks; Resume retains the original workspace scope.
+- Execute Python, Node and Bash in Bubblewrap using explicitly selected, hash-checked input snapshots. The workspace is read-only inside the sandbox; temporary output stays in /tmp. No host home, credentials, browser session or network is mounted.
+- Failed checks become review evidence. A failure cannot be reported as successful execution; repairs can rerun the same check. Autonomous tasks allow up to 12 rounds, 60 role calls and 144 actions.
 
-Includes durable SQLite task/job state, pairing consent and PKCE, role/schema validation, approval-gated file operations and fixed commands, stop/cancel, evidence hashes, conflict-aware undo, browser-session persistence, and separate manual browser/X11 controls.
+## Verified
+A real signed-in ChatGPT task inspected a broken Python function, created four tests, observed three failures, fixed the function and reran the unchanged tests successfully. Manager, Builder and Reviewer completed seven role calls across two rounds with one workspace grant and **zero manual plan approvals**. Sanitized evidence: docs/qa/autonomous-live-2026-10-19.json.
 
-Verification includes automated authorization/MCP/file/recovery tests, native Electron UI, hard-kill recovery, and AppImage extraction-mode E2E on Kali. The Debian package is built for amd64; AppImage is the installed and launch-tested artifact.
+38 automated tests pass, including a separate review-driven failed-test/repair cycle, isolation, input conflicts, cancellation and revocation. Native UI and AppImage tests exercise the visible workspace permission control and real sandbox execution. SIGKILL recovery and dependency audit pass. CI verifies the packaged executable before publication.
 
 ## Install
-Download the AppImage and SHA256SUMS, verify the checksum, then run:
+Download the AppImage and SHA256SUMS and verify its checksum. AppImage requires Python 3 and Bubblewrap; Node execution requires /usr/bin/node. These dependencies are declared by the amd64 Debian package.
 
 ```sh
-chmod +x CHAI-0.2.0-alpha.1.AppImage
-APPIMAGE_EXTRACT_AND_RUN=1 ./CHAI-0.2.0-alpha.1.AppImage
+chmod +x CHAI-0.3.0-alpha.1.AppImage
+APPIMAGE_EXTRACT_AND_RUN=1 ./CHAI-0.3.0-alpha.1.AppImage
 ```
 
-The repository's scripts/install-local.sh can install it for the current user. Pass version 0.2.0-alpha.1 and --upgrade to replace a recognized older CHAI launcher while retaining its executable and launcher backup.
+For a user-only upgrade: `sh scripts/install-local.sh /path/to/CHAI-0.3.0-alpha.1.AppImage 0.3.0-alpha.1 --upgrade`. Previous executable and launcher backups are retained.
 
-## First connection
-Start the CHAI tool connection. In ChatGPT Plugins, add its HTTPS MCP URL, select OAuth and connect CHAI. Approve the local pairing prompt. Select 6 High in each role conversation. Choose a dedicated workspace and review each proposed action before execution.
+## Connection and boundaries
+Start the tool connection, add its HTTPS MCP endpoint in ChatGPT Plugins, pair locally and enable CHAI in the three role conversations. ChatGPT can still show its own permission prompts; CHAI does not bypass them. Selected file contents, task goals and execution evidence are sent to ChatGPT through this connection. See docs/PRIVACY.md.
 
-Tool pairing authorizes access to CHAI only. It does not request ChatGPT credentials or authorize a separate inference endpoint. ChatGPT may show its own tool-use permission prompt.
-
-## Known limits
-This is a functional browser-agent alpha, not the entire original project backlog. General autonomous desktop/browser workflows and arbitrary shell commands remain outside the current gateway. File actions and fixed terminal commands are real, scoped and approved.
-
-A quick tunnel requires cloudflared and changes URL when recreated. A stable HTTPS forwarding origin is needed for uninterrupted pairing across a full machine reboot; app restart with the same origin retains pairing. No whole-PC reboot has been verified. No unattended startup or provider-limit bypass is implemented.
+This remains an alpha. General autonomous desktop/browser workflows, package installation, host shell execution and broad file management are unfinished. A quick tunnel changes URL when recreated; stable pairing across a whole-machine reboot needs a persistent HTTPS origin. Whole-PC reboot is unverified. No provider-limit bypass or unattended startup is implemented.

@@ -271,7 +271,7 @@ test("repair loops stop at three rounds", async () => {
   }
   assert.equal(s.store.get(id).state, "FAILED");
   assert.equal(s.store.get(id).agent?.round, 3);
-  assert.match(s.store.get(id).error!, /three rounds/);
+  assert.match(s.store.get(id).error!, /within 3 rounds/);
   assert(!s.store.events().some((e) => e.kind === "TASK_DONE"));
   s.store.close();
 });

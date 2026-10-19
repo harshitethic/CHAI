@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import { sandboxRun, type RunAction } from "./sandbox";
 import { spawn } from "node:child_process";
 import { realpathSync, statSync } from "node:fs";
 import { homedir } from "node:os";
@@ -156,6 +158,29 @@ export class Gateway {
     };
     const [exe, args] = commands[action.command];
     return this.run(exe, args, workspace(root), signal, undefined, 65000);
+  }
+  async prepareRuns(root: string, actions: Action[], signal?: AbortSignal) {
+    const written = new Map<string, string>();
+    for (const action of actions) {
+      if (action.tool === "write") written.set(action.path, action.content);
+      if (action.tool !== "run") continue;
+      const hashes: Record<string, string> = Object.create(null);
+      for (const path of action.files) {
+        const planned = written.get(path);
+        if (planned !== undefined)
+          hashes[path] = createHash("sha256").update(planned).digest("hex");
+        else {
+          const file = await this.file(root, "read", path, {}, signal);
+          if (file.content == null || !file.hash)
+            throw Error("Missing sandbox input: " + path);
+          hashes[path] = file.hash;
+        }
+      }
+      action.expectedHashes = hashes;
+    }
+  }
+  sandbox(root: string, action: RunAction, signal: AbortSignal) {
+    return sandboxRun(this, workspace(root), action, signal);
   }
   stop() {
     for (const child of this.children) {

@@ -105,3 +105,9 @@ For a checked item add proof in `handoff.md` or the appropriate test report: com
 - [ ] Whole-system reboot acceptance.
 
 The original backlog above remains as the source brief; check items only against matching evidence. The user explicitly superseded its local/mock/API-provider options.
+
+
+## 0.3 update — 2026-10-19
+Autonomous task-scoped workspace authorization now covers discovery, writes, isolated execution and repair without repeated approvals. Revoke removes the grant and pauses tools. Review-each-plan remains available. Bubblewrap Python/Node/Bash has explicit input hashes, no host network/credentials, read-only staged workspace and bounded runtime/output. Normal signed-in ChatGPT is the only live reasoning provider.
+
+Verified live: four Python tests, three original failures, repair, unchanged tests passing; seven role calls, one workspace grant, zero manual plan approvals. See docs/qa/autonomous-live-2026-10-19.json. All 38 automated tests, typecheck/lint/build, native UI, crash recovery, AppImage execution and dependency audit pass. No full-machine reboot or general autonomous browser/desktop workflow is claimed.

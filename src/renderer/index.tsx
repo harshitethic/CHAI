@@ -62,6 +62,7 @@ function App() {
     [id, setId] = useState<string | null>(null),
     [goal, setGoal] = useState(""),
     [mode, setMode] = useState<Exclude<Mode, "local" | "chatgpt">>("browser"),
+    [permission, setPermission] = useState<"review" | "workspace">("workspace"),
     [origin, setOrigin] = useState(""),
     [plan, setPlan] = useState(""),
     [error, setError] = useState(""),
@@ -133,6 +134,7 @@ function App() {
       op: "create",
       goal,
       mode,
+      permission,
       model: "ChatGPT browser · user-selected model",
       plan: mode === "assisted" ? plan : undefined,
     });
@@ -368,6 +370,26 @@ function App() {
                     onChange={(e) => setPlan(e.target.value)}
                   />
                 )}
+                <label className="permission-choice">
+                  <ShieldCheck size={16} />
+                  <select
+                    aria-label="Task permissions"
+                    value={permission}
+                    onChange={(e) =>
+                      setPermission(e.target.value as "review" | "workspace")
+                    }
+                  >
+                    <option value="workspace">
+                      Autonomous in this workspace
+                    </option>
+                    <option value="review">Review each plan</option>
+                  </select>
+                  <span>
+                    {permission === "workspace"
+                      ? "Starting authorizes file edits and isolated tests for this task. Stop or revoke anytime."
+                      : "Preview and approve each round before it runs."}
+                  </span>
+                </label>
                 <footer>
                   <button
                     type="button"
@@ -406,8 +428,8 @@ function App() {
               </form>
               <p className="caption">
                 {mode === "browser"
-                  ? "Your normal ChatGPT conversations plan and review. Choose 6 High in each role window. Actions need your approval."
-                  : "Every action is previewed. Nothing runs until you approve."}
+                  ? "Your normal ChatGPT conversations plan, act and review with 6 High. Workspace authorization carries across repair rounds."
+                  : "Your selected permission mode controls when actions run."}
               </p>
               {mode === "browser" && !data.bridge.connected && (
                 <button
@@ -548,6 +570,19 @@ function App() {
                   </button>
                 </div>
               )}
+              {task?.autonomous && (
+                <section className="autonomy-status">
+                  <ShieldCheck size={18} />
+                  <span>
+                    Workspace authorized · automatic discovery, edits and tests
+                  </span>
+                  <button
+                    onClick={() => void call({ op: "revoke", id: task.id })}
+                  >
+                    Revoke access
+                  </button>
+                </section>
+              )}
               {task?.state === "WAITING_APPROVAL" && (
                 <section className="approval">
                   <header>
@@ -600,8 +635,9 @@ function App() {
                   <span className="eyebrow">A BOUNDARY YOU CHOOSE</span>
                   <h2>Your workspace</h2>
                   <p>
-                    File tools stay inside a dedicated folder. Terminal commands
-                    use a fixed allowlist.
+                    File tools stay inside a dedicated folder. Python, Node and
+                    Bash run against approved snapshots in an offline Linux
+                    sandbox.
                   </p>
                 </div>
               </div>
@@ -847,14 +883,18 @@ function App() {
               <section className="settings-card">
                 <h3>Execution policy</h3>
                 <p>
-                  Every plan requires one-time approval. Approvals expire after
-                  15 minutes and are revoked on restart. Closing the main window
-                  pauses tasks. Background execution and autostart are disabled.
+                  Autonomous tasks use the workspace authorization you grant
+                  when starting them. Discovery, edits, isolated tests and
+                  repairs continue without repeated approval. Review mode asks
+                  per plan. Pause or revoke at any time. Restart pauses
+                  unfinished tasks; Resume retains the original workspace scope.
                 </p>
                 <p>
-                  Terminal tools: pwd, git status, git diff summary, node
-                  version, bounded sleep. Arbitrary shell execution and
-                  destructive tools are unavailable in this alpha.
+                  Python, Node and Bash run in Bubblewrap with only selected
+                  file snapshots, no network, a read-only workspace and a
+                  temporary output directory. Host credentials and browser
+                  sessions are not mounted. Destructive host tools remain
+                  unavailable.
                 </p>
                 <h3>Data on this computer</h3>
                 <p>
@@ -893,7 +933,7 @@ function App() {
           <span>
             CHAI <b>{data.version}</b>
           </span>
-          <span>Local-first · Approvals required · Recoverable history</span>
+          <span>Workspace-scoped · Under your control · Recoverable history</span>
         </footer>
       </main>
     </div>

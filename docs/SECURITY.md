@@ -74,3 +74,12 @@ Global Stop All revokes dispatch, cancels subprocess groups, requests adapter ca
 ## Release security checks
 
 Dependency license/audit, secret scan, Electron hardening review, IPC malformed payload tests, workspace symlink tests, dangerous terminal input tests, external URL handling, app package integrity/SHA256. Add `SECURITY.md` with private vulnerability-report route that does not expose user personal details.
+
+
+## Implemented 0.3 execution boundary
+
+Autonomous authorization is a local, task-scoped grant bound to the canonical workspace, not a permission supplied by model output. Start records the grant; Revoke deletes it and cancels active tools. Restart pauses tasks but preserves the grant for explicit Resume. Exact plans receive renewable 15-minute execution leases under that grant. The UI defaults to workspace mode and states this authorization next to Start; review mode remains available.
+
+The `run` tool accepts Python, Node or Bash argument arrays. Bubblewrap isolates user, process, mount and network namespaces, drops capabilities, disables nested user namespaces and exposes only selected text-file snapshots under read-only `/workspace`, public runtime directories and an ephemeral `/tmp`. There is no host home, `/etc`, credential directory, browser profile or inherited desktop environment. Inputs are hash checked; execution has output, time, address-space, file-size and process limits. Failure to establish isolation fails closed. This is defense in depth, not protection against kernel vulnerabilities or malicious software already running as the user. Runtime files under `/usr` are assumed public; users must not store secrets there.
+
+A nonzero exit is recorded as execution evidence, not a passed check. Reviewer can request repairs; a success verdict cannot finalize while the latest execution of a recorded command still fails. No arbitrary host shell or network/package-install grant exists in this release.

@@ -1,6 +1,6 @@
 {
   "name": "chai-desktop",
-  "version": "0.2.0-alpha.1",
+  "version": "0.3.0-alpha.1",
   "description": "CHAI \u2014 Chat Has Actions Inside. Stop chatting. Start doing.",
   "author": "Harshit Sharma",
   "license": "MIT",
@@ -69,11 +69,14 @@
         "libnss3",
         "libasound2",
         "libgbm1",
-        "python3"
+        "python3",
+        "bubblewrap",
+        "nodejs"
       ]
     },
     "asarUnpack": [
-      "dist/files.py"
+      "dist/files.py",
+      "dist/sandbox.py"
     ]
   },
   "homepage": "https://github.com/harshitethic/CHAI",
