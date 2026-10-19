@@ -18,6 +18,7 @@ import { Engine } from "../core/engine";
 import { Gateway, workspace } from "../core/gateway";
 import { requestSchema, redact } from "../core/contracts";
 import { BrowserBridge } from "../core/browser-bridge";
+import { ComputerTools } from "./computer";
 import { ToolBridgeRuntime } from "./tool-bridge-runtime";
 import { ProviderUnavailable } from "../core/agents";
 import type { Role } from "../core/contracts";
@@ -29,6 +30,7 @@ let store: Store;
 let engine: Engine;
 let bridge: BrowserBridge;
 let toolRuntime: ToolBridgeRuntime;
+let computer: ComputerTools;
 const providerViews = new Map<string, WebContentsView>();
 const windows = new Map<string, BrowserWindow>();
 let browserView: WebContentsView | undefined;
@@ -224,10 +226,10 @@ async function deliverBrowserJob(role: Role, id: string, signal: AbortSignal) {
     throw new ProviderUnavailable(
       "In the " +
         role +
-        " ChatGPT view, select GPT-6 High, enable the CHAI plugin, and leave the composer empty. Then resume.",
+        " ChatGPT view, select GPT-6 High, enable the CHAI Desktop plugin, and leave the composer empty. Then resume.",
     );
   const prompt =
-    "Use the CHAI plugin. You are only the " +
+    "Use the CHAI Desktop plugin (the dedicated chai-tools.harshitethic.com connection). You are only the " +
     role +
     " for CHAI job " +
     id +
@@ -369,6 +371,9 @@ app
         },
       ]),
     );
+    computer = new ComputerTools(store, engine.gateway, () => main, confirm);
+    engine.gateway.computer = (task, action, signal) =>
+      computer.execute(task, action, signal);
     ipcMain.handle("chai:request", async (event, input: unknown) => {
       if (
         event.sender !== main.webContents ||
@@ -386,6 +391,8 @@ app
             version: app.getVersion(),
             bridge: toolRuntime.snapshot(),
           };
+        case "desktop-select":
+          return computer.selectDesktop();
         case "workspace": {
           const result = await dialog.showOpenDialog(main, {
             properties: ["openDirectory", "createDirectory"],
@@ -408,6 +415,7 @@ app
             req.model,
             req.plan,
             req.permission,
+            req.capabilities,
           );
         }
         case "approve":
@@ -415,11 +423,13 @@ app
         case "resume":
           return engine.resume(req.id);
         case "revoke":
+          computer.closeTask(req.id);
           return engine.revoke(req.id);
         case "pause":
           return engine.pause(req.id);
         case "stop":
           engine.stop();
+          computer.close();
           return true;
         case "undo":
           if (
@@ -444,6 +454,7 @@ app
             ))
           )
             return false;
+          computer.closeTask(req.id);
           store.db.exec("BEGIN");
           try {
             store.db
@@ -456,6 +467,7 @@ app
               "effects",
               "approvals",
               "task_grants",
+              "task_images",
               "agent_calls",
               "browser_jobs",
             ])
@@ -657,6 +669,7 @@ app
     main.on("close", () => {
       for (const t of store.tasks()) engine.pause(t.id);
       for (const win of windows.values()) win.close();
+      computer.close();
     });
   })
   .catch((e) => {

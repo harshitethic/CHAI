@@ -1,29 +1,32 @@
-# CHAI 0.3.0 alpha 1 — autonomous workspace coding
+# CHAI 0.4.0 alpha 1 — scoped computer tools
 
-Normal signed-in ChatGPT drives Manager, Builder and Reviewer. Select 6 High in the role conversations. No local LLM or separate inference API is used.
+Normal signed-in ChatGPT drives Manager, Builder and Reviewer. Select 6 High in the role conversations and enable CHAI Desktop. No local LLM or separate inference API is used.
 
-## New in 0.3
-- Start with **Autonomous in this workspace** to authorize routine reads, edits and isolated tests for the task. Discovery and repair rounds continue without repeated plan approvals. Review-each-plan mode remains available.
-- Revoke access cancels active work and removes the grant. Stop and Pause remain available. Restart pauses unfinished tasks; Resume retains the original workspace scope.
-- Execute Python, Node and Bash in Bubblewrap using explicitly selected, hash-checked input snapshots. The workspace is read-only inside the sandbox; temporary output stays in /tmp. No host home, credentials, browser session or network is mounted.
-- Failed checks become review evidence. A failure cannot be reported as successful execution; repairs can rerun the same check. Autonomous tasks allow up to 12 rounds, 60 role calls and 144 actions.
+## New in 0.4
+- Separate task permissions for an isolated browser and a user-selected Linux X11 window. Workspace permission alone cannot activate either.
+- Preview local HTML/CSS/JavaScript directly from the authorized project, or visit explicitly allowed HTTPS origins. Browser observations return visible text, control references and screenshots. Agents can click, type and press keys using observed targets.
+- Desktop observations capture only the selected window. Input checks the window process, observation age, dimensions, coordinates and focus. Terminal, browser and credential-manager windows are excluded from this path.
+- Nested directory creation and bounded literal file search join read/list/write and isolated Python/Node/Bash execution.
+- Task screenshots reach only the matching active Manager/Builder/Reviewer job. Recent images are bounded and deleted with task history.
+- Sensitive website actions and desktop submission retain local confirmation. Stale/replaced targets fail safely; interrupted input is not replayed.
+- Persistent HTTPS origins are supported. The deployed Kali instance uses a dedicated Cloudflare tunnel and user service; tunnel credentials stay on that machine.
 
 ## Verified
-A real signed-in ChatGPT task inspected a broken Python function, created four tests, observed three failures, fixed the function and reran the unchanged tests successfully. Manager, Builder and Reviewer completed seven role calls across two rounds with one workspace grant and **zero manual plan approvals**. Sanitized evidence: docs/qa/autonomous-live-2026-10-19.json.
-
-38 automated tests pass, including a separate review-driven failed-test/repair cycle, isolation, input conflicts, cancellation and revocation. Native UI and AppImage tests exercise the visible workspace permission control and real sandbox execution. SIGKILL recovery and dependency audit pass. CI verifies the packaged executable before publication.
+41 automated tests pass. Browser tests exercise real preview, click/type behavior, credential/origin restrictions, stale references and consent denial. Real X11 tests exercise selected-window capture, click/type, coordinate bounds and process replacement. Native UI tests now exercise local browser previews as well as real sandbox execution. SIGKILL recovery and dependency audit pass. CI tests the packaged executable before publication.
 
 ## Install
-Download the AppImage and SHA256SUMS and verify its checksum. AppImage requires Python 3 and Bubblewrap; Node execution requires /usr/bin/node. These dependencies are declared by the amd64 Debian package.
+Download the AppImage and SHA256SUMS and verify its checksum. Requires Python 3 and Bubblewrap; sandbox Node execution requires /usr/bin/node. Selected-window control requires xdotool, x11-utils and an X11 session. The amd64 Debian package declares these dependencies.
 
 ```sh
-chmod +x CHAI-0.3.0-alpha.1.AppImage
-APPIMAGE_EXTRACT_AND_RUN=1 ./CHAI-0.3.0-alpha.1.AppImage
+chmod +x CHAI-0.4.0-alpha.1.AppImage
+APPIMAGE_EXTRACT_AND_RUN=1 ./CHAI-0.4.0-alpha.1.AppImage
 ```
 
-For a user-only upgrade: `sh scripts/install-local.sh /path/to/CHAI-0.3.0-alpha.1.AppImage 0.3.0-alpha.1 --upgrade`. Previous executable and launcher backups are retained.
+For a user-only upgrade: `sh scripts/install-local.sh /path/to/CHAI-0.4.0-alpha.1.AppImage 0.4.0-alpha.1 --upgrade`. Previous executable and launcher backups are retained.
 
 ## Connection and boundaries
-Start the tool connection, add its HTTPS MCP endpoint in ChatGPT Plugins, pair locally and enable CHAI in the three role conversations. ChatGPT can still show its own permission prompts; CHAI does not bypass them. Selected file contents, task goals and execution evidence are sent to ChatGPT through this connection. See docs/PRIVACY.md.
+Start the tool connection, add its HTTPS MCP endpoint in ChatGPT Plugins as CHAI Desktop, pair locally and enable it in the three role conversations. ChatGPT retains its own permission controls and service limits.
 
-This remains an alpha. General autonomous desktop/browser workflows, package installation, host shell execution and broad file management are unfinished. A quick tunnel changes URL when recreated; stable pairing across a whole-machine reboot needs a persistent HTTPS origin. Whole-PC reboot is unverified. No provider-limit bypass or unattended startup is implemented.
+Selected files, task goals, execution evidence and authorized browser/window screenshots are sent to ChatGPT. Read docs/PRIVACY.md before granting access. Browser sessions are isolated from the ChatGPT login. Browser scope uses exact origins; cross-origin resources require explicit authorization and local previews cannot contact remote servers.
+
+This remains a bounded alpha. Arbitrary whole-desktop control, package installation, network-enabled host shell execution and unrestricted file management are outside these tools. Desktop control requires X11. Whole-PC reboot is unverified; unfinished tasks pause after app restart and need Resume. Browser sessions and observation references are ephemeral. No provider-limit bypass or unattended app startup is implemented.

@@ -162,6 +162,56 @@ try {
         e.detail.includes("User approved"),
     ),
   );
+  const previewId = await page.evaluate(() =>
+    window.chai.request({
+      op: "create",
+      mode: "assisted",
+      model: "assisted",
+      permission: "workspace",
+      capabilities: { browser: true, origins: [] },
+      goal: "Verify packaged workspace browser",
+      plan: JSON.stringify({
+        summary: "Preview local page",
+        actions: [
+          { tool: "mkdir", path: "web" },
+          {
+            tool: "write",
+            path: "web/index.html",
+            content:
+              "<!doctype html><h1>Packaged browser works</h1><button>Ready</button>",
+          },
+          { tool: "browser", operation: "preview", path: "web/index.html" },
+        ],
+      }),
+    }),
+  );
+  for (let attempt = 0; ; attempt++) {
+    const state = await page.evaluate(() =>
+      window.chai.request({ op: "snapshot" }),
+    );
+    const task = state.tasks.find((t) => t.id === previewId);
+    if (task?.state === "DONE") break;
+    assert.notEqual(task?.state, "FAILED", task?.error);
+    assert(attempt < 150, "Packaged browser did not finish");
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  const preview = await app.evaluate(({ BrowserWindow }) =>
+    BrowserWindow.getAllWindows()
+      .find((w) => w.webContents.getURL().startsWith("chai-preview:"))
+      ?.webContents.getURL(),
+  );
+  assert(preview?.startsWith("chai-preview:"));
+  await page.evaluate(() => window.chai.request({ op: "stop" }));
+  assert.equal(
+    await app.evaluate(
+      ({ BrowserWindow }) =>
+        BrowserWindow.getAllWindows().filter((w) =>
+          w.webContents.getURL().startsWith("chai-preview:"),
+        ).length,
+    ),
+    0,
+  );
+
   await page.screenshot({ path: ".qa/autonomous-work.png" });
   await app.close();
   app = await launch();

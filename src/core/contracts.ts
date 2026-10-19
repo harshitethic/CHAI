@@ -10,6 +10,39 @@ const sandboxPath = z
       p.split("/").every((s) => s !== "" && s !== "." && s !== ".."),
     "Use a normalized relative file path",
   );
+export const capabilitiesSchema = z
+  .object({
+    browser: z.boolean().default(false),
+    origins: z
+      .array(
+        z
+          .string()
+          .url()
+          .refine((v) => {
+            const u = new URL(v);
+            return (
+              u.protocol === "https:" &&
+              !u.username &&
+              !u.password &&
+              u.pathname === "/" &&
+              !u.search &&
+              !u.hash
+            );
+          }, "Use HTTPS origins, without paths or credentials"),
+      )
+      .max(8)
+      .default([]),
+    desktop: z
+      .object({
+        id: z.string().regex(/^window:[0-9]+:[0-9]+$/),
+        title: z.string().max(500),
+        pid: z.number().int().positive(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
+export type Capabilities = z.infer<typeof capabilitiesSchema>;
 export const actionSchema = z.discriminatedUnion("tool", [
   z
     .object({
@@ -64,6 +97,63 @@ export const actionSchema = z.discriminatedUnion("tool", [
         .optional(),
     })
     .strict(),
+  z.object({ tool: z.literal("mkdir"), path: sandboxPath }).strict(),
+  z
+    .object({
+      tool: z.literal("search"),
+      path: z.string().max(300).default("."),
+      query: z.string().min(1).max(200),
+    })
+    .strict(),
+  z
+    .object({
+      tool: z.literal("browser"),
+      operation: z.enum(["open", "preview", "observe", "click", "type", "key"]),
+      url: z.string().url().max(2000).optional(),
+      path: sandboxPath.optional(),
+      snapshot: z.uuid().optional(),
+      ref: z
+        .string()
+        .regex(/^e[0-9]+$/)
+        .optional(),
+      text: z.string().max(8000).optional(),
+      key: z
+        .enum([
+          "Enter",
+          "Tab",
+          "Escape",
+          "ArrowDown",
+          "ArrowUp",
+          "ArrowLeft",
+          "ArrowRight",
+          "Backspace",
+        ])
+        .optional(),
+    })
+    .strict(),
+  z
+    .object({
+      tool: z.literal("desktop"),
+      operation: z.enum(["observe", "click", "type", "key"]),
+      snapshot: z.uuid().optional(),
+      x: z.number().int().min(0).max(20000).optional(),
+      y: z.number().int().min(0).max(20000).optional(),
+      text: z.string().max(8000).optional(),
+      key: z
+        .enum([
+          "Return",
+          "Tab",
+          "Escape",
+          "Down",
+          "Up",
+          "Left",
+          "Right",
+          "BackSpace",
+          "ctrl+a",
+        ])
+        .optional(),
+    })
+    .strict(),
 ]);
 export const planSchema = z
   .object({
@@ -98,6 +188,7 @@ export interface Task {
   created: string;
   error: string | null;
   autonomous?: boolean;
+  capabilities?: Capabilities;
   agent?: {
     round: number;
     calls: number;
@@ -149,6 +240,7 @@ export interface Snapshot {
 export const requestSchema = z.discriminatedUnion("op", [
   z.object({ op: z.literal("snapshot") }).strict(),
   z.object({ op: z.literal("workspace") }).strict(),
+  z.object({ op: z.literal("desktop-select") }).strict(),
   z
     .object({
       op: z.literal("create"),
@@ -157,6 +249,7 @@ export const requestSchema = z.discriminatedUnion("op", [
       model: z.string().max(100),
       plan: z.string().max(110000).optional(),
       permission: z.enum(["review", "workspace"]).optional(),
+      capabilities: capabilitiesSchema.optional(),
     })
     .strict(),
   z

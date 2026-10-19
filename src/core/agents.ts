@@ -20,6 +20,7 @@ const proposalSchema = planSchema.extend({
         actionSchema.options[2],
         actionSchema.options[3],
         actionSchema.options[4].omit({ expectedHashes: true }),
+        ...actionSchema.options.slice(5),
       ]),
     )
     .min(1)
@@ -79,7 +80,8 @@ const boundary =
   "Tools: relative-path read/list/write, fixed commands pwd, git-status, git-diff (stat only), node-version; run executes Python, Node or Bash in an isolated offline Linux sandbox. " +
   "For run, explicitly list required relative file paths in files; only those files are copied to read-only /workspace. Use /tmp for temporary outputs. Host home, secrets, browser sessions and network are unavailable. " +
   "Example: {tool:'run',program:'python3',args:['check.py'],files:['check.py'],timeoutSeconds:20}. Python isolated mode: add /workspace to sys.path inside scripts that import sibling modules. Node uses jitless mode. " +
-  "No host shell, deletion, package downloads or nested directory creation. Sandbox outputs are evidence, not host file changes. Nonzero exitCode or termination indicates a failed check; repair and rerun. " +
+  "mkdir creates workspace directories; search finds literal text in scoped files. browser and desktop tools require the task capabilities shown in input. browser preview opens local HTML; open accepts authorized HTTPS origins. observe returns current text, controls and screenshot. click/type/key require snapshot and ref from the latest observation. Desktop actions require its current screenshot snapshot and window-relative coordinates. Never invent refs or coordinates. Make a new observe step if context is stale. Screenshots are returned by chai_get_job. " +
+  "No host shell, deletion or package downloads. Sandbox outputs are evidence, not host file changes. Nonzero exitCode or termination indicates a failed check; repair and rerun. " +
   "The local policy controls authorization: an existing user workspace grant permits routine actions without repeated approval. You cannot grant or broaden permissions. Do not return reasoning traces; give concise decisions and evidence-based summaries.";
 
 /** Model roles never execute tools or grant permissions. The Engine owns both. */
@@ -216,7 +218,11 @@ export class Coordinator {
         if (
           action?.tool === "read" ||
           action?.tool === "list" ||
-          action?.tool === "run"
+          action?.tool === "run" ||
+          action?.tool === "mkdir" ||
+          action?.tool === "search" ||
+          action?.tool === "browser" ||
+          action?.tool === "desktop"
         )
           output = JSON.parse(String(row.output));
         if (action?.tool === "write")
@@ -272,8 +278,21 @@ export class Coordinator {
           sha256: current.hash,
         });
     }
-    const evidence = { outputs, files };
-    if (JSON.stringify(evidence).length > 24000)
+    // Keep the last four computer observations; old browser text is stale and can dominate context.
+    const computer = outputs.filter(
+      (o) => o.action?.tool === "browser" || o.action?.tool === "desktop",
+    );
+    const recent = new Set(computer.slice(-4));
+    const evidence = {
+      outputs: outputs.map((o) =>
+        (o.action?.tool === "browser" || o.action?.tool === "desktop") &&
+        !recent.has(o)
+          ? { ...o, output: { superseded: true } }
+          : o,
+      ),
+      files,
+    };
+    if (JSON.stringify(evidence).length > 70000)
       throw Error(
         "Evidence exceeds the context budget. Split the task; files remain intact.",
       );
@@ -290,7 +309,12 @@ export class Coordinator {
         "assignment",
         "Decompose the goal into one bounded Builder assignment and specific acceptance criteria. On repair, use the Reviewer issues. " +
           "If file contents are absent from evidence, assign a read-only discovery round first. Evidence with state SUCCEEDED has already executed: do not assign those reads again. Once a file is known, assign the actual edit. Never invent existing file contents.",
-        { goal: task.goal, previousReview: agent.review, evidence },
+        {
+          goal: task.goal,
+          capabilities: task.capabilities,
+          previousReview: agent.review,
+          evidence,
+        },
         briefSchema,
         signal,
       );
@@ -316,6 +340,7 @@ export class Coordinator {
         "Evidence records with state SUCCEEDED have ALREADY run. If existing file content is absent from all evidence, return a read action only. If it is present, produce the write now; do not repeat a completed read. Never mix a read and a guessed write. Only actions in your NEW proposal have not run yet.",
       {
         goal: task.goal,
+        capabilities: task.capabilities,
         assignment: agent.brief,
         evidence,
         feedback: agent.review,

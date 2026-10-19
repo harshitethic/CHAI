@@ -18,7 +18,8 @@ export class Store {
   CREATE TABLE IF NOT EXISTS approvals(taskId TEXT PRIMARY KEY,plan TEXT NOT NULL,expires INTEGER NOT NULL);
   CREATE TABLE IF NOT EXISTS agent_calls(id TEXT PRIMARY KEY,taskId TEXT NOT NULL,role TEXT NOT NULL,round INTEGER NOT NULL,status TEXT NOT NULL,request TEXT NOT NULL,response TEXT,updated TEXT NOT NULL);
   CREATE TABLE IF NOT EXISTS task_grants(taskId TEXT PRIMARY KEY,root TEXT NOT NULL,granted TEXT NOT NULL);
-  PRAGMA user_version=3;`);
+  CREATE TABLE IF NOT EXISTS task_images(id TEXT PRIMARY KEY,taskId TEXT NOT NULL,data TEXT NOT NULL,created TEXT NOT NULL);
+  PRAGMA user_version=4;`);
   }
   put(task: Task) {
     this.db
@@ -93,6 +94,19 @@ export class Store {
       .prepare("SELECT root FROM task_grants WHERE taskId=?")
       .get(task.id);
     return !!grant && grant.root === task.root;
+  }
+  image(taskId: string, data: Buffer) {
+    if (data.length > 2000000) throw Error("Screenshot exceeds 2 MB limit");
+    const id = randomUUID();
+    this.db
+      .prepare("INSERT INTO task_images VALUES(?,?,?,?)")
+      .run(id, taskId, data.toString("base64"), new Date().toISOString());
+    this.db
+      .prepare(
+        "DELETE FROM task_images WHERE taskId=? AND id NOT IN (SELECT id FROM task_images WHERE taskId=? ORDER BY rowid DESC LIMIT 12)",
+      )
+      .run(taskId, taskId);
+    return id;
   }
   close() {
     this.db.close();

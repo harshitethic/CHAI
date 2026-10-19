@@ -1,10 +1,10 @@
-# CHAI blockers — 2026-10-19
+# CHAI remaining acceptance gates — 2026-10-19
 
-The normal-ChatGPT 6 High core is verified live, including an installed-app restart and existing-file edit. It is no longer blocked on model connectivity.
+Normal signed-in ChatGPT with 6 High is verified live. The 0.4 source adds scoped browser/X11 actions, screenshots, directory creation and search; automated interaction tests pass.
 
-## Remaining acceptance gates
-- Whole-PC reboot is unverified. It interrupts other applications and requires a safe restart window after unsaved work is handled.
-- A quick tunnel gets a new hostname when recreated. Persistent pairing after whole-PC reboot needs a stable HTTPS origin forwarded to loopback 40671, or manual reconnection of the new temporary URL. The developer test retained one tunnel across app restarts only.
-- General agent-driven desktop/browser workflows, network-enabled host shell tasks and broader file management are still unimplemented. These are product backlog, not a claim that the current bounded tools are complete.
+- Whole-PC reboot remains unverified. It interrupts other applications and needs a safe restart window after unsaved work is handled.
+- Stable transport is configured on Kali: a dedicated named Cloudflare tunnel maps chai-tools.harshitethic.com to loopback 40671, with an enabled user service. ChatGPT uses the CHAI Desktop plugin. No tunnel credentials are committed.
+- Full original product parity is not claimed. Network-enabled host shell tasks, package installation, unrestricted file management, arbitrary whole-desktop automation and unattended startup remain outside the bounded implementation.
+- Browser sessions and target references are ephemeral. On restart, unfinished tasks pause; uncertain input effects are never automatically replayed. X11 is required for selected-window control.
 
-The 0.2 release is published and independently downloaded/verified. The 0.3 AppImage is installed and tested, with autonomous workspace grants and isolated Python/Node/Bash execution. The 0.3 release is published with passing CI and independently downloaded AppImage verification. No ChatGPT credentials or alternative model provider are needed.
+No ChatGPT credentials or alternative inference provider are needed. Provider permission prompts and usage limits remain effective.

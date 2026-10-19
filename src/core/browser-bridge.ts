@@ -141,6 +141,29 @@ export class BrowserBridge implements AgentAdapter {
       responseSchema: request.schema,
     };
   }
+  images(id: string, role: Role) {
+    const job = this.get(id, role);
+    const taskId = this.store.db
+      .prepare("SELECT taskId FROM browser_jobs WHERE id=?")
+      .get(id)!.taskId;
+    const ids = new Set<string>();
+    for (const row of job.input?.evidence?.outputs ?? [])
+      if (typeof row.output?.imageId === "string") ids.add(row.output.imageId);
+    return [...ids].slice(-2).flatMap((imageId) => {
+      const image = this.store.db
+        .prepare("SELECT data FROM task_images WHERE id=? AND taskId=?")
+        .get(imageId, taskId);
+      return image
+        ? [
+            {
+              type: "image" as const,
+              mimeType: "image/jpeg",
+              data: String(image.data),
+            },
+          ]
+        : [];
+    });
+  }
   answer(id: string, role: Role, value: unknown) {
     const existing = this.store.db
       .prepare("SELECT * FROM browser_jobs WHERE id=?")
@@ -177,7 +200,7 @@ export class BrowserBridge implements AgentAdapter {
     return {
       accepted: true,
       message:
-        "CHAI will validate this result. Tool execution still requires the local user's approval. Do not perform other roles.",
+        "CHAI will validate this result. Tool execution follows the local user's recorded permission scope. Do not perform other roles.",
     };
   }
 }

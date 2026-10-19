@@ -148,7 +148,7 @@ export class ToolServer {
     this.route = route;
   }
   createMcp() {
-    const mcp = new McpServer({ name: "CHAI", version: "0.2.0-alpha.1" });
+    const mcp = new McpServer({ name: "CHAI", version: "0.4.0-alpha.1" });
     const role = z.enum(["manager", "builder", "reviewer"]);
     const result = (data: unknown) => ({
       content: [{ type: "text" as const, text: JSON.stringify(data) }],
@@ -189,7 +189,12 @@ export class ToolServer {
       },
       async ({ jobId, role }) => {
         try {
-          return result(this.bridge.get(jobId, role));
+          return {
+            content: [
+              ...result(this.bridge.get(jobId, role)).content,
+              ...this.bridge.images(jobId, role),
+            ],
+          };
         } catch (e) {
           return { ...result({ error: redact(String(e)) }), isError: true };
         }
@@ -200,7 +205,7 @@ export class ToolServer {
       {
         title: "Submit CHAI role result",
         description:
-          "Submit valid JSON matching responseSchema from chai_get_job for the assigned role. This saves a proposal/review/report only. CHAI validates it and asks the user locally before file or command execution. Do not submit results for other roles.",
+          "Submit valid JSON matching responseSchema from chai_get_job for the assigned role. This saves a proposal/review/report only. CHAI validates it and follows the local user permission policy before execution. Do not submit results for other roles.",
         inputSchema: {
           jobId: z.uuid(),
           role,

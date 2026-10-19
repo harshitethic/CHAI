@@ -4,7 +4,7 @@ import { spawn } from "node:child_process";
 import { realpathSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
-import { redact, type Action } from "./contracts";
+import { redact, type Action, type Task } from "./contracts";
 export function workspace(path: string) {
   const root = realpathSync(path);
   if (
@@ -20,6 +20,11 @@ export function workspace(path: string) {
   return root;
 }
 export class Gateway {
+  computer?: (
+    task: Task,
+    action: Extract<Action, { tool: "browser" | "desktop" }>,
+    signal: AbortSignal,
+  ) => Promise<unknown>;
   children = new Set<ReturnType<typeof spawn>>();
   constructor(readonly script: string) {}
   run(

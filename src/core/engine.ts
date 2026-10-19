@@ -2,7 +2,13 @@ import { Store } from "./store";
 import { workspace, Gateway } from "./gateway";
 import { recipe } from "./providers";
 import { Coordinator, ProviderUnavailable, type AgentAdapter } from "./agents";
-import { planSchema, redact, type Task, type Plan } from "./contracts";
+import {
+  planSchema,
+  redact,
+  type Task,
+  type Plan,
+  type Capabilities,
+} from "./contracts";
 const terminal = new Set(["DONE", "FAILED", "CANCELED"]);
 export class Engine {
   active = new Map<string, AbortController>();
@@ -44,8 +50,11 @@ export class Engine {
     model: string,
     plan?: string,
     permission: "review" | "workspace" = "review",
+    capabilities?: Capabilities,
   ) {
     const t = this.store.create(goal, workspace(root), mode, model);
+    t.capabilities = capabilities;
+    this.store.put(t);
     if (permission === "workspace") {
       this.store.db
         .prepare("INSERT INTO task_grants VALUES(?,?,?)")
@@ -141,7 +150,17 @@ export class Engine {
       !this.store.hasWorkspaceGrant(t)
     )
       return;
-    const allowed = new Set(["read", "list", "write", "command", "run"]);
+    const allowed = new Set([
+      "read",
+      "list",
+      "write",
+      "command",
+      "run",
+      "mkdir",
+      "search",
+      "browser",
+      "desktop",
+    ]);
     if (t.plan.actions.slice(t.cursor).some((a) => !allowed.has(a.tool)))
       return;
     this.store.event(
@@ -208,6 +227,22 @@ export class Engine {
       await pending;
     } while (pending !== this.queue);
   }
+  private async executeComputer(
+    task: Task,
+    action: Extract<
+      import("./contracts").Action,
+      { tool: "browser" | "desktop" }
+    >,
+    signal: AbortSignal,
+  ) {
+    if (action.tool === "browser" && !task.capabilities?.browser)
+      throw Error("Browser access was not authorized for this task.");
+    if (action.tool === "desktop" && !task.capabilities?.desktop)
+      throw Error("No desktop window was authorized for this task.");
+    if (!this.gateway.computer)
+      throw Error("Computer tools require the native desktop app.");
+    return this.gateway.computer(task, action, signal);
+  }
   async execute(id: string) {
     let t = this.store.get(id);
     if (t.state !== "RUNNING" || !t.plan || this.active.has(id)) return;
@@ -249,10 +284,13 @@ export class Engine {
         }
         if (
           effect?.state === "STARTED" &&
-          (a.tool === "command" || a.tool === "run")
+          (a.tool === "command" ||
+            a.tool === "run" ||
+            a.tool === "browser" ||
+            a.tool === "desktop")
         )
           throw Error(
-            "Interrupted command has unknown outcome; create a new task after inspecting evidence. It will not be replayed.",
+            "Interrupted action has unknown outcome; create a new task after inspecting evidence. It will not be replayed.",
           );
         this.store.event(id, "builder", "TOOL_STARTED", JSON.stringify(a));
         let output = "";
@@ -329,9 +367,17 @@ export class Engine {
               ? await this.gateway.command(t.root, a, signal)
               : a.tool === "run"
                 ? JSON.stringify(await this.gateway.sandbox(t.root, a, signal))
-                : JSON.stringify(
-                    await this.gateway.file(t.root, a.tool, a.path, {}, signal),
-                  );
+                : a.tool === "browser" || a.tool === "desktop"
+                  ? JSON.stringify(await this.executeComputer(t, a, signal))
+                  : JSON.stringify(
+                      await this.gateway.file(
+                        t.root,
+                        a.tool,
+                        a.path,
+                        a.tool === "search" ? { query: a.query } : {},
+                        signal,
+                      ),
+                    );
           this.store.event(
             id,
             "reviewer",

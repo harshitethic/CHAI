@@ -63,6 +63,13 @@ function App() {
     [goal, setGoal] = useState(""),
     [mode, setMode] = useState<Exclude<Mode, "local" | "chatgpt">>("browser"),
     [permission, setPermission] = useState<"review" | "workspace">("workspace"),
+    [browserAccess, setBrowserAccess] = useState(false),
+    [browserOrigins, setBrowserOrigins] = useState(""),
+    [desktopTarget, setDesktopTarget] = useState<{
+      id: string;
+      title: string;
+      pid: number;
+    } | null>(null),
     [origin, setOrigin] = useState(""),
     [plan, setPlan] = useState(""),
     [error, setError] = useState(""),
@@ -135,6 +142,16 @@ function App() {
       goal,
       mode,
       permission,
+      capabilities: {
+        browser: browserAccess,
+        origins: browserAccess
+          ? browserOrigins
+              .split(/[\s,]+/)
+              .filter(Boolean)
+              .map((v) => v.replace(/\/$/, ""))
+          : [],
+        ...(desktopTarget ? { desktop: desktopTarget } : {}),
+      },
       model: "ChatGPT browser · user-selected model",
       plan: mode === "assisted" ? plan : undefined,
     });
@@ -390,6 +407,56 @@ function App() {
                       : "Preview and approve each round before it runs."}
                   </span>
                 </label>
+                <details className="tool-access">
+                  <summary>Browser and desktop access</summary>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={browserAccess}
+                      onChange={(e) => setBrowserAccess(e.target.checked)}
+                    />{" "}
+                    Allow project previews and task browser
+                  </label>
+                  {browserAccess && (
+                    <label>
+                      Allowed website origins (optional)
+                      <input
+                        aria-label="Allowed website origins"
+                        placeholder="https://example.com"
+                        value={browserOrigins}
+                        onChange={(e) => setBrowserOrigins(e.target.value)}
+                      />
+                    </label>
+                  )}
+                  <p>
+                    Observations and screenshots from enabled tools go to your
+                    ChatGPT conversations. Website access stays within these
+                    origins. Sensitive submissions still ask.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const target = await call({ op: "desktop-select" });
+                      if (target)
+                        setDesktopTarget(
+                          target as { id: string; title: string; pid: number },
+                        );
+                    }}
+                  >
+                    Choose desktop window
+                  </button>
+                  {desktopTarget && (
+                    <span>
+                      {desktopTarget.title}{" "}
+                      <button
+                        type="button"
+                        onClick={() => setDesktopTarget(null)}
+                      >
+                        Remove window access
+                      </button>
+                    </span>
+                  )}
+                </details>
                 <footer>
                   <button
                     type="button"
@@ -933,7 +1000,9 @@ function App() {
           <span>
             CHAI <b>{data.version}</b>
           </span>
-          <span>Workspace-scoped · Under your control · Recoverable history</span>
+          <span>
+            Workspace-scoped · Under your control · Recoverable history
+          </span>
         </footer>
       </main>
     </div>
