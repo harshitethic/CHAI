@@ -1,0 +1,45 @@
+{
+  "verifiedAt": "2026-10-19T13:43:14.972499+00:00",
+  "version": "0.7.0-alpha.1",
+  "release": "https://github.com/harshitethic/CHAI/releases/tag/v0.7.0-alpha.1",
+  "source": "a72aec074d0b3f681df7d4e4d5119f5e1e217900",
+  "releaseWorkflow": "https://github.com/harshitethic/CHAI/actions/runs/39261620383",
+  "ci": "https://github.com/harshitethic/CHAI/actions/runs/39261619816",
+  "appImageSha256": "da15f8be4dd20304cad79d846380291a4b492503a91b75c5df6515b0c82d6f32",
+  "downloadedAppImageE2E": "PASS: native UI, sandbox, browser, Git consent/commit, progress, task switching, pause/reload/error/restart and four widths",
+  "downloadedAppImageWorkbench": "PASS: real terminal fail/fix/pass, isolated source, file/diff/output UI, interactive preview, consented downloads, tray continuation, Stop, persisted sessions and packaged login-startup entry",
+  "installPath": "/home/kali/.local/opt/chai-0.7.0-alpha.1/CHAI.AppImage",
+  "launcher": "/home/kali/.local/bin/chai",
+  "previousVersionsRetained": true,
+  "taskRetained": {
+    "id": "b9aaa7a0-6b9e-41b7-bf70-fbac5d7dc8e0",
+    "state": "DONE",
+    "revision": 3
+  },
+  "artifactsRetained": [
+    {
+      "path": "sum.cjs",
+      "title": "sum.cjs",
+      "bytes": 34,
+      "sha256": "3c4a78e286981651d3745d5e79e6e4e61940dfb45c44adad547ed04c5f811519",
+      "mime": "application/octet-stream"
+    },
+    {
+      "path": "outputs/verification.pdf",
+      "title": "verification.pdf",
+      "bytes": 2788,
+      "sha256": "743d5fd1701e2c6b2103fbab7cb3355eceabf2382c1f03cdfe06aadee7e255d5",
+      "mime": "application/pdf"
+    }
+  ],
+  "toolConnection": {
+    "url": "https://chai-tools.harshitethic.com/mcp",
+    "state": "ready",
+    "connected": true,
+    "lastSeen": "2026-10-19T13:33:16.974Z"
+  },
+  "connectionCheck": "Installed app reports saved authenticated pairing and ready same-origin bridge. Live model task and document follow-up were verified before installation; no new post-install model-run claim.",
+  "workspaceRestored": "/home/kali/Projects/CHAI/.qa/git-live-workspace",
+  "wholePcRebootVerified": false,
+  "githubCliOnKali": "One-time gh auth login still required for in-app GitHub publication"
+}

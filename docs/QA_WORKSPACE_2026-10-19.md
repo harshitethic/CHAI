@@ -30,3 +30,7 @@ The packaged native workbench test also passed consented download bytes/registra
 ## Follow-up document acceptance
 
 The same live task completed a new PDF deliverable in one round and four role calls after fixing follow-up prioritization. Each role now receives the latest native-UI request as its goal and the original goal as context. `outputs/verification.pdf` was created and registered at 2,788 bytes; its actual PDF signature and SHA256 were independently checked. No original tests or browser clicks were repeated. See `docs/qa/followup-document-live-2026-10-19.json`.
+
+## Published binary and installation
+
+Release source `a72aec074d0b3f681df7d4e4d5119f5e1e217900` passed CI and the release workflow. The downloaded 0.7.0-alpha.1 AppImage matched published SHA256 `da15f8be4dd20304cad79d846380291a4b492503a91b75c5df6515b0c82d6f32` and passed both native suites on Kali, including login-startup entry creation/removal in an isolated test home. It was installed with old versions retained. The normal profile retained the DONE task, both outputs and saved authenticated pairing. This verifies app restart and entry generation, not a whole-machine reboot or a new post-install model task. Full record: `docs/qa/published-0.7-verification.json`.

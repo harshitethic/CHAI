@@ -2,6 +2,8 @@
 
 ## Current status — 0.7.0-alpha.1, 2026-10-19
 
+Published and installed: [CHAI 0.7.0-alpha.1](https://github.com/harshitethic/CHAI/releases/tag/v0.7.0-alpha.1), source `a72aec0`. CI and release workflow passed. The exact downloaded AppImage passed SHA256 verification and both native suites on Kali, including the packaged startup entry. The installed profile retained the completed live task, two outputs and saved authenticated tool pairing. See [publication verification](docs/qa/published-0.7-verification.json). Live project repair/browser verification and the same-task PDF follow-up both reached DONE. One-time Kali GitHub CLI login and a safe whole-PC reboot window remain environmental gates.
+
 All nine requested feature areas are implemented: isolated writable projects and dependency installs; persistent process sessions; real local-server browser verification and embedded preview; same-task follow-ups and attachments; paginated repository context and exact patches; independent Git checkout/commit/PR/CI tools; opt-in tray/startup/notifications and safe recovery; document outputs and authenticated MCP connections; browser transfers and selected X11 accessibility/scrolling.
 
 The Work UI includes Terminal, Files, Changes, Preview and Outputs, with current/next actions, durable checklists, actual failed/passing checks, provider waiting/retry and role activity. The original source tree and staging index remain separate from the task working copy.
