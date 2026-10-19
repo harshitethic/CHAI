@@ -6,7 +6,7 @@ Selected-file Git inspection and native-confirmed local review commits are imple
 
 Verified: 50 automated tests, typecheck/lint/build, native approval/decline and actual commit, browser/X11 guards, crash recovery and zero-vulnerability audit. A real normal-ChatGPT task reached DONE after a baseline test failure, one-file fix, unchanged passing test, selected diff and approved commit: two rounds, seven role calls, one workspace grant and one native Git confirmation. HEAD and staging-index byte hash matched their baselines; an unrelated staged edit stayed untouched. Evidence: docs/qa/git-live-2026-10-19.json and docs/qa/git-confirmation.png.
 
-Release publication and downloaded-artifact installation are the remaining 0.5 delivery gates at this source commit; record their outcomes separately. Whole-PC reboot still needs a safe user-arranged restart window. Broader host shell/network/package installation, unrestricted file management, arbitrary desktop automation and unattended app startup remain outside this bounded alpha.
+Release CI passed; the exact published AppImage passed its checksum and native E2E on Kali, was installed, and retained the completed task and authenticated ChatGPT connection. Record: docs/qa/published-0.5-verification.json. Whole-PC reboot still needs a safe user-arranged restart window. Broader host shell/network/package installation, unrestricted file management, arbitrary desktop automation and unattended app startup remain outside this bounded alpha.
 
 Older entries below retain historical milestones and the original brief; they are not the current test report.
 

@@ -6,7 +6,7 @@ Selected-file Git inspection and native-confirmed local review commits are imple
 
 Verified: 50 automated tests, typecheck/lint/build, native approval/decline and actual commit, browser/X11 guards, crash recovery and zero-vulnerability audit. A real normal-ChatGPT task reached DONE after a baseline test failure, one-file fix, unchanged passing test, selected diff and approved commit: two rounds, seven role calls, one workspace grant and one native Git confirmation. HEAD and staging-index byte hash matched their baselines; an unrelated staged edit stayed untouched. Evidence: docs/qa/git-live-2026-10-19.json and docs/qa/git-confirmation.png.
 
-Release publication and downloaded-artifact installation are the remaining 0.5 delivery gates at this source commit; record their outcomes separately. Whole-PC reboot still needs a safe user-arranged restart window. Broader host shell/network/package installation, unrestricted file management, arbitrary desktop automation and unattended app startup remain outside this bounded alpha.
+Release CI passed; the exact published AppImage passed its checksum and native E2E on Kali, was installed, and retained the completed task and authenticated ChatGPT connection. Record: docs/qa/published-0.5-verification.json. Whole-PC reboot still needs a safe user-arranged restart window. Broader host shell/network/package installation, unrestricted file management, arbitrary desktop automation and unattended app startup remain outside this bounded alpha.
 
 Older entries below retain historical milestones and the original brief; they are not the current test report.
 
@@ -78,3 +78,17 @@ Release source: 1c768d4. Independently downloaded AppImage SHA256: 8d8d2eee7bc08
 The exact published download passed native UI/restart/workspace-grant/sandbox/local-preview/Stop checks on Kali. Installed under ~/.local/opt/chai-0.4.0-alpha.1/CHAI.AppImage; ~/.local/bin/chai and desktop shortcut point there. Older versions and launcher backups remain. The installed app reopened with the completed live task, original permissions, ChatGPT login and 6 High intact. A fresh authenticated chai_connection_status request from normal ChatGPT succeeded after both the app upgrade and named-tunnel service restart (lastSeen 2026-10-19T10:37:07.196Z). Structured record: docs/qa/published-0.4-verification.json.
 
 Remaining acceptance gate: arrange a whole-PC reboot after other work is saved. Broader original features remain explicitly outside this alpha; do not claim unrestricted Codex parity or bypass ChatGPT approval controls.
+
+## Published 0.5 installation verification — 2026-10-19
+
+Release: https://github.com/harshitethic/CHAI/releases/tag/v0.5.0-alpha.1
+Release workflow: https://github.com/harshitethic/CHAI/actions/runs/39244935372 (passed, including packaged executable tests).
+CI: https://github.com/harshitethic/CHAI/actions/runs/39244934193 (passed).
+Source: e8a07adb4a3b0fbfd3ac5231d237246d6071a6aa.
+Published AppImage SHA256: 1c8883d382a6c92b49e3927297532e1a9d630c94e07457583d31b849ea7b8ceb.
+
+The exact downloaded AppImage passed native UI, sandbox execution, browser preview, declined and approved Git confirmation, real review-branch commit, unchanged HEAD/index and restart checks. Installed under ~/.local/opt/chai-0.5.0-alpha.1/CHAI.AppImage; launcher and desktop entry upgraded with prior versions/backups retained.
+
+The installed app retained the live DONE task, ChatGPT login and 6 High. A fresh normal-ChatGPT chai_connection_status call succeeded at 2026-10-19T11:34:11.337Z. The dedicated tunnel service remained active. No credentials were moved. See docs/qa/published-0.5-verification.json.
+
+Whole-PC reboot still needs a safe user-arranged window. Broader host shell/network/package installation, unrestricted file management and unattended startup are unfinished; do not describe the full original backlog as complete.

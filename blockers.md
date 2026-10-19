@@ -1,6 +1,6 @@
 # CHAI remaining acceptance gates — 2026-10-19
 
-Normal signed-in ChatGPT with 6 High is verified live. The 0.5 source adds selected-file Git inspection and locally confirmed review commits; all 50 tests and a real ChatGPT fix/test/diff/commit task pass. Publication and installation of the exact downloaded 0.5 artifact are pending at this source commit. The previous installed release is 0.4.
+Normal signed-in ChatGPT with 6 High is verified live. The 0.5 source adds selected-file Git inspection and locally confirmed review commits; all 50 tests and a real ChatGPT fix/test/diff/commit task pass. The 0.5 release is published and its exact downloaded AppImage passed native E2E, was installed on Kali, and retained the completed task and authenticated tool pairing.
 
 
 - Whole-PC reboot remains unverified. It interrupts other applications and needs a safe restart window after unsaved work is handled.
