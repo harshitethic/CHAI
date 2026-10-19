@@ -102,6 +102,10 @@ try {
     }),
     /Stale/,
   );
+  await assert.rejects(
+    execute({ tool: "browser", operation: "click", snapshot: obs.snapshot }),
+    /target ref/,
+  );
   const password = obs.controls.find((c) => c.type === "password");
   await assert.rejects(
     execute({

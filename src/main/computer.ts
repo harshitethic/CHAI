@@ -249,6 +249,10 @@ export class ComputerTools {
         );
       await win.loadURL(url);
     } else if (action.operation !== "observe") {
+      if (!action.snapshot || !action.ref)
+        throw Error(
+          "Browser input requires an observed snapshot and target ref.",
+        );
       const info = await this.isolated(
         win,
         `(() => {
