@@ -6,7 +6,7 @@ The Work screen now presents current action, next step, a durable action checkli
 
 Verified: 54 tests, typecheck/lint/build, native task switching, one active checklist row, real interrupted Python check, Pause, reload, saved progress and honest ambiguous-resume failure. Existing native sandbox/browser/Git coverage and four widths pass. Crash recovery and zero-vulnerability audit pass. A native screenshot shows the saved live ChatGPT Git task in the new UI; no new model-run claim is made for a presentation change.
 
-README is rewritten around capabilities, setup, real evidence and current limits. Release publication and downloaded-artifact installation are pending at this source commit. Whole-PC reboot still needs a safe user-arranged window. Host shell/network/package installation, unrestricted file management and unattended startup remain outside this alpha.
+README is rewritten around capabilities, setup, real evidence and current limits. Release CI passed. The exact published AppImage passed checksum/native E2E on Kali, was installed, and retained completed history and the authenticated ChatGPT connection. Record: docs/qa/published-0.6-verification.json. Whole-PC reboot still needs a safe user-arranged window. Host shell/network/package installation, unrestricted file management and unattended startup remain outside this alpha.
 
 Older sections below are historical records, not the current test report.
 
@@ -92,3 +92,17 @@ The exact downloaded AppImage passed native UI, sandbox execution, browser previ
 The installed app retained the live DONE task, ChatGPT login and 6 High. A fresh normal-ChatGPT chai_connection_status call succeeded at 2026-10-19T11:34:11.337Z. The dedicated tunnel service remained active. No credentials were moved. See docs/qa/published-0.5-verification.json.
 
 Whole-PC reboot still needs a safe user-arranged window. Broader host shell/network/package installation, unrestricted file management and unattended startup are unfinished; do not describe the full original backlog as complete.
+
+## Published 0.6 progress UI — 2026-10-19
+
+Release: https://github.com/harshitethic/CHAI/releases/tag/v0.6.0-alpha.1
+Release workflow: https://github.com/harshitethic/CHAI/actions/runs/39250146620 (passed).
+CI: https://github.com/harshitethic/CHAI/actions/runs/39250145573 (passed).
+Source: 5ad5bc0a8af1676c76f54828b59527872b0e9090.
+AppImage SHA256: 73aaa97e20ebf72213afbc8f90f7c2399bbe41a30fe63169bc695eef306774ac.
+
+The exact downloaded AppImage passed native UI, task switching, one active checklist row, real Python interruption, pause/reload/saved progress, ambiguous-resume failure, sandbox/browser/Git confirmation and restart checks. Installed under ~/.local/opt/chai-0.6.0-alpha.1/CHAI.AppImage with prior versions retained.
+
+The installed app retained the live DONE task, login and 6 High. Fresh normal-ChatGPT connection status succeeded at 2026-10-19T12:17:14.383Z. Source and installed app expose current/next action, finished/pending/error steps, actual test exits and expandable activity evidence. README uses an actual native screenshot and documents the tool boundaries.
+
+Whole-PC reboot, unrestricted host shell/network/package workflows and unattended startup remain unfinished. The new UI is progress visibility, not full ChatGPT Work/Codex feature parity.

@@ -1,0 +1,22 @@
+{
+  "version": "0.6.0-alpha.1",
+  "release": "https://github.com/harshitethic/CHAI/releases/tag/v0.6.0-alpha.1",
+  "source": "5ad5bc0a8af1676c76f54828b59527872b0e9090",
+  "releaseWorkflow": "https://github.com/harshitethic/CHAI/actions/runs/39250146620",
+  "ci": "https://github.com/harshitethic/CHAI/actions/runs/39250145573",
+  "appImageSha256": "73aaa97e20ebf72213afbc8f90f7c2399bbe41a30fe63169bc695eef306774ac",
+  "downloadedAppImageE2E": "PASS: native UI, actual sandbox execution, browser preview, Git approval/decline, real selected-file branch commit, preserved HEAD/index, progress checklist, task switching, pause/reload/error states, restart and four widths",
+  "installPath": "/home/kali/.local/opt/chai-0.6.0-alpha.1/CHAI.AppImage",
+  "launcher": "/home/kali/.local/bin/chai",
+  "previousVersionsRetained": true,
+  "taskRetained": {
+    "id": "1348cf96-1d34-4cc2-8d5c-820562ad03f8",
+    "state": "DONE"
+  },
+  "toolConnection": {
+    "endpoint": "https://chai-tools.harshitethic.com/mcp",
+    "connected": true,
+    "lastSeen": "2026-10-19T12:17:14.383Z"
+  },
+  "wholePcRebootVerified": false
+}

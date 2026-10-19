@@ -12,4 +12,4 @@ Version: 0.6.0-alpha.1, Kali X11.
 
 Progress is derived from the stored execution cursor, task state, validated action plan and lightweight effect summaries. Selected-task reads return up to 500 of that task's events. The activity feed initially shows the latest 12 relevant updates; earlier updates and exact raw evidence are expandable. The checklist is bounded to the plan and scrolls for long tasks. Reduced motion disables its active indicator animation. Long task requests and reports are expandable.
 
-Release CI and exact downloaded-artifact installation results are recorded separately after publication. No whole-PC reboot was performed.
+Release CI and exact downloaded AppImage E2E passed. Installed history and fresh tool connection were verified; see qa/published-0.6-verification.json. No whole-PC reboot was performed.

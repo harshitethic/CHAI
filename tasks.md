@@ -6,7 +6,7 @@ The Work screen now presents current action, next step, a durable action checkli
 
 Verified: 54 tests, typecheck/lint/build, native task switching, one active checklist row, real interrupted Python check, Pause, reload, saved progress and honest ambiguous-resume failure. Existing native sandbox/browser/Git coverage and four widths pass. Crash recovery and zero-vulnerability audit pass. A native screenshot shows the saved live ChatGPT Git task in the new UI; no new model-run claim is made for a presentation change.
 
-README is rewritten around capabilities, setup, real evidence and current limits. Release publication and downloaded-artifact installation are pending at this source commit. Whole-PC reboot still needs a safe user-arranged window. Host shell/network/package installation, unrestricted file management and unattended startup remain outside this alpha.
+README is rewritten around capabilities, setup, real evidence and current limits. Release CI passed. The exact published AppImage passed checksum/native E2E on Kali, was installed, and retained completed history and the authenticated ChatGPT connection. Record: docs/qa/published-0.6-verification.json. Whole-PC reboot still needs a safe user-arranged window. Host shell/network/package installation, unrestricted file management and unattended startup remain outside this alpha.
 
 Older sections below are historical records, not the current test report.
 
