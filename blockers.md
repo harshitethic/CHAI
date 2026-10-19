@@ -5,4 +5,4 @@
 - **Manual sign-in:** the user must sign in personally on the official page. No credentials requested or extracted.
 - **Whole-system reboot:** not performed while the user's desktop is active. App restart and crash tests are separate evidence; a real reboot needs a safe user restart window.
 
-Build, UI testing, packaging and GitHub work are ongoing, not blocked by these provider-specific limitations.
+Local-engine alpha is implemented, installed and published. CI and release are green. The items above remain genuine external acceptance gates; no claim of full mission completion is made.

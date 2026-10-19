@@ -82,4 +82,6 @@ This file retains the full-product acceptance rubric. Verified alpha scope is re
 - [x] Packaged executable and installed AppImage extraction mode tested on Kali.
 - [x] Official ChatGPT URL opened with no credentials read; sign-in still manual-pending.
 - [x] All dependency audit entries resolved on tested Kali lockfile.
-- [ ] No full-system reboot claim; no live local-model or autonomous ChatGPT claim.
+- [ ] Full-system reboot and live local-model acceptance remain pending. Automated ChatGPT transport is unsupported.
+
+- [x] Independent GitHub CI and release workflow passed; published artifacts and checksums verified by release API.

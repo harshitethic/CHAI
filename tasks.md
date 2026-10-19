@@ -93,4 +93,4 @@ For a checked item add proof in `handoff.md` or the appropriate test report: com
 - [x] Zero npm audit vulnerabilities on Kali after dependency fixes.
 - [ ] Live local-model inference and autonomous reasoning loop. No local model is installed/detected.
 - [ ] User manual ChatGPT login and whole-system reboot acceptance.
-- [ ] Final GitHub CI/release outcome: see handoff.md for latest remote evidence.
+- [x] GitHub CI and release workflow passed; v0.1.0-alpha.1 published with both packages and SHA256SUMS.
