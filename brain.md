@@ -1,5 +1,14 @@
 # BRAIN — CHAI's Long-Term Memory
 
+## User correction — browser ChatGPT is the required product
+
+The user clarified that CHAI must use the normal ChatGPT website and its interactive signed-in session, with GPT-6 and High thinking selected. They explicitly rejected both local inference and the OAuth/Responses adapter as replacements. The intended design remains one manager and two workers coordinating PC actions through normal ChatGPT conversations. Do not treat the OAuth adapter as acceptance of this requirement.
+
+The OAuth test controller has been stopped and the newly authorized CHAI renewable session revoked successfully; local OAuth tokens were cleared by the application sign-out path. The separate Chromium ChatGPT browser session was preserved. No live model inference was run through the OAuth path. The OAuth source remains an abandoned implementation in history, not the accepted provider architecture. No new installer release was published.
+
+The browser-to-agent bridge is still missing. Reopening ChatGPT is not completion. Resolve a permitted browser/session integration under the original provider-compliance requirement before claiming autonomous browser-driven roles work. Never silently swap the requested architecture for API, Codex, local inference or manual copy/paste again.
+
+
 ## Current direction — 2026-10-19: ChatGPT only
 
 The user explicitly rejected local-model substitution. The required provider is their ChatGPT account, targeting GPT-6 with High reasoning. Do not install local model runtimes, route to Codex, silently substitute models, or count manual JSON handoff as the requested integration.
