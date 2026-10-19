@@ -1,36 +1,36 @@
-# CHAI 0.5.0 alpha 1 — confirmed Git review commits
+# CHAI 0.6.0 alpha 1 — visible task progress
 
-Normal signed-in ChatGPT drives Manager, Builder and Reviewer. Select 6 High in the role conversations and enable CHAI Desktop. No local LLM or separate inference API is used.
+Follow the work in the native app: current action, next step, a persistent checklist and readable Manager/Builder/Reviewer activity. Normal signed-in ChatGPT remains the reasoning provider.
 
-## New in 0.5
-- Inspect diffs for explicitly selected text files against the repository HEAD.
-- Create a local review-branch commit after a separate native confirmation showing the exact patch, base commit, message and generated branch.
-- Preserve the current branch, working files and user's staging index. Existing staged changes outside the selection stay out of the review commit.
-- Execute Git offline inside Bubblewrap, with repository hooks, external diffs, clean filters and signing excluded from this commit path. Commits use CHAI <chai@localhost>.
-- Reject changed HEAD/file snapshots, declined or canceled confirmation, existing branch collisions and ambiguous replay after interruption.
+## New in 0.6
+- Current-task panel shows planning, execution, review, report preparation, pause, provider wait and completion states.
+- Action checklist distinguishes finished, active, waiting and unexecuted actions. Real failed checks remain visible beside successful reruns.
+- Progress counts describe planned actions, not a guessed percentage of the whole goal. New repair rounds can add actions, and completed execution still needs review.
+- Readable activity updates with expandable exact evidence and detailed role logs. Full request and verified report are expandable to keep the progress view useful.
+- Selected-task event retrieval prevents other tasks' activity from displacing its history. A compact effect summary supplies actual exit/termination results without duplicating source/output payloads.
+- UI round/call limits now reflect workspace versus review mode correctly.
+- Rewritten README with real app screenshot, quickstart, tested workflows and explicit limits.
 
-Scoped browser/X11 tools, screenshots, file search/directory creation and isolated Python/Node/Bash execution from 0.4 remain available. Workspace grants cover routine discovery and repair; they never authorize Git commits or enable browser/window access on their own.
+## Verification
+54 automated tests pass, plus native Electron UI tests of real execution, task switching, active checklist, pause, reload, saved progress and ambiguous-resume errors. Native tests also retain sandbox/browser/Git confirmation coverage and four window widths. Crash recovery and dependency audit pass. CI tests the packaged executable before publication.
 
-## Verified
-50 automated tests pass on Kali, including selected-file commit isolation, staging preservation, malicious repository helper exclusion, confirmation denial, conflicts, cancellation and interrupted commit recovery. Native Electron tests exercise the production confirmation path, decline and approval, actual branch content, app restart and local browser/test execution. Browser/X11, SIGKILL recovery and dependency audit pass. CI verifies the packaged executable before publication.
-
-A real normal-ChatGPT task reached DONE after reading a broken function and its existing test, observing exit 1, fixing only the implementation, rerunning the unchanged test with exit 0, inspecting the selected diff and creating a native-confirmed review commit. Two rounds, seven role calls, one workspace grant and one native Git confirmation. Current HEAD and staging-index byte hash stayed identical; an unrelated staged edit was preserved. Two separate ChatGPT approval prompts were observed. Sanitized evidence: docs/qa/git-live-2026-10-19.json.
+The README screenshot is the actual Kali app displaying the previously verified live ChatGPT Git task. It is not a new model run or a mock dashboard. UI testing caught and fixed duplicate React keys during task switching. See docs/QA_PROGRESS_2026-10-19.md.
 
 ## Install
-Download the AppImage and SHA256SUMS and verify its checksum. Requires Python 3, Bubblewrap and Git; sandbox Node execution requires /usr/bin/node. Selected-window control requires xdotool, x11-utils and an X11 session. The amd64 Debian package declares these dependencies.
+Download the AppImage and SHA256SUMS from this release, verify the checksum and run:
 
 ```sh
-chmod +x CHAI-0.5.0-alpha.1.AppImage
-APPIMAGE_EXTRACT_AND_RUN=1 ./CHAI-0.5.0-alpha.1.AppImage
+chmod +x CHAI-0.6.0-alpha.1.AppImage
+APPIMAGE_EXTRACT_AND_RUN=1 ./CHAI-0.6.0-alpha.1.AppImage
 ```
 
-For a user-only upgrade: `sh scripts/install-local.sh /path/to/CHAI-0.5.0-alpha.1.AppImage 0.5.0-alpha.1 --upgrade`. Previous executable and launcher backups are retained.
+Requires Python 3, Bubblewrap and Git. Sandbox Node execution uses /usr/bin/node. Selected-window control requires xdotool, x11-utils and X11. The amd64 Debian package declares its system dependencies.
 
-## Connection and boundaries
-Start the tool connection, add its HTTPS MCP endpoint in ChatGPT Plugins as CHAI Desktop, pair locally and enable it in the three role conversations. Kali uses a dedicated persistent HTTPS tunnel/user service. ChatGPT retains its own permission controls and service limits.
+User-only upgrade from a checkout: `sh scripts/install-local.sh /path/to/CHAI-0.6.0-alpha.1.AppImage 0.6.0-alpha.1 --upgrade`. Previous versions and launcher backups are retained.
 
-Selected files, patches, task goals, execution evidence and authorized browser/window screenshots are sent to ChatGPT. Read docs/PRIVACY.md before granting access. Browser sessions are isolated from the ChatGPT login. Browser scope uses exact origins; cross-origin resources require explicit authorization and local previews cannot contact remote servers.
+## Scope
+CHAI supports bounded file edits, offline Python/Node/Bash execution, selected-file Git review commits, scoped browser actions and selected-window X11 input. Workspace grants never enable browser/window access or authorize Git commits by themselves. Commits still need native exact-patch confirmation; current HEAD and staging remain unchanged, with no push.
 
-Git scope is existing repositories with an initial commit and a real .git directory, up to 12 selected regular text files totaling 24 KB, and bounded diffs. Initial commits, deleted/binary files, linked worktrees, merges, signing, checkout and push are unsupported. New files use mode 100644; existing executable modes are retained. Git inspection does not apply staging-area changes to the review commit.
+This improves progress visibility; it does not add unrestricted host shell execution, package installation, arbitrary desktop control or unattended startup. ChatGPT permission prompts and usage limits remain effective. Whole-PC reboot remains unverified. Unfinished tasks pause after app restart, and ambiguous side effects are not blindly repeated.
 
-This remains a bounded alpha. Arbitrary whole-desktop control, package installation, network-enabled host shell execution and unrestricted file management are outside these tools. Desktop control requires X11. Whole-PC reboot is unverified; unfinished tasks pause after app restart and need Resume. Browser sessions and observation references are ephemeral. No provider-limit bypass or unattended app startup is implemented.
+Selected files, goals, patches, execution evidence and authorized screenshots are shared with your signed-in ChatGPT conversations. Read docs/PRIVACY.md and README.md for the full boundaries.

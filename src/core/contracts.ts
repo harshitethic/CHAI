@@ -235,7 +235,15 @@ export interface Event {
   detail: string;
   created: string;
 }
+export interface ActionEvidence {
+  idx: number;
+  state: string;
+  exitCode?: number | null;
+  termination?: string | null;
+}
 export interface Snapshot {
+  evidenceTaskId?: string | null;
+  effects?: ActionEvidence[];
   tasks: Task[];
   events: Event[];
   workspace: string | null;
@@ -257,7 +265,7 @@ export interface Snapshot {
   };
 }
 export const requestSchema = z.discriminatedUnion("op", [
-  z.object({ op: z.literal("snapshot") }).strict(),
+  z.object({ op: z.literal("snapshot"), id: z.uuid().optional() }).strict(),
   z.object({ op: z.literal("workspace") }).strict(),
   z.object({ op: z.literal("desktop-select") }).strict(),
   z

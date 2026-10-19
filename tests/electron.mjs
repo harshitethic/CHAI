@@ -44,7 +44,7 @@ try {
     .waitFor();
   await page.getByRole("button", { name: "Approve plan", exact: true }).click();
   await page.waitForFunction(() =>
-    document.body.innerText.includes("TASK DONE"),
+    document.body.innerText.includes("Task completed"),
   );
   assert.equal(
     readFileSync(join(root, "notes.txt"), "utf8"),
@@ -213,6 +213,74 @@ try {
     0,
   );
 
+  // Real interruption, saved progress and ambiguous-resume UI; no fabricated success states.
+  const progressId = await page.evaluate(() =>
+    window.chai.request({
+      op: "create",
+      mode: "assisted",
+      model: "",
+      permission: "workspace",
+      goal: "Verify saved progress while a Python check is interrupted",
+      plan: JSON.stringify({
+        summary: "Run a check, then save a report",
+        actions: [
+          {
+            tool: "write",
+            path: "slow_check.py",
+            content: "import time\ntime.sleep(20)\nprint('PASS')\n",
+          },
+          {
+            tool: "run",
+            program: "python3",
+            args: ["slow_check.py"],
+            files: ["slow_check.py"],
+            timeoutSeconds: 30,
+          },
+          { tool: "write", path: "report.txt", content: "Check passed" },
+        ],
+      }),
+    }),
+  );
+  const selectProgress = () =>
+    page
+      .getByRole("button", {
+        name: /Verify saved progress while a Python check is interrupted/,
+      })
+      .click();
+  await selectProgress();
+  await page
+    .getByRole("heading", { name: "Run python3 slow_check.py", exact: true })
+    .waitFor();
+  const checklist = page.getByRole("region", { name: "Task checklist" });
+  assert.equal(await checklist.getByText("1 of 3 actions finished").count(), 1);
+  assert.equal(await checklist.locator('[aria-current="step"]').count(), 1);
+  await page.getByRole("button", { name: "Pause", exact: true }).click();
+  await page.getByRole("heading", { name: "Paused", exact: true }).waitFor();
+  assert.equal(await checklist.locator('[aria-current="step"]').count(), 0);
+  await page.reload();
+  await selectProgress();
+  await page.getByRole("heading", { name: "Paused", exact: true }).waitFor();
+  assert.equal(await page.getByText("1 of 3 actions finished").count(), 1);
+  await page.getByRole("button", { name: "Resume", exact: true }).click();
+  await page
+    .getByRole("heading", { name: "Task stopped with an error", exact: true })
+    .waitFor();
+  const interrupted = await page.evaluate(
+    (id) => window.chai.request({ op: "snapshot", id }),
+    progressId,
+  );
+  assert.equal(
+    interrupted.tasks.find((t) => t.id === progressId).state,
+    "FAILED",
+  );
+  assert(interrupted.events.every((e) => e.taskId === progressId));
+  assert.equal(interrupted.effects.find((e) => e.idx === 1).state, "STARTED");
+  assert.equal(
+    await page.getByText("Stopped here", { exact: true }).count(),
+    1,
+  );
+  assert.equal(await page.getByText("Not run", { exact: true }).count(), 1);
+
   // Test-only dialog driver exercises the actual production confirmation path.
   const git = (...args) =>
     execFileSync("/usr/bin/git", args, {
@@ -329,7 +397,7 @@ try {
   assert.deepEqual(errors, []);
   await app.close();
   console.log(
-    "PASS: native Electron task, approval, actual file, renderer reload, app restart, hardened preferences, invalid IPC, autonomous UI flow, real sandbox execution, local browser, Git confirmation/branch commit, four widths.",
+    "PASS: native Electron task, approval, actual file, renderer reload, app restart, hardened preferences, invalid IPC, autonomous UI flow, real sandbox execution, local browser, Git confirmation/branch commit, progress checklist, task switching, pause/reload/error state, four widths.",
   );
 } finally {
   await app.close().catch(() => {});

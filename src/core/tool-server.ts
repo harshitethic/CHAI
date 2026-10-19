@@ -148,7 +148,7 @@ export class ToolServer {
     this.route = route;
   }
   createMcp() {
-    const mcp = new McpServer({ name: "CHAI", version: "0.5.0-alpha.1" });
+    const mcp = new McpServer({ name: "CHAI", version: "0.6.0-alpha.1" });
     const role = z.enum(["manager", "builder", "reviewer"]);
     const result = (data: unknown) => ({
       content: [{ type: "text" as const, text: JSON.stringify(data) }],

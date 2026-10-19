@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import type { Request, Snapshot, Mode, Role } from "../core/contracts";
 import "./style.css";
+import { TaskProgress, TaskActivity } from "./TaskProgress";
 declare global {
   interface Window {
     chai: { request: (r: Request) => Promise<unknown> };
@@ -84,11 +85,16 @@ function App() {
     searchRef = useRef<HTMLInputElement>(null);
   const refresh = useCallback(async () => {
     try {
-      setData((await window.chai.request({ op: "snapshot" })) as Snapshot);
+      setData(
+        (await window.chai.request({
+          op: "snapshot",
+          ...(route === "Work" && id ? { id } : {}),
+        })) as Snapshot,
+      );
     } catch (e) {
       setError(String(e));
     }
-  }, []);
+  }, [id, route]);
   useEffect(() => {
     void refresh();
     const interval = setInterval(() => void refresh(), 700);
@@ -547,56 +553,18 @@ function App() {
               <div className="page-heading">
                 <div>
                   <span className="eyebrow">COMMAND CENTER</span>
-                  <h2>{task ? task.goal : "Your next idea, in motion."}</h2>
+                  <h2 className="task-title">
+                    {task
+                      ? task.goal.split(/(?<=[.!?])\s/)[0].slice(0, 180)
+                      : "Your next idea, in motion."}
+                  </h2>
                   <p>
                     {task
                       ? `${stateLabel(task.state)} · ${task.mode} · ${task.cursor}/${task.plan?.actions.length ?? 0} actions`
                       : "Choose a task from the sidebar or create a new one."}
                   </p>
                 </div>
-                <button
-                  aria-label="Toggle focused layout"
-                  onClick={() => setFocus(!focus)}
-                >
-                  <PanelRight size={18} />
-                </button>
               </div>
-              {task?.agent && (
-                <section
-                  className="team-progress"
-                  aria-label="AI team progress"
-                >
-                  <span>
-                    <b>Normal ChatGPT</b> · model chosen in each role window
-                  </span>
-                  <span>
-                    Round {task.agent.round}/3 · {task.agent.calls}/15 model
-                    calls
-                  </span>
-                  <span>{stateLabel(task.agent.phase)}</span>
-                </section>
-              )}
-              {task?.agent?.brief && (
-                <section className="acceptance-card">
-                  <h3>Success criteria</h3>
-                  <ul>
-                    {task.agent.brief.acceptance.map((criterion, i) => (
-                      <li key={i}>{criterion}</li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-              {task?.state === "DONE" && task.agent?.report && (
-                <section className="result-card">
-                  <h3>Verified result</h3>
-                  <p>{task.agent.report.summary}</p>
-                  {task.agent.report.limitations.map((item, i) => (
-                    <p className="muted" key={i}>
-                      {item}
-                    </p>
-                  ))}
-                </section>
-              )}
               {task?.error && <div className="notice">{task.error}</div>}
               {task && (
                 <div className="toolbar">
@@ -690,9 +658,54 @@ function App() {
                   </footer>
                 </section>
               )}
-              <div className={"roles " + (focus ? "focused" : "")}>
-                {(["manager", "builder", "reviewer"] as Role[]).map(rolePanel)}
-              </div>
+              {task && (
+                <TaskProgress
+                  key={"progress-" + task.id}
+                  task={task}
+                  evidence={
+                    data.evidenceTaskId === task.id ? (data.effects ?? []) : []
+                  }
+                />
+              )}
+              {task && (
+                <details className="acceptance-card">
+                  <summary>Full request & success criteria</summary>
+                  <p>{task.goal}</p>
+                  <ul>
+                    {task.agent?.brief?.acceptance.map((criterion, i) => (
+                      <li key={i}>{criterion}</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+              {task?.state === "DONE" && task.agent?.report && (
+                <details className="result-card">
+                  <summary>Verified result · expand report</summary>
+                  <p>{task.agent.report.summary}</p>
+                  {task.agent.report.limitations.map((item, i) => (
+                    <p className="muted" key={i}>
+                      {item}
+                    </p>
+                  ))}
+                </details>
+              )}
+              {task && (
+                <TaskActivity key={"activity-" + task.id} events={events} />
+              )}
+              <details className="raw-role-logs">
+                <summary>Detailed role logs</summary>
+                <button
+                  aria-label="Toggle focused layout"
+                  onClick={() => setFocus(!focus)}
+                >
+                  <PanelRight size={18} />
+                </button>
+                <div className={"roles " + (focus ? "focused" : "")}>
+                  {(["manager", "builder", "reviewer"] as Role[]).map(
+                    rolePanel,
+                  )}
+                </div>
+              </details>
             </>
           )}
           {route === "Projects" && (

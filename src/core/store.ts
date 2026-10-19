@@ -2,7 +2,13 @@ import { DatabaseSync } from "node:sqlite";
 import { chmodSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { randomUUID } from "node:crypto";
-import { redact, type Event, type Task, type State } from "./contracts";
+import {
+  redact,
+  type Event,
+  type Task,
+  type State,
+  type ActionEvidence,
+} from "./contracts";
 export class Store {
   readonly db: DatabaseSync;
   constructor(path: string) {
@@ -50,11 +56,42 @@ export class Store {
         new Date().toISOString(),
       );
   }
-  events(): Event[] {
+  events(taskId?: string): Event[] {
     return this.db
-      .prepare("SELECT * FROM events ORDER BY id DESC LIMIT 500")
-      .all()
+      .prepare(
+        taskId
+          ? "SELECT * FROM events WHERE taskId=? ORDER BY id DESC LIMIT 500"
+          : "SELECT * FROM events ORDER BY id DESC LIMIT 500",
+      )
+      .all(...(taskId ? [taskId] : []))
       .reverse() as unknown as Event[];
+  }
+  actionEvidence(taskId: string): ActionEvidence[] {
+    return this.db
+      .prepare(
+        "SELECT idx,state,output FROM effects WHERE taskId=? ORDER BY idx",
+      )
+      .all(taskId)
+      .map((row) => {
+        const result: ActionEvidence = {
+          idx: Number(row.idx),
+          state: String(row.state),
+        };
+        try {
+          const output = JSON.parse(String(row.output));
+          if (output && typeof output === "object" && "exitCode" in output) {
+            result.exitCode =
+              typeof output.exitCode === "number" ? output.exitCode : null;
+            result.termination =
+              typeof output.termination === "string"
+                ? output.termination
+                : null;
+          }
+        } catch {
+          /* Non-JSON output is represented by its durable effect state. */
+        }
+        return result;
+      });
   }
   state(id: string, state: State, error: string | null = null) {
     const t = this.get(id);

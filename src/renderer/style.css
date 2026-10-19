@@ -922,3 +922,306 @@ h1 em {
   margin: 4px;
   padding: 8px 12px;
 }
+
+/* Recorded task progress */
+.work-overview {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+.current-work,
+.work-checklist,
+.work-feed {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  margin-bottom: 18px;
+  background: #222326;
+  overflow: hidden;
+}
+.current-work {
+  padding: 24px 26px;
+  background: linear-gradient(125deg, #302925, #252527 75%);
+  border-color: #e591732b;
+}
+.work-kicker {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: #cbb4a7;
+}
+.work-indicator {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #9b9b97;
+}
+.is-active .work-indicator {
+  background: var(--accent);
+  box-shadow: 0 0 0 4px #e5917312;
+}
+.current-work h3 {
+  font-size: clamp(18px, 1.6vw, 25px);
+  line-height: 1.4;
+  letter-spacing: -0.4px;
+  margin: 15px 0 10px;
+  overflow-wrap: anywhere;
+}
+.current-work > p {
+  margin: 0;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.current-work > p > span {
+  color: #e8d4c8;
+  margin-right: 10px;
+  font-weight: 550;
+}
+.team-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+.team-chips > span {
+  text-transform: capitalize;
+  border: 1px solid #ffffff12;
+  border-radius: 20px;
+  padding: 5px 10px;
+  font-size: 10px;
+  color: #aaa6a2;
+}
+.team-chips > span.active {
+  color: #f1b69d;
+  border-color: #e5917355;
+  background: #e5917312;
+}
+.team-chips small {
+  margin-left: auto;
+  font-size: 10px;
+}
+.work-checklist > header,
+.work-feed > header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding: 19px 22px;
+  color: #dfc1ae;
+}
+.work-checklist h3,
+.work-feed h3 {
+  margin: 0;
+  color: #eee9e4;
+  font-size: 14px;
+  font-weight: 550;
+}
+.work-checklist header > span,
+.work-feed header > span {
+  margin-left: auto;
+  font-size: 11px;
+  color: #aaa6a2;
+}
+.plan-meter {
+  height: 3px;
+  background: #ffffff08;
+  margin: 0 22px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.plan-meter > span {
+  display: block;
+  background: #d99b7f;
+  height: 100%;
+  transition: width 0.3s ease;
+}
+.plan-explanation {
+  font-size: 11px;
+  line-height: 1.6;
+  margin: 13px 22px;
+}
+.work-checklist ol {
+  list-style: none;
+  padding: 0 10px 10px;
+  margin: 0;
+  max-height: 380px;
+  overflow: auto;
+}
+.step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 12px;
+  border-radius: 9px;
+  min-width: 0;
+}
+.step + .step {
+  border-top: 1px solid #ffffff05;
+}
+.step-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.step-icon {
+  display: flex;
+  flex: none;
+  color: #747675;
+}
+.step-state {
+  font-size: 10px;
+  color: #92928e;
+  flex: none;
+}
+.step.finished .step-icon {
+  color: #9ac3ab;
+}
+.step.finished .step-label {
+  color: #ccc8c2;
+}
+.step.running {
+  background: #e5917310;
+}
+.step.running .step-icon,
+.step.running .step-state {
+  color: #efac90;
+}
+.step.check-failed .step-icon,
+.step.check-failed .step-state,
+.step.error .step-icon,
+.step.error .step-state {
+  color: #e8b275;
+}
+.step.not-run {
+  opacity: 0.65;
+}
+.spin {
+  animation: task-spin 1.4s linear infinite;
+}
+@keyframes task-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.work-feed {
+  background: #202124;
+}
+.work-feed > header {
+  border-bottom: 1px solid var(--border);
+}
+.work-feed article {
+  padding: 18px 22px;
+  border-bottom: 1px solid #ffffff09;
+}
+.feed-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  justify-content: space-between;
+}
+.feed-heading b {
+  font-size: 12px;
+  font-weight: 550;
+  color: #e5ded6;
+}
+.feed-heading > span {
+  color: #918e8b;
+  font-size: 10px;
+  text-transform: capitalize;
+  flex: none;
+}
+.work-feed article p {
+  font-size: 12px;
+  line-height: 1.8;
+  margin: 9px 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.work-feed details summary {
+  cursor: pointer;
+  font-size: 10px;
+  color: #b8a497;
+  padding: 5px 0;
+}
+.work-feed details pre {
+  max-height: 300px;
+  overflow: auto;
+  padding: 14px;
+  border-radius: 10px;
+  background: #17181a;
+  color: #bcb9b4;
+  font-size: 11px;
+}
+.feed-more {
+  margin: 15px 22px 0;
+  font-size: 11px;
+}
+.feed-note {
+  display: block;
+  padding: 17px 22px;
+  font-size: 10px;
+  color: #93918c;
+  line-height: 1.6;
+}
+.raw-role-logs {
+  margin: 20px 0;
+}
+.raw-role-logs > summary,
+details.acceptance-card > summary {
+  cursor: pointer;
+  color: #c6b2a4;
+  padding: 5px 0;
+  font-size: 12px;
+}
+.raw-role-logs .roles {
+  margin-top: 15px;
+}
+details.acceptance-card {
+  padding: 12px 18px;
+}
+details.acceptance-card p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.task-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  font-size: 23px;
+  line-height: 1.35;
+}
+@media (max-width: 900px) {
+  .feed-heading {
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .step {
+    flex-wrap: wrap;
+  }
+  .step-state {
+    width: 100%;
+    padding-left: 29px;
+  }
+  .team-chips small {
+    margin-left: 0;
+    width: 100%;
+    margin-top: 5px;
+  }
+  .current-work {
+    padding: 20px;
+  }
+}
+
+details.result-card {
+  padding: 14px 20px;
+}
+details.result-card > summary {
+  cursor: pointer;
+  color: #b6d0bf;
+  font-size: 12px;
+}

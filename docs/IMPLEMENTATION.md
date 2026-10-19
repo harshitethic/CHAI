@@ -1,4 +1,4 @@
-# Implemented architecture — 0.5.0-alpha.1
+# Implemented architecture — 0.6.0-alpha.1
 
 Normal signed-in ChatGPT with 6 High is the reasoning provider. Manager, Builder and Reviewer each have a restricted Chromium view and a saved conversation URL. CHAI checks visible model/composer/send controls and delivers a job ID and role through the ordinary input UI. Login remains in Chromium-managed storage; application code never extracts session credentials or assistant text.
 
@@ -17,3 +17,5 @@ The authenticated MCP service listens on loopback port 40671. CHAI supports a te
 The renderer has no Node access. Remote content has no privileged preload or CHAI IPC. Narrow IPC validates the packaged renderer origin; navigation, downloads and device permissions are restricted. Task data is private on disk but SQLite is not encrypted.
 
 Whole-PC reboot, unattended app startup, network/package installation, unrestricted host shell and general file management remain outside verified scope. Browser observations are ephemeral; unfinished tasks pause on app restart and need Resume. App restart and SIGKILL recovery are tested separately from full-machine reboot.
+
+The progress UI derives current/next action and checklist state from the persisted task/cursor. A selected-task snapshot returns its own recent events and lightweight exit/termination summaries; raw source and tool outputs are not duplicated in progress metadata. Activity summaries are rendered as text, with exact evidence expandable. No completion ETA or model reasoning transcript is invented.

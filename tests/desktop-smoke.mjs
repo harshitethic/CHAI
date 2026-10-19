@@ -28,7 +28,7 @@ try {
   await page.getByRole("button", { name: "Create task", exact: true }).click();
   await page.getByRole("button", { name: "Approve plan", exact: true }).click();
   await page.waitForFunction(() =>
-    document.body.innerText.includes("TASK DONE"),
+    document.body.innerText.includes("Task completed"),
   );
   await page.screenshot({ path: ".qa/kali-desktop-work.png" });
   await page.getByRole("button", { name: "Connections", exact: true }).click();

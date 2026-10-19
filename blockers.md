@@ -1,5 +1,7 @@
 # CHAI remaining acceptance gates — 2026-10-19
 
+0.6 progress UI and README improvements pass source/native checks. Publication and downloaded-artifact installation are pending at this source commit.
+
 Normal signed-in ChatGPT with 6 High is verified live. The 0.5 source adds selected-file Git inspection and locally confirmed review commits; all 50 tests and a real ChatGPT fix/test/diff/commit task pass. The 0.5 release is published and its exact downloaded AppImage passed native E2E, was installed on Kali, and retained the completed task and authenticated tool pairing.
 
 

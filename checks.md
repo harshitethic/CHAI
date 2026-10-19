@@ -1,14 +1,14 @@
 # CHECKS — Verification Gates
 
-## Latest status — 0.5.0-alpha.1, 2026-10-19
+## Latest status — 0.6.0-alpha.1, 2026-10-19
 
-Selected-file Git inspection and native-confirmed local review commits are implemented. Commits use an isolated temporary index, preserve current HEAD and staging, and create a new task-specific branch without push. Git runs offline in Bubblewrap; hooks, clean filters, external diff helpers and signing are excluded from this commit path.
+The Work screen now presents current action, next step, a durable action checklist, real failed/passing check results and readable role activity with expandable evidence. Full requests, reports and raw logs are expandable. Selected-task event queries prevent unrelated activity from hiding its history. Round/call budgets reflect the active permission mode.
 
-Verified: 50 automated tests, typecheck/lint/build, native approval/decline and actual commit, browser/X11 guards, crash recovery and zero-vulnerability audit. A real normal-ChatGPT task reached DONE after a baseline test failure, one-file fix, unchanged passing test, selected diff and approved commit: two rounds, seven role calls, one workspace grant and one native Git confirmation. HEAD and staging-index byte hash matched their baselines; an unrelated staged edit stayed untouched. Evidence: docs/qa/git-live-2026-10-19.json and docs/qa/git-confirmation.png.
+Verified: 54 tests, typecheck/lint/build, native task switching, one active checklist row, real interrupted Python check, Pause, reload, saved progress and honest ambiguous-resume failure. Existing native sandbox/browser/Git coverage and four widths pass. Crash recovery and zero-vulnerability audit pass. A native screenshot shows the saved live ChatGPT Git task in the new UI; no new model-run claim is made for a presentation change.
 
-Release CI passed; the exact published AppImage passed its checksum and native E2E on Kali, was installed, and retained the completed task and authenticated ChatGPT connection. Record: docs/qa/published-0.5-verification.json. Whole-PC reboot still needs a safe user-arranged restart window. Broader host shell/network/package installation, unrestricted file management, arbitrary desktop automation and unattended app startup remain outside this bounded alpha.
+README is rewritten around capabilities, setup, real evidence and current limits. Release publication and downloaded-artifact installation are pending at this source commit. Whole-PC reboot still needs a safe user-arranged window. Host shell/network/package installation, unrestricted file management and unattended startup remain outside this alpha.
 
-Older entries below retain historical milestones and the original brief; they are not the current test report.
+Older sections below are historical records, not the current test report.
 
 ## Current implementation — 2026-10-19
 

@@ -387,7 +387,9 @@ app
         case "snapshot":
           return {
             tasks: store.tasks(),
-            events: store.events(),
+            events: store.events(req.id),
+            evidenceTaskId: req.id ?? null,
+            effects: req.id ? store.actionEvidence(req.id) : [],
             workspace: store.setting("workspace") ?? null,
             version: app.getVersion(),
             bridge: toolRuntime.snapshot(),
