@@ -153,6 +153,16 @@ async function saveImage(data: Buffer, label: string) {
   writeFileSync(target.filePath, data, { mode: 0o600 });
   return target.filePath;
 }
+// One coordinator owns a user-data database; a second launch only focuses it.
+if (!app.requestSingleInstanceLock()) app.exit(0);
+app.on("second-instance", () => {
+  if (main && !main.isDestroyed()) {
+    if (main.isMinimized()) main.restore();
+    main.show();
+    main.focus();
+  }
+});
+
 app
   .whenReady()
   .then(() => {
