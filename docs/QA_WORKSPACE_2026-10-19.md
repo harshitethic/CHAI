@@ -26,3 +26,7 @@ Native screenshot: `docs/qa/workbench-preview.png`. Local verification records a
 Task `b9aaa7a0-6b9e-41b7-bf70-fbac5d7dc8e0` reached DONE after the integration fix and same-task follow-up. Normal signed-in 6 High conversations completed three rounds and ten role calls after that follow-up: npm dependency install (exit 0), original npm test (exit 1), exact one-file repair, identical unchanged test (exit 0), background server on 19879, real browser 0 → 1 click plus fresh confirming observation, and output registration. Original source and test-file hashes were independently checked. The reviewer passed, then the Manager produced its report. No model adapter was substituted. See `docs/qa/project-live-2026-10-19.json`.
 
 The packaged native workbench test also passed consented download bytes/registration, declined download without output, embedded input, tray continuation, Stop and restart persistence. Final CI/public-download installation records follow in a separate publication verification record.
+
+## Follow-up document acceptance
+
+The same live task completed a new PDF deliverable in one round and four role calls after fixing follow-up prioritization. Each role now receives the latest native-UI request as its goal and the original goal as context. `outputs/verification.pdf` was created and registered at 2,788 bytes; its actual PDF signature and SHA256 were independently checked. No original tests or browser clicks were repeated. See `docs/qa/followup-document-live-2026-10-19.json`.

@@ -692,7 +692,7 @@ app
               throw Error("Login startup requires an installed CHAI release");
             writeFileSync(
               path,
-              `[Desktop Entry]\nType=Application\nName=CHAI\nExec="${executable.replace(/["`$\\]/g, "\\$&")}"\nTerminal=false\nX-GNOME-Autostart-enabled=true\n`,
+              `[Desktop Entry]\nType=Application\nName=CHAI\nExec=/usr/bin/env APPIMAGE_EXTRACT_AND_RUN=1 "${executable.replace(/["`$\\]/g, "\\$&")}"\nTerminal=false\nX-GNOME-Autostart-enabled=true\n`,
               { mode: 0o600 },
             );
           } else rmSync(path, { force: true });

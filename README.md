@@ -55,6 +55,7 @@ CHAI's three roles still use normal signed-in ChatGPT conversations with **6 Hig
 | Workflow | Observed result | Evidence |
 | --- | --- | --- |
 | Install, repair and preview a project | npm install → unchanged test fails → one-file repair → same test passes → background server → browser 0 → 1 → registered output | [Live project run](docs/qa/project-live-2026-10-19.json) |
+| Add a deliverable to the same task | Follow-up creates and registers a real PDF from prior evidence; one round, four role calls | [Live PDF follow-up](docs/qa/followup-document-live-2026-10-19.json) |
 | Repair a Python function | Original failures → code fix → unchanged tests pass | [Live repair](docs/qa/autonomous-live-2026-10-19.json) |
 | Verify a browser counter | Node test passes; actual clicks produce **0 → 1 → 2 → 0** | [Browser run](docs/qa/computer-live-2026-10-19.json) |
 | Make a review commit | Failing test → one-file fix → passing test → confirmed commit; HEAD and staging unchanged | [Git run](docs/qa/git-live-2026-10-19.json) |

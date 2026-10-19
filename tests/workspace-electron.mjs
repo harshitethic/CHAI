@@ -5,6 +5,7 @@ import {
   writeFileSync,
   readFileSync,
   readdirSync,
+  existsSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -311,6 +312,32 @@ try {
       2,
     ),
   );
+  if (await app.evaluate(({ app }) => app.isPackaged)) {
+    const previousHome = await app.evaluate(({ app }, home) => {
+      const prior = app.getPath("home");
+      app.setPath("home", home);
+      return prior;
+    }, base);
+    try {
+      await page.evaluate(() =>
+        window.chai.request({ op: "startup", enabled: true }),
+      );
+      const desktopFile = join(base, ".config", "autostart", "chai.desktop");
+      assert.match(
+        readFileSync(desktopFile, "utf8"),
+        /Exec=\/usr\/bin\/env APPIMAGE_EXTRACT_AND_RUN=1 "/,
+      );
+      await page.evaluate(() =>
+        window.chai.request({ op: "startup", enabled: false }),
+      );
+      assert(!existsSync(desktopFile));
+    } finally {
+      await app.evaluate(
+        ({ app }, home) => app.setPath("home", home),
+        previousHome,
+      );
+    }
+  }
   console.log("WORKBENCH_E2E_PASS");
 } finally {
   await app.close();
