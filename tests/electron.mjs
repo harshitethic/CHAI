@@ -29,6 +29,9 @@ try {
     .waitFor();
   await page.screenshot({ path: ".qa/home.png" });
   await page
+    .getByRole("combobox", { name: "Provider mode" })
+    .selectOption("recipe");
+  await page
     .getByRole("textbox", { name: "Task goal" })
     .fill("write notes.txt with content one\ntwo\nthree");
   await page.getByRole("button", { name: "Create task", exact: true }).click();

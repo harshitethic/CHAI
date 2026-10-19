@@ -1,15 +1,24 @@
 import { Store } from "./store";
 import { Gateway } from "./gateway";
-import { localPlan, recipe } from "./providers";
+import { recipe } from "./providers";
+import {
+  Coordinator,
+  OllamaAdapter,
+  ProviderUnavailable,
+  type AgentAdapter,
+} from "./agents";
 import { planSchema, redact, type Task, type Plan } from "./contracts";
 const terminal = new Set(["DONE", "FAILED", "CANCELED"]);
 export class Engine {
   active = new Map<string, AbortController>();
   private queue: Promise<void> = Promise.resolve();
+  readonly coordinator: Coordinator;
   constructor(
     readonly store: Store,
     readonly gateway: Gateway,
+    adapter: AgentAdapter = new OllamaAdapter(),
   ) {
+    this.coordinator = new Coordinator(store, gateway, adapter);
     for (const t of store.tasks())
       if (
         ["PLANNING", "RUNNING", "VALIDATING", "WAITING_APPROVAL"].includes(
@@ -44,19 +53,32 @@ export class Engine {
       );
       return t.id;
     }
+    if (mode === "local") {
+      this.schedulePlan(t.id);
+      return t.id;
+    }
     await this.plan(t, plan);
     return t.id;
+  }
+  private schedulePlan(id: string) {
+    this.store.state(id, "PLANNING");
+    this.queue = this.queue.then(async () => {
+      const task = this.store.get(id);
+      if (task.state === "PLANNING") await this.plan(task);
+    });
   }
   async plan(t: Task, raw?: string) {
     const ctrl = new AbortController();
     this.active.set(t.id, ctrl);
     try {
+      if (t.mode === "local") {
+        await this.coordinator.prepare(t, ctrl.signal);
+        return;
+      }
       const plan: Plan =
         t.mode === "recipe"
           ? recipe(t.goal)
-          : t.mode === "assisted"
-            ? planSchema.parse(JSON.parse(raw ?? ""))
-            : await localPlan(t.goal, t.model, ctrl.signal);
+          : planSchema.parse(JSON.parse(raw ?? ""));
       if (ctrl.signal.aborted) return;
       t.plan = plan;
       t.state = "WAITING_APPROVAL";
@@ -76,10 +98,10 @@ export class Engine {
       );
     } catch (e) {
       if (!ctrl.signal.aborted) {
-        const message = String(e);
+        const message = redact(String(e));
         this.store.state(
           t.id,
-          t.mode === "local" ? "WAITING_PROVIDER" : "FAILED",
+          e instanceof ProviderUnavailable ? "WAITING_PROVIDER" : "FAILED",
           message,
         );
         this.store.event(t.id, "manager", "PROVIDER_ERROR", message);
@@ -123,7 +145,7 @@ export class Engine {
   }
   async execute(id: string) {
     let t = this.store.get(id);
-    if (t.state !== "RUNNING" || !t.plan) return;
+    if (t.state !== "RUNNING" || !t.plan || this.active.has(id)) return;
     const controller = new AbortController();
     this.active.set(id, controller);
     const signal = controller.signal;
@@ -176,6 +198,14 @@ export class Engine {
           const prior = effect
             ? JSON.parse(String(effect.before))
             : (current.content ?? null);
+          if (
+            !effect &&
+            a.expectedHash !== undefined &&
+            (current.hash ?? null) !== a.expectedHash
+          )
+            throw Error(
+              "File changed after plan preparation; create a fresh plan instead of overwriting newer content.",
+            );
           if (!effect)
             this.store.db
               .prepare("INSERT INTO effects VALUES(?,?,?,?,?,?,?)")
@@ -257,7 +287,7 @@ export class Engine {
           `Step ${idx + 1}/${t.plan!.actions.length} persisted.`,
         );
       }
-      this.store.state(id, "VALIDATING");
+      t = this.store.state(id, "VALIDATING");
       const effects = this.store.db
         .prepare("SELECT state FROM effects WHERE taskId=?")
         .all(id);
@@ -266,17 +296,36 @@ export class Engine {
         effects.some((e) => e.state !== "SUCCEEDED")
       )
         throw Error("Missing execution evidence");
+      if (t.mode === "local") {
+        if (!t.agent) this.coordinator.initialize(t).phase = "execute";
+        const complete = await this.coordinator.review(t, signal);
+        if (!complete) return;
+      }
+      if (signal.aborted) return;
       this.store.state(id, "DONE");
       this.store.event(
         id,
         "manager",
         "TASK_DONE",
-        `Verified ${effects.length} local actions. Provider: ${t.mode}. All evidence saved.`,
+        t.agent?.report
+          ? t.agent.report.summary +
+              "\n" +
+              t.agent.report.limitations.join("\n")
+          : `Verified ${effects.length} local actions. Provider: ${t.mode}. All evidence saved.`,
       );
     } catch (e) {
       if (!signal.aborted) {
-        this.store.state(id, "FAILED", redact(String(e)));
-        this.store.event(id, "manager", "TASK_FAILED", String(e));
+        this.store.state(
+          id,
+          e instanceof ProviderUnavailable ? "WAITING_PROVIDER" : "FAILED",
+          redact(String(e)),
+        );
+        this.store.event(
+          id,
+          "manager",
+          e instanceof ProviderUnavailable ? "PROVIDER_ERROR" : "TASK_FAILED",
+          String(e),
+        );
       }
     } finally {
       if (this.active.get(id) === controller) this.active.delete(id);
@@ -285,7 +334,9 @@ export class Engine {
   pause(id: string) {
     const t = this.store.get(id);
     if (terminal.has(t.state)) return;
-    this.store.state(id, "PAUSED");
+    t.state = "PAUSED";
+    t.approved = false;
+    this.store.put(t);
     this.active.get(id)?.abort();
     this.store.db.prepare("DELETE FROM approvals WHERE taskId=?").run(id);
     this.store.event(
@@ -301,8 +352,24 @@ export class Engine {
       throw Error("Task cannot resume from this state");
     if (this.active.has(id))
       throw Error("Wait for canceled operation to finish");
+    if (
+      t.mode === "local" &&
+      (!t.plan || ["manager", "builder"].includes(t.agent?.phase ?? "manager"))
+    ) {
+      this.schedulePlan(id);
+      return;
+    }
     if (!t.plan) {
       await this.plan(t);
+      return;
+    }
+    if (
+      t.mode === "local" &&
+      ["reviewer", "finalize"].includes(t.agent?.phase ?? "")
+    ) {
+      t.state = "RUNNING";
+      this.store.put(t);
+      this.enqueue(id);
       return;
     }
     t.state = "WAITING_APPROVAL";

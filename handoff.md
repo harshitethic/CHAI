@@ -29,3 +29,7 @@ CHAI and its signed-in manager view are open on the right Kali monitor. Manual s
 - Installed single-instance test passed: a second launch exits while the original coordinator remains alive.
 
 Published-asset verification: downloaded the actual GitHub release AppImage back to Kali, verified its SHA256 against published SHA256SUMS, and ran the full native E2E successfully. Replaced the installed user AppImage with this verified published artifact. The existing visible app is the equivalent locally built runtime; the next launch uses the published binary.
+
+## Model-backed coordination checkpoint — 2026-10-19
+
+Implemented separate Manager assignment, Builder proposal, Reviewer assessment and Manager report calls using local Ollama. SQLite persists role responses and phases; bounded to 3 rounds/15 calls/36 actions. Repair plans require fresh human approval. Added existing-file discovery enforcement and expected-hash conflict checks. Typecheck, lint, build and 22 unit/integration tests pass on Kali. Actual qwen2.5-coder:3b completed a new-file task with all four calls; the harder existing-file UI test exposed poor proposals, correctly rejected by review/policy. That harder live gate remains in progress. No ChatGPT automation is enabled.

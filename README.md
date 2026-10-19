@@ -6,7 +6,7 @@
 
 A local-first Electron desktop workspace for Linux: preview a plan, approve real file or terminal actions, and inspect the evidence in three role panels.
 
-> **Development alpha.** ChatGPT is interactive/manual only. Opening three views does not create API access or bypass service limits. Offline recipes are deterministic; the reviewer checks recorded evidence, not general semantic correctness. See `handoff.md` for the exact verified build status.
+> **Development alpha.** ChatGPT is interactive/manual only. Opening three views does not create API access or bypass service limits. Offline recipes are deterministic. Local AI mode uses separate Manager, Builder and Reviewer model calls; model quality varies and human approval is still required for tools. See `handoff.md` for the exact verified build status.
 
 ## What is implemented
 
@@ -15,7 +15,7 @@ A local-first Electron desktop workspace for Linux: preview a plan, approve real
 - Descriptor-relative Python file gateway: no symlinks, hardlinks, traversal, special files or common credential paths. Atomic edits with snapshots and conflict-aware restoration.
 - Terminal allowlist: working directory, Git status/diff summary, Node version and cancellable sleep. No arbitrary shell or privileged commands.
 - ChatGPT windows with an isolated shared Chromium partition, manual sign-in and no credential extraction. Structured JSON handoff to local execution.
-- Optional Ollama plan generation at localhost. An installed model is required; no model is bundled or downloaded automatically.
+- Real Ollama-backed Manager → Builder → Reviewer → Manager coordination, with persisted role responses, bounded repair, independent review and fresh approval for new actions. An installed model is required; the app does not bundle/download weights.
 - Separately approved browser navigation/click/screenshot and X11 desktop click/capture controls. These are human-triggered tools, not an autonomous visual agent.
 
 ## Install the alpha
@@ -59,12 +59,12 @@ Supported action schemas are in `src/core/contracts.ts`. Model proposals cannot 
 ## Limits you should know
 
 - This is not a general autonomous ChatGPT computer agent. Programmatic ChatGPT messaging is unsupported.
-- Three roles currently use a local state machine and deterministic executor/verifier. Ollama generates the initial plan; no continuous model repair/replanning loop is claimed.
+- Local model mode has a bounded repair/replanning loop (3 rounds, 15 model calls, 36 actions). This is a scoped file/command agent, not a general desktop AI. Small-model accuracy is not guaranteed.
 - No unattended reboot, background service, arbitrary shell, package installation, file deletion, Git publishing or credential access from model output.
 - New files are retained by Restore edits; existing files are restored only if they still match CHAI's recorded result.
 - SQLite snapshots are private local files, not encrypted storage. Do not use production secrets for alpha testing.
 - Local same-user hostile processes, kernel compromise and system administrator attacks are outside this alpha's isolation guarantee. It is not an OS sandbox for untrusted code.
-- Provider sign-in, live local-model behavior and full-system reboot require separate acceptance evidence.
+- ChatGPT sign-in and a real local-model new-file task are verified. Full-system reboot and broader agent quality require separate acceptance evidence.
 
 ## Development
 

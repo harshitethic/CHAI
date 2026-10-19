@@ -58,3 +58,7 @@ Kali npm 12 rejected electron-builder 26.0.12's transitive git dependency (EALLO
 ## ADR-012 · License and independent sessions
 
 MIT selected for CHAI-owned source. Third-party screenshots remain excluded. Authenticated GitHub on the user's Mac is used to publish code; no credential is transferred to Kali. Reboot testing is deferred until the user can safely restart their active desktop.
+
+## ADR-013 · Real local model roles and bounded repair
+
+Supersedes the local-mode portion of ADR-009. Each role is a separate structured model request; Reviewer sees recorded outputs and fresh file contents, not Builder claims. A passed review is required before Manager reports completion. Requests/responses and phases persist in SQLite. Existing unread files force a read-only discovery plan; model writes receive an expected hash. Tool grants remain exclusively human-owned. Runtime/model installation is user-space, loopback-only and does not enable boot autostart. Small-model output quality is an explicit acceptance risk.

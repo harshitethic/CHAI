@@ -5,6 +5,11 @@ export const actionSchema = z.discriminatedUnion("tool", [
       tool: z.literal("write"),
       path: z.string().min(1).max(300),
       content: z.string().max(100000),
+      expectedHash: z
+        .string()
+        .regex(/^[a-f0-9]{64}$/)
+        .nullable()
+        .optional(),
     })
     .strict(),
   z
@@ -59,6 +64,24 @@ export interface Task {
   approved: boolean;
   created: string;
   error: string | null;
+  agent?: {
+    round: number;
+    calls: number;
+    proposalError?: string;
+    phase:
+      "manager" | "builder" | "execute" | "reviewer" | "finalize" | "complete";
+    brief: {
+      summary: string;
+      builderTask: string;
+      acceptance: string[];
+    } | null;
+    review: {
+      verdict: "pass" | "revise" | "blocked";
+      summary: string;
+      issues: string[];
+    } | null;
+    report: { summary: string; limitations: string[] } | null;
+  };
 }
 export interface Event {
   id: number;
@@ -74,6 +97,7 @@ export interface Snapshot {
   workspace: string | null;
   models: string[];
   providerError: string | null;
+  selectedModel: string;
 }
 export const requestSchema = z.discriminatedUnion("op", [
   z.object({ op: z.literal("snapshot") }).strict(),
@@ -95,6 +119,10 @@ export const requestSchema = z.discriminatedUnion("op", [
   z.object({ op: z.literal("undo"), id: z.uuid() }).strict(),
   z.object({ op: z.literal("stop") }).strict(),
   z.object({ op: z.literal("models") }).strict(),
+  z.object({ op: z.literal("start-local") }).strict(),
+  z
+    .object({ op: z.literal("select-model"), name: z.string().min(1).max(100) })
+    .strict(),
   z.object({ op: z.literal("export"), id: z.uuid() }).strict(),
   z.object({ op: z.literal("delete"), id: z.uuid() }).strict(),
   z

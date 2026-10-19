@@ -89,3 +89,7 @@ This file retains the full-product acceptance rubric. Verified alpha scope is re
 ## Manual sign-in verification — 2026-10-19
 
 User completed ChatGPT sign-in. Visually verified the authenticated home after closing and reopening only the manager provider window; the isolated session persisted. Initially incomplete page resolved on reopen. CHAI and provider are on the right monitor. No credentials, cookies or tokens were read. This verifies window-reopen persistence, not whole-app restart or reboot persistence. Automatic ChatGPT orchestration remains unimplemented; manual handoff is unchanged.
+
+## Model-backed coordination checkpoint — 2026-10-19
+
+Implemented separate Manager assignment, Builder proposal, Reviewer assessment and Manager report calls using local Ollama. SQLite persists role responses and phases; bounded to 3 rounds/15 calls/36 actions. Repair plans require fresh human approval. Added existing-file discovery enforcement and expected-hash conflict checks. Typecheck, lint, build and 22 unit/integration tests pass on Kali. Actual qwen2.5-coder:3b completed a new-file task with all four calls; the harder existing-file UI test exposed poor proposals, correctly rejected by review/policy. That harder live gate remains in progress. No ChatGPT automation is enabled.

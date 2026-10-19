@@ -16,7 +16,8 @@ export class Store {
   CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY AUTOINCREMENT,taskId TEXT NOT NULL,role TEXT NOT NULL,kind TEXT NOT NULL,detail TEXT NOT NULL,created TEXT NOT NULL);
   CREATE TABLE IF NOT EXISTS effects(id TEXT PRIMARY KEY,taskId TEXT NOT NULL,idx INTEGER NOT NULL,state TEXT NOT NULL,before TEXT,after TEXT,output TEXT);
   CREATE TABLE IF NOT EXISTS approvals(taskId TEXT PRIMARY KEY,plan TEXT NOT NULL,expires INTEGER NOT NULL);
-  PRAGMA user_version=1;`);
+  CREATE TABLE IF NOT EXISTS agent_calls(id TEXT PRIMARY KEY,taskId TEXT NOT NULL,role TEXT NOT NULL,round INTEGER NOT NULL,status TEXT NOT NULL,request TEXT NOT NULL,response TEXT,updated TEXT NOT NULL);
+  PRAGMA user_version=2;`);
   }
   put(task: Task) {
     this.db

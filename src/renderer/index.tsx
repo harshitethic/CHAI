@@ -47,13 +47,14 @@ const blank: Snapshot = {
   workspace: null,
   models: [],
   providerError: null,
+  selectedModel: "",
 };
 function App() {
   const [data, setData] = useState(blank),
     [route, setRoute] = useState("Chat"),
     [id, setId] = useState<string | null>(null),
     [goal, setGoal] = useState(""),
-    [mode, setMode] = useState<Mode>("recipe"),
+    [mode, setMode] = useState<Mode>("local"),
     [model, setModel] = useState(""),
     [plan, setPlan] = useState(""),
     [error, setError] = useState(""),
@@ -98,6 +99,14 @@ function App() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, []);
+  useEffect(() => {
+    if (!model && data.models.length)
+      setModel(
+        data.models.includes(data.selectedModel)
+          ? data.selectedModel
+          : data.models[0],
+      );
+  }, [data.models, data.selectedModel, model]);
   const call = async (r: Request) => {
     try {
       setError("");
@@ -151,7 +160,19 @@ function App() {
                 : "Evidence verification"}
           </small>
         </div>
-        <span className="dot" />
+        <span
+          className={
+            "role-state " +
+            (task?.agent &&
+            ["PLANNING", "VALIDATING", "RUNNING"].includes(task.state) &&
+            (task.agent.phase === role ||
+              (role === "manager" && task.agent.phase === "finalize"))
+              ? "thinking"
+              : "")
+          }
+        >
+          {task?.mode === "local" ? "AI" : "Local"}
+        </span>
       </header>
       <div className="role-events">
         {events
@@ -353,8 +374,25 @@ function App() {
                   >
                     <option value="recipe">Offline recipes · not AI</option>
                     <option value="assisted">ChatGPT · manual handoff</option>
-                    <option value="local">Ollama · local model</option>
+                    <option value="local">AI team · local model</option>
                   </select>
+                  {mode === "local" && (
+                    <select
+                      aria-label="Team model"
+                      value={model}
+                      onChange={(e) => {
+                        setModel(e.target.value);
+                        void call({ op: "select-model", name: e.target.value });
+                      }}
+                    >
+                      <option value="">Choose local model</option>
+                      {data.models.map((name) => (
+                        <option value={name} key={name}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                   <button
                     className="send"
                     aria-label="Create task"
@@ -362,6 +400,7 @@ function App() {
                       busy ||
                       !data.workspace ||
                       !goal.trim() ||
+                      (mode === "local" && !model) ||
                       (mode === "assisted" && !plan.trim())
                     }
                   >
@@ -370,8 +409,19 @@ function App() {
                 </footer>
               </form>
               <p className="caption">
-                Every action is previewed. Nothing runs until you approve.
+                {mode === "local"
+                  ? "Three AI roles on your PC. Tool actions need your approval; approved evidence stays local."
+                  : "Every action is previewed. Nothing runs until you approve."}
               </p>
+              {mode === "local" && !data.models.length && (
+                <button
+                  className="model-setup"
+                  onClick={() => setRoute("Connections")}
+                >
+                  Connect a local model to activate the AI team{" "}
+                  <ArrowUpRight size={16} />
+                </button>
+              )}
               <div className="quick-actions">
                 {[
                   ["Inspect workspace", "list files", Folder],
@@ -426,15 +476,54 @@ function App() {
                   <PanelRight size={18} />
                 </button>
               </div>
+              {task?.agent && (
+                <section
+                  className="team-progress"
+                  aria-label="AI team progress"
+                >
+                  <span>
+                    <b>{task.model}</b> · local inference
+                  </span>
+                  <span>
+                    Round {task.agent.round}/3 · {task.agent.calls}/15 model
+                    calls
+                  </span>
+                  <span>{stateLabel(task.agent.phase)}</span>
+                </section>
+              )}
+              {task?.agent?.brief && (
+                <section className="acceptance-card">
+                  <h3>Success criteria</h3>
+                  <ul>
+                    {task.agent.brief.acceptance.map((criterion, i) => (
+                      <li key={i}>{criterion}</li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+              {task?.state === "DONE" && task.agent?.report && (
+                <section className="result-card">
+                  <h3>Verified result</h3>
+                  <p>{task.agent.report.summary}</p>
+                  {task.agent.report.limitations.map((item, i) => (
+                    <p className="muted" key={i}>
+                      {item}
+                    </p>
+                  ))}
+                </section>
+              )}
               {task?.error && <div className="notice">{task.error}</div>}
               {task && (
                 <div className="toolbar">
                   <button
                     onClick={() => void call({ op: "pause", id: task.id })}
                     disabled={
-                      !["RUNNING", "PLANNING", "WAITING_APPROVAL"].includes(
-                        task.state,
-                      )
+                      ![
+                        "RUNNING",
+                        "PLANNING",
+                        "VALIDATING",
+                        "WAITING_APPROVAL",
+                      ].includes(task.state)
                     }
                   >
                     <Pause size={15} />
@@ -473,7 +562,13 @@ function App() {
                     </div>
                   </header>
                   <p>{task.plan?.summary}</p>
-                  <pre>{JSON.stringify(task.plan?.actions, null, 2)}</pre>
+                  <pre>
+                    {JSON.stringify(
+                      task.plan?.actions.slice(task.cursor),
+                      null,
+                      2,
+                    )}
+                  </pre>
                   <footer>
                     <span>
                       Files may change. Existing file snapshots are kept
@@ -610,21 +705,31 @@ function App() {
               <section className="settings-card">
                 <div className="card-title">
                   <Terminal />
-                  <h3>Ollama</h3>
+                  <h3>Local AI team</h3>
                   <span className="badge">Local model</span>
                 </div>
                 <p>
-                  Connects only to 127.0.0.1:11434. Only your goal is sent;
-                  files are not silently uploaded. Select an installed model.
+                  Manager assigns work, Builder proposes actions, and Reviewer
+                  checks the real results. Your goal and approved tool evidence
+                  are sent only to Ollama on this PC (127.0.0.1:11434). Failed
+                  reviews can trigger up to three rounds; new actions always
+                  need approval.
                 </p>
                 <div className="toolbar">
                   <button onClick={() => void call({ op: "models" })}>
                     Check installed models
                   </button>
+                  <button onClick={() => void call({ op: "start-local" })}>
+                    Start local service
+                  </button>
                   <select
                     aria-label="Local model"
                     value={model}
-                    onChange={(e) => setModel(e.target.value)}
+                    onChange={(e) => {
+                      setModel(e.target.value);
+                      if (e.target.value)
+                        void call({ op: "select-model", name: e.target.value });
+                    }}
                   >
                     <option value="">Choose model</option>
                     {data.models.map((m) => (

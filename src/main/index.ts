@@ -17,6 +17,7 @@ import { Engine } from "../core/engine";
 import { Gateway, workspace } from "../core/gateway";
 import { requestSchema, redact } from "../core/contracts";
 import { models } from "../core/providers";
+import { startLocalRuntime } from "./local-runtime";
 if (process.env.CHAI_DATA_DIR)
   app.setPath("userData", process.env.CHAI_DATA_DIR);
 process.umask(0o077);
@@ -180,6 +181,14 @@ app
         ),
       ),
     );
+    void models()
+      .then((names) => {
+        availableModels = names;
+        providerError = null;
+      })
+      .catch((e) => {
+        providerError = redact(String(e));
+      });
     if (process.env.CHAI_TEST_WORKSPACE)
       store.setting("workspace", workspace(process.env.CHAI_TEST_WORKSPACE));
     main = new BrowserWindow({
@@ -244,6 +253,7 @@ app
             workspace: store.setting("workspace") ?? null,
             models: availableModels,
             providerError,
+            selectedModel: store.setting("model") ?? "",
           };
         case "workspace": {
           const result = await dialog.showOpenDialog(main, {
@@ -300,7 +310,12 @@ app
             return false;
           store.db.exec("BEGIN");
           try {
-            for (const table of ["events", "effects", "approvals"])
+            for (const table of [
+              "events",
+              "effects",
+              "approvals",
+              "agent_calls",
+            ])
               store.db
                 .prepare(`DELETE FROM ${table} WHERE taskId=?`)
                 .run(req.id);
@@ -336,6 +351,20 @@ app
           }
           return null;
         }
+        case "start-local":
+          try {
+            availableModels = await startLocalRuntime(app.getPath("home"));
+            providerError = null;
+          } catch (error) {
+            providerError = redact(String(error));
+            throw error;
+          }
+          return availableModels;
+        case "select-model":
+          if (!availableModels.includes(req.name))
+            throw Error("Model is not installed");
+          store.setting("model", req.name);
+          return true;
         case "models":
           try {
             availableModels = await models();

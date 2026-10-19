@@ -781,3 +781,73 @@ h1 em {
     animation: none !important;
   }
 }
+
+/* Model-backed work states */
+.composer footer {
+  flex-wrap: wrap;
+}
+.composer footer select {
+  max-width: 245px;
+}
+.model-setup {
+  margin: 0 auto 18px;
+  color: var(--accent, #de987f);
+}
+.team-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 22px;
+  align-items: center;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  border: 1px solid #de987f35;
+  border-radius: 14px;
+  color: #bcb9b4;
+  font-size: 12px;
+  background: #de987f08;
+}
+.team-progress span:last-child {
+  margin-left: auto;
+  text-transform: capitalize;
+  color: #e7b09b;
+}
+.acceptance-card,
+.result-card {
+  padding: 18px 22px;
+  border: 1px solid #ffffff12;
+  border-radius: 14px;
+  margin-bottom: 16px;
+  background: #ffffff03;
+}
+.acceptance-card h3,
+.result-card h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+.acceptance-card ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #aaa7a3;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.result-card {
+  border-color: #86b59a40;
+}
+.result-card p {
+  font-size: 14px;
+  line-height: 1.7;
+}
+.role-state {
+  margin-left: auto;
+  color: #8c8985;
+  border: 1px solid #ffffff16;
+  border-radius: 7px;
+  padding: 3px 6px;
+  font-size: 10px;
+}
+.role-state.thinking {
+  color: #e7b09b;
+  background: #de987f15;
+  border-color: #de987f60;
+}

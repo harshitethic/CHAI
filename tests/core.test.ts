@@ -213,6 +213,7 @@ test("credential patterns redacted", () => {
 test("local unavailable provider waits with retained task", async () => {
   const s = setup();
   const id = await s.engine.create("test", s.root, "local", "");
+  await s.engine.idle();
   assert.equal(s.store.get(id).state, "WAITING_PROVIDER");
 });
 test("unsupported recipe is explicitly failed, never fabricated success", async () => {

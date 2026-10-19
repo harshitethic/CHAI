@@ -94,3 +94,7 @@ For a checked item add proof in `handoff.md` or the appropriate test report: com
 - [ ] Live local-model inference and autonomous reasoning loop. No local model is installed/detected.
 - [ ] User manual ChatGPT login and whole-system reboot acceptance.
 - [x] GitHub CI and release workflow passed; v0.1.0-alpha.1 published with both packages and SHA256SUMS.
+
+## Model-backed coordination checkpoint — 2026-10-19
+
+Implemented separate Manager assignment, Builder proposal, Reviewer assessment and Manager report calls using local Ollama. SQLite persists role responses and phases; bounded to 3 rounds/15 calls/36 actions. Repair plans require fresh human approval. Added existing-file discovery enforcement and expected-hash conflict checks. Typecheck, lint, build and 22 unit/integration tests pass on Kali. Actual qwen2.5-coder:3b completed a new-file task with all four calls; the harder existing-file UI test exposed poor proposals, correctly rejected by review/policy. That harder live gate remains in progress. No ChatGPT automation is enabled.

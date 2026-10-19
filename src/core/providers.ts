@@ -1,4 +1,4 @@
-import { planSchema, type Plan } from "./contracts";
+import { type Plan } from "./contracts";
 export function recipe(goal: string): Plan {
   const quoted = goal.match(/^write\s+([^\s]+)\s+with\s+content\s+([\s\S]+)$/i);
   if (quoted)
@@ -44,7 +44,7 @@ export function recipe(goal: string): Plan {
   );
 }
 const endpoint = "http://127.0.0.1:11434";
-async function boundedJSON(response: Response) {
+export async function boundedJSON(response: Response) {
   if (!response.ok) throw Error(`Local provider HTTP ${response.status}`);
   const reader = response.body?.getReader();
   if (!reader) throw Error("Provider returned no body");
@@ -69,32 +69,4 @@ export async function models(): Promise<string[]> {
     }),
   );
   return (data.models ?? []).map((m: { name: string }) => m.name);
-}
-export async function localPlan(
-  goal: string,
-  model: string,
-  signal: AbortSignal,
-): Promise<Plan> {
-  if (!model) throw Error("Select an installed Ollama model in Connections");
-  const response = await fetch(endpoint + "/api/chat", {
-    method: "POST",
-    redirect: "error",
-    signal: AbortSignal.any([signal, AbortSignal.timeout(90000)]),
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model,
-      stream: false,
-      format: "json",
-      messages: [
-        {
-          role: "system",
-          content:
-            'You are CHAI Manager. Propose a bounded plan as JSON only: {"summary":"...","actions":[...]}. Allowed actions: {"tool":"list","path":"."}, {"tool":"read","path":"relative.txt"}, {"tool":"write","path":"relative.txt","content":"exact text"}, {"tool":"command","command":"git-status" or "git-diff" or "node-version" or "pwd"}. Max 12 actions. Never claim you ran a tool. No absolute paths, secrets, permission decisions, or shell strings. Writes require human approval. Plan only what these tools can achieve.',
-        },
-        { role: "user", content: goal },
-      ],
-    }),
-  });
-  const data = await boundedJSON(response);
-  return planSchema.parse(JSON.parse(data.message.content));
 }
