@@ -48,13 +48,23 @@ const blank: Snapshot = {
   models: [],
   providerError: null,
   selectedModel: "",
+  version: "",
+  chatgpt: {
+    connected: false,
+    enabled: false,
+    pending: false,
+    error: null,
+    active: null,
+    accounts: [],
+  },
+  modelLabels: {},
 };
 function App() {
   const [data, setData] = useState(blank),
     [route, setRoute] = useState("Chat"),
     [id, setId] = useState<string | null>(null),
     [goal, setGoal] = useState(""),
-    [mode, setMode] = useState<Mode>("local"),
+    [mode, setMode] = useState<Exclude<Mode, "local">>("chatgpt"),
     [model, setModel] = useState(""),
     [plan, setPlan] = useState(""),
     [error, setError] = useState(""),
@@ -100,11 +110,13 @@ function App() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
   useEffect(() => {
-    if (!model && data.models.length)
+    if ((!model || !data.models.includes(model)) && data.models.length)
       setModel(
         data.models.includes(data.selectedModel)
           ? data.selectedModel
-          : data.models[0],
+          : data.models.includes("gpt-6-sol")
+            ? "gpt-6-sol"
+            : "",
       );
   }, [data.models, data.selectedModel, model]);
   const call = async (r: Request) => {
@@ -171,7 +183,7 @@ function App() {
               : "")
           }
         >
-          {task?.mode === "local" ? "AI" : "Local"}
+          {task?.mode === "chatgpt" ? "AI" : "Local"}
         </span>
       </header>
       <div className="role-events">
@@ -289,7 +301,7 @@ function App() {
         <div className="sidebar-foot">
           <ShieldCheck size={17} />
           <span>
-            On your machine.
+            Actions on your machine.
             <br />
             <b>Under your control.</b>
           </span>
@@ -304,7 +316,10 @@ function App() {
           </div>
           <div>
             <span className="local-pill">
-              <span className="dot" /> Local engine
+              <span className="dot" />{" "}
+              {data.chatgpt.enabled
+                ? "ChatGPT · High"
+                : "ChatGPT not connected"}
             </span>
             <button className="stop" onClick={() => void call({ op: "stop" })}>
               <Square size={12} fill="currentColor" /> Stop all
@@ -370,13 +385,15 @@ function App() {
                   <select
                     aria-label="Provider mode"
                     value={mode}
-                    onChange={(e) => setMode(e.target.value as Mode)}
+                    onChange={(e) =>
+                      setMode(e.target.value as Exclude<Mode, "local">)
+                    }
                   >
                     <option value="recipe">Offline recipes · not AI</option>
                     <option value="assisted">ChatGPT · manual handoff</option>
-                    <option value="local">AI team · local model</option>
+                    <option value="chatgpt">ChatGPT · High reasoning</option>
                   </select>
-                  {mode === "local" && (
+                  {mode === "chatgpt" && (
                     <select
                       aria-label="Team model"
                       value={model}
@@ -385,10 +402,10 @@ function App() {
                         void call({ op: "select-model", name: e.target.value });
                       }}
                     >
-                      <option value="">Choose local model</option>
+                      <option value="">Choose GPT-6 model</option>
                       {data.models.map((name) => (
                         <option value={name} key={name}>
-                          {name}
+                          {data.modelLabels[name] ?? name} · High
                         </option>
                       ))}
                     </select>
@@ -400,7 +417,7 @@ function App() {
                       busy ||
                       !data.workspace ||
                       !goal.trim() ||
-                      (mode === "local" && !model) ||
+                      (mode === "chatgpt" && !model) ||
                       (mode === "assisted" && !plan.trim())
                     }
                   >
@@ -409,16 +426,16 @@ function App() {
                 </footer>
               </form>
               <p className="caption">
-                {mode === "local"
-                  ? "Three AI roles on your PC. Tool actions need your approval; approved evidence stays local."
+                {mode === "chatgpt"
+                  ? "Your ChatGPT plan · High reasoning. Goals and approved tool evidence are sent to OpenAI. Actions need your approval."
                   : "Every action is previewed. Nothing runs until you approve."}
               </p>
-              {mode === "local" && !data.models.length && (
+              {mode === "chatgpt" && !data.models.length && (
                 <button
                   className="model-setup"
                   onClick={() => setRoute("Connections")}
                 >
-                  Connect a local model to activate the AI team{" "}
+                  Connect ChatGPT to activate the AI team{" "}
                   <ArrowUpRight size={16} />
                 </button>
               )}
@@ -482,7 +499,7 @@ function App() {
                   aria-label="AI team progress"
                 >
                   <span>
-                    <b>{task.model}</b> · local inference
+                    <b>{task.model}</b> · ChatGPT · High reasoning
                   </span>
                   <span>
                     Round {task.agent.round}/3 · {task.agent.calls}/15 model
@@ -678,12 +695,120 @@ function App() {
                 <div className="card-title">
                   <MessageSquare />
                   <h3>ChatGPT</h3>
-                  <span className="badge">Interactive only</span>
+                  <span className="badge">
+                    {data.chatgpt.enabled
+                      ? "Connected"
+                      : data.chatgpt.pending
+                        ? "Waiting for sign-in"
+                        : "Sign-in required"}
+                  </span>
                 </div>
                 <p>
-                  Sign in directly on chatgpt.com. These three isolated views
-                  share CHAI’s own browser session. Automatic messaging is
-                  unavailable; paste a structured plan into Manual handoff.
+                  Use your ChatGPT plan for Manager, Builder, and Reviewer with
+                  High reasoning. Sign in on OpenAI’s page and authorize CHAI.
+                  Your goals and approved tool evidence are sent to OpenAI. Your
+                  plan limits apply. CHAI never switches to another provider.
+                </p>
+                <div className="toolbar">
+                  <button
+                    disabled={data.chatgpt.pending}
+                    onClick={() =>
+                      void call({
+                        op: "chatgpt-login",
+                        account: data.chatgpt.active ?? undefined,
+                      })
+                    }
+                  >
+                    Continue with ChatGPT
+                  </button>
+                  {data.chatgpt.accounts.length > 0 && (
+                    <button
+                      disabled={data.chatgpt.pending}
+                      onClick={() => void call({ op: "chatgpt-login" })}
+                    >
+                      Add account
+                    </button>
+                  )}
+                  {data.chatgpt.pending && (
+                    <button onClick={() => void call({ op: "chatgpt-cancel" })}>
+                      Cancel sign-in
+                    </button>
+                  )}
+                  <button onClick={() => void call({ op: "models" })}>
+                    Refresh available models
+                  </button>
+                  <button onClick={() => void call({ op: "chatgpt-usage" })}>
+                    Plan usage & limits
+                  </button>
+                  {data.chatgpt.connected && (
+                    <button onClick={() => void call({ op: "chatgpt-logout" })}>
+                      Disconnect
+                    </button>
+                  )}
+                </div>
+                {data.chatgpt.accounts.length > 0 && (
+                  <div className="toolbar">
+                    <label>
+                      Account{" "}
+                      <select
+                        aria-label="ChatGPT account"
+                        value={data.chatgpt.active ?? ""}
+                        onChange={(e) =>
+                          void call({
+                            op: "chatgpt-login",
+                            account: e.target.value,
+                          })
+                        }
+                      >
+                        {data.chatgpt.accounts.map((a, i) => (
+                          <option key={a.id} value={a.id}>
+                            {a.label} · account {i + 1}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                )}
+                <div className="toolbar">
+                  <label>
+                    Model{" "}
+                    <select
+                      aria-label="ChatGPT model"
+                      value={model}
+                      onChange={(e) => {
+                        setModel(e.target.value);
+                        if (e.target.value)
+                          void call({
+                            op: "select-model",
+                            name: e.target.value,
+                          });
+                      }}
+                    >
+                      <option value="">Choose an available GPT-6 model</option>
+                      {data.models.map((m) => (
+                        <option value={m} key={m}>
+                          {data.modelLabels[m] ?? m}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <span className="badge">Reasoning: High</span>
+                </div>
+                {(data.chatgpt.error || data.providerError) && (
+                  <p className="warning">
+                    {data.chatgpt.error || data.providerError}
+                  </p>
+                )}
+              </section>
+              <section className="settings-card">
+                <div className="card-title">
+                  <Globe />
+                  <h3>ChatGPT browser</h3>
+                  <span className="badge">Interactive</span>
+                </div>
+                <p>
+                  Your existing browser sign-in is separate from CHAI’s
+                  authorized model connection.
                 </p>
                 <div className="toolbar">
                   {(["manager", "builder", "reviewer"] as Role[]).map(
@@ -701,45 +826,6 @@ function App() {
                     External browser
                   </button>
                 </div>
-              </section>
-              <section className="settings-card">
-                <div className="card-title">
-                  <Terminal />
-                  <h3>Local AI team</h3>
-                  <span className="badge">Local model</span>
-                </div>
-                <p>
-                  Manager assigns work, Builder proposes actions, and Reviewer
-                  checks the real results. Your goal and approved tool evidence
-                  are sent only to Ollama on this PC (127.0.0.1:11434). Failed
-                  reviews can trigger up to three rounds; new actions always
-                  need approval.
-                </p>
-                <div className="toolbar">
-                  <button onClick={() => void call({ op: "models" })}>
-                    Check installed models
-                  </button>
-                  <button onClick={() => void call({ op: "start-local" })}>
-                    Start local service
-                  </button>
-                  <select
-                    aria-label="Local model"
-                    value={model}
-                    onChange={(e) => {
-                      setModel(e.target.value);
-                      if (e.target.value)
-                        void call({ op: "select-model", name: e.target.value });
-                    }}
-                  >
-                    <option value="">Choose model</option>
-                    {data.models.map((m) => (
-                      <option key={m}>{m}</option>
-                    ))}
-                  </select>
-                </div>
-                {data.providerError && (
-                  <p className="warning">{data.providerError}</p>
-                )}
               </section>
               <section className="settings-card">
                 <div className="card-title">
@@ -858,7 +944,7 @@ function App() {
         </div>
         <footer className="statusbar">
           <span>
-            CHAI <b>0.1.0 alpha</b>
+            CHAI <b>{data.version}</b>
           </span>
           <span>Local-first · Approvals required · Recoverable history</span>
         </footer>

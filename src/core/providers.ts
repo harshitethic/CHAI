@@ -40,33 +40,6 @@ export function recipe(goal: string): Plan {
       ],
     };
   throw Error(
-    "Recipe mode supports: list files; git status; cancellation check; write filename with content YOUR TEXT. Use Assisted or a local model for open-ended goals.",
+    "Recipe mode supports: list files; git status; cancellation check; write filename with content YOUR TEXT. Connect ChatGPT for open-ended goals.",
   );
-}
-const endpoint = "http://127.0.0.1:11434";
-export async function boundedJSON(response: Response) {
-  if (!response.ok) throw Error(`Local provider HTTP ${response.status}`);
-  const reader = response.body?.getReader();
-  if (!reader) throw Error("Provider returned no body");
-  let body = "";
-  const decoder = new TextDecoder();
-  for (;;) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    body += decoder.decode(value, { stream: true });
-    if (body.length > 150000) {
-      await reader.cancel();
-      throw Error("Provider output too large");
-    }
-  }
-  return JSON.parse(body);
-}
-export async function models(): Promise<string[]> {
-  const data = await boundedJSON(
-    await fetch(endpoint + "/api/tags", {
-      signal: AbortSignal.timeout(3000),
-      redirect: "error",
-    }),
-  );
-  return (data.models ?? []).map((m: { name: string }) => m.name);
 }

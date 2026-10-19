@@ -8,3 +8,7 @@ refs/
 !templates/.env.example
 .qa/
 *.log
+
+# OAuth credentials are never source artifacts
+**/chatgpt-auth/
+**/credentials.json

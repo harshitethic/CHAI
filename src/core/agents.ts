@@ -10,7 +10,6 @@ import {
 } from "./contracts";
 import { Store } from "./store";
 import { Gateway } from "./gateway";
-import { boundedJSON } from "./providers";
 
 const proposalSchema = planSchema.extend({
   actions: z
@@ -34,7 +33,7 @@ const briefSchema = z
   .strict();
 const reviewSchema = z
   .object({
-    verdict: z.enum(["pass", "revise", "blocked"]),
+    verdict: z.enum(["pass", "revise"]),
     summary: z.string().min(1).max(2000),
     issues: z.array(z.string().min(1).max(1000)).max(8),
   })
@@ -58,38 +57,6 @@ export interface AgentRequest {
 export interface AgentAdapter {
   readonly name: string;
   send(request: AgentRequest, signal: AbortSignal): Promise<unknown>;
-}
-export class OllamaAdapter implements AgentAdapter {
-  readonly name = "Ollama · localhost";
-  async send(request: AgentRequest, signal: AbortSignal): Promise<unknown> {
-    if (!request.model)
-      throw new ProviderUnavailable(
-        "Select an installed local model in Connections.",
-      );
-    const response = await fetch("http://127.0.0.1:11434/api/chat", {
-      method: "POST",
-      redirect: "error",
-      signal: AbortSignal.any([signal, AbortSignal.timeout(180000)]),
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: request.model,
-        stream: false,
-        format: request.schema,
-        keep_alive: "5m",
-        options: { temperature: 0, num_ctx: 16384, num_predict: 4096 },
-        messages: [
-          { role: "system", content: request.system },
-          { role: "user", content: request.input },
-        ],
-      }),
-    });
-    const data = await boundedJSON(response);
-    if (data.done !== true || data.done_reason === "length")
-      throw new ProviderUnavailable(
-        "Local model response was incomplete. No actions accepted.",
-      );
-    return JSON.parse(data.message.content);
-  }
 }
 
 const boundary =
@@ -220,15 +187,23 @@ export class Coordinator {
   async evidence(task: Task, signal: AbortSignal) {
     const outputs = this.store.db
       .prepare(
-        "SELECT idx,state,output FROM effects WHERE taskId=? ORDER BY idx",
+        "SELECT idx,state,output,before,after FROM effects WHERE taskId=? ORDER BY idx",
       )
       .all(task.id)
-      .map((row) => ({
-        idx: Number(row.idx),
-        state: String(row.state),
-        output: String(row.output),
-        action: task.plan?.actions[Number(row.idx)],
-      }));
+      .map((row) => {
+        const action = task.plan?.actions[Number(row.idx)];
+        let output: unknown = String(row.output);
+        if (action?.tool === "read" || action?.tool === "list")
+          output = JSON.parse(String(row.output));
+        if (action?.tool === "write")
+          output = { before: JSON.parse(String(row.before)), after: row.after };
+        return {
+          idx: Number(row.idx),
+          state: String(row.state),
+          output,
+          action,
+        };
+      });
     // Fresh reads, not a worker's claim of success. Latest write wins across repair rounds.
     const writes = new Map<string, string>();
     for (const action of task.plan?.actions.slice(0, task.cursor) ?? [])
@@ -248,10 +223,35 @@ export class Coordinator {
         );
       files.push({ path, content: actual.content, sha256: actual.hash });
     }
+    for (const observation of outputs) {
+      const action = observation.action;
+      if (
+        action?.tool !== "read" ||
+        writes.has(action.path) ||
+        files.some((f) => f.path === action.path)
+      )
+        continue;
+      const output = observation.output;
+      if (typeof output !== "object" || output === null || !("hash" in output))
+        continue;
+      const current = await this.gateway.file(
+        task.root,
+        "read",
+        action.path,
+        {},
+        signal,
+      );
+      if (current.hash === output.hash)
+        files.push({
+          path: action.path,
+          content: current.content,
+          sha256: current.hash,
+        });
+    }
     const evidence = { outputs, files };
     if (JSON.stringify(evidence).length > 24000)
       throw Error(
-        "Evidence exceeds local context budget. Split the task; files remain intact.",
+        "Evidence exceeds the context budget. Split the task; files remain intact.",
       );
     return evidence;
   }
@@ -265,7 +265,7 @@ export class Coordinator {
         "manager",
         "assignment",
         "Decompose the goal into one bounded Builder assignment and specific acceptance criteria. On repair, use the Reviewer issues. " +
-          "If files must be inspected before editing, assign a read-only discovery round first. Never invent existing file contents.",
+          "If file contents are absent from evidence, assign a read-only discovery round first. Evidence with state SUCCEEDED has already executed: do not assign those reads again. Once a file is known, assign the actual edit. Never invent existing file contents.",
         { goal: task.goal, previousReview: agent.review, evidence },
         briefSchema,
         signal,
@@ -289,7 +289,7 @@ export class Coordinator {
         "When a requested edit needs unseen existing content, read it first, never overwrite from guesses. " +
         "For new text files, write the requested content directly. Each file may have at most ONE write in this round. " +
         'A read action is {"tool":"read","path":"relative.txt"}. A write action contains the complete resulting file text in "content", never instructions such as "replace X with Y". ' +
-        "If the existing file content is not in evidence, return a read action only. Never mix a read and a guessed write for the same file. No actions have run yet.",
+        "Evidence records with state SUCCEEDED have ALREADY run. If existing file content is absent from all evidence, return a read action only. If it is present, produce the write now; do not repeat a completed read. Never mix a read and a guessed write. Only actions in your NEW proposal have not run yet.",
       {
         goal: task.goal,
         assignment: agent.brief,
@@ -329,11 +329,12 @@ export class Coordinator {
             observed.path !== action.path
           )
             return false;
-          try {
-            return JSON.parse(String(e.output)).hash === actual.hash;
-          } catch {
-            return false;
-          }
+          return (
+            typeof e.output === "object" &&
+            e.output !== null &&
+            "hash" in e.output &&
+            e.output.hash === actual.hash
+          );
         });
       if (actual.content !== null && !previouslyObserved)
         inspection.add(action.path);
@@ -404,9 +405,9 @@ export class Coordinator {
         "independent-review",
         "Independently evaluate the ORIGINAL user goal against observed tool outputs and fresh file contents. " +
           "pass only when the requested outcome is supported by evidence, not just successful execution. " +
-          "Use revise for missing work achievable with available tools; use blocked for outcomes these tools cannot verify. " +
+          "Use revise whenever work is missing or cannot yet be verified. State missing capabilities in issues if tools are insufficient. " +
           "A successful read/list is not completion of a requested file change: return revise so Builder can perform the edit next. " +
-          "When original content is available and the edit is still missing, it is repairable, not blocked. Explain concrete issues; do not invent requirements.",
+          "When original content is available and the edit is still missing, request the actual edit. Explain concrete issues; do not invent requirements.",
         { goal: task.goal, acceptance: agent.brief?.acceptance, evidence },
         reviewSchema,
         signal,
@@ -418,7 +419,7 @@ export class Coordinator {
           "REVIEW_REJECTED",
           agent.review.summary + "\n" + agent.review.issues.join("\n"),
         );
-        if (agent.review.verdict === "blocked" || agent.round >= 3)
+        if (agent.round >= 3)
           throw Error(
             `Review did not pass${agent.round >= 3 ? " within three rounds" : ""}: ${agent.review.summary}`,
           );

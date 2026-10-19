@@ -2,72 +2,60 @@
 
 **Stop chatting. Start doing.**
 
-![CHAI running on Kali](screenshots/home.png)
+A Chromium-based Linux desktop application with a persistent Manager, Builder and Reviewer, scoped tools, approval gates and recoverable task history.
 
-A local-first Electron desktop workspace for Linux: preview a plan, approve real file or terminal actions, and inspect the evidence in three role panels.
+## Current status
 
-> **Development alpha.** ChatGPT is interactive/manual only. Opening three views does not create API access or bypass service limits. Offline recipes are deterministic. Local AI mode uses separate Manager, Builder and Reviewer model calls; model quality varies and human approval is still required for tools. See `handoff.md` for the exact verified build status.
+Main now integrates **Sign in with ChatGPT** using OpenAI's documented ChatGPT plan-usage flow for open-source applications. The requested target is GPT-6 with **High reasoning**. CHAI retrieves the account's available models and never falls back to local inference or another provider.
 
-## What is implemented
+**Live ChatGPT acceptance is pending user authorization.** The real OpenAI account chooser has been opened on Kali. Automated transport/authentication tests, native desktop tests and crash recovery pass; those tests do not demonstrate a completed live GPT-6 task.
 
-- Original charcoal/coral React interface with task history, workspace picker, three role timelines, approvals, activity and provider settings.
-- SQLite WAL task state, explicit checkpoints, serial execution, approval expiry, pause/resume and process-group cancellation.
-- Descriptor-relative Python file gateway: no symlinks, hardlinks, traversal, special files or common credential paths. Atomic edits with snapshots and conflict-aware restoration.
-- Terminal allowlist: working directory, Git status/diff summary, Node version and cancellable sleep. No arbitrary shell or privileged commands.
-- ChatGPT windows with an isolated shared Chromium partition, manual sign-in and no credential extraction. Structured JSON handoff to local execution.
-- Real Ollama-backed Manager → Builder → Reviewer → Manager coordination, with persisted role responses, bounded repair, independent review and fresh approval for new actions. An installed model is required; the app does not bundle/download weights.
-- Separately approved browser navigation/click/screenshot and X11 desktop click/capture controls. These are human-triggered tools, not an autonomous visual agent.
+The published `v0.1.0-alpha.1` installer predates this integration. A new release will follow live verification.
 
-## Install the alpha
+## Connect ChatGPT
 
-Download the Linux package from [Releases](https://github.com/harshitethic/CHAI/releases). On systems without FUSE 2, run the AppImage with `APPIMAGE_EXTRACT_AND_RUN=1`. For a user-only app-menu installation: `sh scripts/install-local.sh /path/to/CHAI-0.1.0-alpha.1.AppImage`. No system package changes or autostart are made.
+1. Open Connections → **Continue with ChatGPT**.
+2. Choose your account on OpenAI's page and authorize CHAI to use your ChatGPT plan.
+3. Refresh available models and choose the intended GPT-6 model. Reasoning is set to High.
+4. Choose a dedicated workspace and submit a goal.
+5. Review the proposed file/command actions before approving them.
 
-## Run from source
+Eligible requests use your ChatGPT plan under its limits and configured credits policy. Review access and limits in [ChatGPT Settings](https://chatgpt.com/settings/usage). A browser login by itself is separate from the plan-usage authorization. CHAI does not read browser cookies or scrape ChatGPT output.
 
-Requirements: Linux x86_64, Node 24+, Python 3, an X11/Wayland graphical session, Electron system libraries. X11 click additionally requires `xdotool`.
+OAuth credentials stay in an owner-only directory/file under the application data directory. They are never returned through renderer IPC, written to task logs, or included in exports. This is protected filesystem storage, not encrypted storage. Signing out attempts remote session revocation and clears credentials locally.
+
+## Implemented
+
+- Manager assignments, Builder plans, Reviewer decisions and Manager reports, persisted separately.
+- Bounded repair rounds, provider-error pause/resume and cached completed role calls.
+- Real workspace read/list/write and fixed terminal commands.
+- Exact-plan approvals, cancellation, before/after evidence and conflict-aware undo.
+- SQLite task queue and reconciliation after interrupted execution; ambiguous commands are not blindly replayed.
+- Manual isolated browser and X11 controls, screenshots and explicit confirmations.
+- Charcoal desktop interface, keyboard shortcuts, task search, role timelines and activity logs.
+- AppImage and Debian packaging configuration.
+
+Model roles can propose actions; they cannot grant permissions. New plans require approval. Tool execution is bounded to the existing gateway. General autonomous browser/desktop control, arbitrary shell workflows and broader task quality remain unfinished acceptance items.
+
+## Development
+
+Requires modern Node.js, npm, Python 3 and Linux desktop libraries.
 
 ```sh
 npm ci
 npm run check
 npm start
-# Headless native GUI verification
-xvfb-run -a npm run test:e2e
-# Build AppImage and Debian packages
+npm run test:e2e
+npm run test:crash
 npm run package
 ```
 
-Choose a dedicated disposable workspace, then enter:
+The Electron tests require a desktop display or Xvfb. On Kali, native tests use its X11 session. The core suite includes OAuth signature/issuer/audience/nonce/expiry checks, invalid-state rejection, secure file permissions, interrupted SSE, provider failure, cancellation, repair approvals, path protection and crash reconciliation. Fixtures are used only in automated tests.
 
-```text
-write notes.txt with content My first CHAI task
-```
+## Limits and handoff
 
-Review the exact proposed action and select **Approve plan**. The file is actually created, reread, compared and logged. Other offline recipes: `list files`, `git status`, `cancellation check`.
+This is an alpha. Live ChatGPT model availability and a complete real-provider task must be verified after consent. Full-system reboot has not been tested. Existing task data is retained; legacy local-model tasks are disabled rather than silently migrated to another provider.
 
-## ChatGPT manual handoff
+Read `brain.md`, `tasks.md`, `checks.md`, `decisions.md`, `blockers.md` and `handoff.md` before resuming.
 
-Open Connections → Manager/Builder/Reviewer, then sign in directly on the official provider page. If embedded login is rejected, use External browser. CHAI never imports another browser's cookies.
-
-Ask your chat to propose a bounded JSON plan, then select **ChatGPT · manual handoff** and paste it:
-
-```json
-{"summary":"Create a note and verify its exact contents","actions":[{"tool":"write","path":"notes.txt","content":"Hello from CHAI\n"}]}
-```
-
-Supported action schemas are in `src/core/contracts.ts`. Model proposals cannot contain approvals. Every plan still requires local user approval.
-
-## Limits you should know
-
-- This is not a general autonomous ChatGPT computer agent. Programmatic ChatGPT messaging is unsupported.
-- Local model mode has a bounded repair/replanning loop (3 rounds, 15 model calls, 36 actions). This is a scoped file/command agent, not a general desktop AI. Small-model accuracy is not guaranteed.
-- No unattended reboot, background service, arbitrary shell, package installation, file deletion, Git publishing or credential access from model output.
-- New files are retained by Restore edits; existing files are restored only if they still match CHAI's recorded result.
-- SQLite snapshots are private local files, not encrypted storage. Do not use production secrets for alpha testing.
-- Local same-user hostile processes, kernel compromise and system administrator attacks are outside this alpha's isolation guarantee. It is not an OS sandbox for untrusted code.
-- ChatGPT sign-in and a real local-model new-file task are verified. Full-system reboot and broader agent quality require separate acceptance evidence.
-
-## Development
-
-`npm test` covers real filesystem operations, approvals, cancellation, crash reconciliation, secret redaction and provider failure. Native Electron tests cover rendering, actual file output, persistence and IPC rejection. CI repeats these checks.
-
-MIT licensed. Read [Security](SECURITY.md), [Privacy](docs/PRIVACY.md), and [Handoff](handoff.md). Original user-supplied inspiration screenshots are private and excluded from Git.
+Implementation follows OpenAI's [registration guide](https://developers.openai.com/siwc/token-sharing-open-source/sign-in), [models and inference contract](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference), and [preview limitations](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations).

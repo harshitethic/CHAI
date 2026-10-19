@@ -1,12 +1,7 @@
 import { Store } from "./store";
 import { Gateway } from "./gateway";
 import { recipe } from "./providers";
-import {
-  Coordinator,
-  OllamaAdapter,
-  ProviderUnavailable,
-  type AgentAdapter,
-} from "./agents";
+import { Coordinator, ProviderUnavailable, type AgentAdapter } from "./agents";
 import { planSchema, redact, type Task, type Plan } from "./contracts";
 const terminal = new Set(["DONE", "FAILED", "CANCELED"]);
 export class Engine {
@@ -16,7 +11,12 @@ export class Engine {
   constructor(
     readonly store: Store,
     readonly gateway: Gateway,
-    adapter: AgentAdapter = new OllamaAdapter(),
+    adapter: AgentAdapter = {
+      name: "Not connected",
+      async send() {
+        throw new ProviderUnavailable("Connect ChatGPT in Connections.");
+      },
+    },
   ) {
     this.coordinator = new Coordinator(store, gateway, adapter);
     for (const t of store.tasks())
@@ -53,7 +53,7 @@ export class Engine {
       );
       return t.id;
     }
-    if (mode === "local") {
+    if (mode === "chatgpt") {
       this.schedulePlan(t.id);
       return t.id;
     }
@@ -71,7 +71,11 @@ export class Engine {
     const ctrl = new AbortController();
     this.active.set(t.id, ctrl);
     try {
-      if (t.mode === "local") {
+      if (t.mode === "local")
+        throw new ProviderUnavailable(
+          "Legacy local-model task is disabled. Create a new task with ChatGPT.",
+        );
+      if (t.mode === "chatgpt") {
         await this.coordinator.prepare(t, ctrl.signal);
         return;
       }
@@ -112,6 +116,10 @@ export class Engine {
   }
   approve(id: string, allow: boolean) {
     const t = this.store.get(id);
+    if (t.mode === "local")
+      throw new ProviderUnavailable(
+        "Legacy local-model task is disabled. Create a new ChatGPT task.",
+      );
     if (t.state !== "WAITING_APPROVAL" || !t.plan)
       throw Error("No pending plan");
     if (!allow) {
@@ -296,7 +304,7 @@ export class Engine {
         effects.some((e) => e.state !== "SUCCEEDED")
       )
         throw Error("Missing execution evidence");
-      if (t.mode === "local") {
+      if (t.mode === "chatgpt") {
         if (!t.agent) this.coordinator.initialize(t).phase = "execute";
         const complete = await this.coordinator.review(t, signal);
         if (!complete) return;
@@ -348,12 +356,16 @@ export class Engine {
   }
   async resume(id: string) {
     const t = this.store.get(id);
+    if (t.mode === "local")
+      throw new ProviderUnavailable(
+        "Legacy local-model task is disabled. Create a new ChatGPT task.",
+      );
     if (!["PAUSED", "WAITING_PROVIDER"].includes(t.state))
       throw Error("Task cannot resume from this state");
     if (this.active.has(id))
       throw Error("Wait for canceled operation to finish");
     if (
-      t.mode === "local" &&
+      t.mode === "chatgpt" &&
       (!t.plan || ["manager", "builder"].includes(t.agent?.phase ?? "manager"))
     ) {
       this.schedulePlan(id);
@@ -364,7 +376,7 @@ export class Engine {
       return;
     }
     if (
-      t.mode === "local" &&
+      t.mode === "chatgpt" &&
       ["reviewer", "finalize"].includes(t.agent?.phase ?? "")
     ) {
       t.state = "RUNNING";

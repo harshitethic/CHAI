@@ -73,7 +73,7 @@ async function create(s: ReturnType<typeof setup>) {
   const id = await s.engine.create(
     "Create notes.txt with exactly hello",
     s.root,
-    "local",
+    "chatgpt",
     "test-model",
   );
   await s.engine.idle();
@@ -219,7 +219,7 @@ test("late model response cannot resurrect a canceled task", async () => {
   const id = await s.engine.create(
     "Create a file",
     s.root,
-    "local",
+    "chatgpt",
     "test-model",
   );
   await waiting;

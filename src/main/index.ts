@@ -16,14 +16,28 @@ import { Store } from "../core/store";
 import { Engine } from "../core/engine";
 import { Gateway, workspace } from "../core/gateway";
 import { requestSchema, redact } from "../core/contracts";
-import { models } from "../core/providers";
-import { startLocalRuntime } from "./local-runtime";
+import { ChatGPTAuth } from "../core/chatgpt-auth";
+import { ChatGPTAdapter } from "../core/chatgpt";
 if (process.env.CHAI_DATA_DIR)
   app.setPath("userData", process.env.CHAI_DATA_DIR);
 process.umask(0o077);
 let main: BrowserWindow;
 let store: Store;
 let engine: Engine;
+let chatgpt: ChatGPTAuth;
+let modelLabels: Record<string, string> = {};
+async function refreshChatGPTModels() {
+  const catalog = await chatgpt.models();
+  availableModels = catalog
+    .filter((m) => /^gpt-6(?:[.-]|$)/.test(m.slug))
+    .map((m) => m.slug);
+  modelLabels = Object.fromEntries(
+    catalog.map((m) => [m.slug, m.display_name]),
+  );
+  providerError = availableModels.length
+    ? null
+    : "No GPT-6 model is available to this account. No fallback will be used.";
+}
 let availableModels: string[] = [];
 let providerError: string | null = null;
 const windows = new Map<string, BrowserWindow>();
@@ -170,6 +184,7 @@ app
     const data = app.getPath("userData");
     mkdirSync(data, { recursive: true, mode: 0o700 });
     store = new Store(join(data, "chai.sqlite"));
+    chatgpt = new ChatGPTAuth(app.getPath("userData"));
     engine = new Engine(
       store,
       new Gateway(
@@ -180,14 +195,11 @@ app
           "files.py",
         ),
       ),
+      new ChatGPTAdapter(chatgpt),
     );
-    void models()
-      .then((names) => {
-        availableModels = names;
-        providerError = null;
-      })
-      .catch((e) => {
-        providerError = redact(String(e));
+    if (chatgpt.status().enabled)
+      void refreshChatGPTModels().catch((e) => {
+        providerError = String(e);
       });
     if (process.env.CHAI_TEST_WORKSPACE)
       store.setting("workspace", workspace(process.env.CHAI_TEST_WORKSPACE));
@@ -253,7 +265,10 @@ app
             workspace: store.setting("workspace") ?? null,
             models: availableModels,
             providerError,
-            selectedModel: store.setting("model") ?? "",
+            selectedModel: store.setting("chatgpt-model") ?? "",
+            version: app.getVersion(),
+            chatgpt: chatgpt.status(),
+            modelLabels,
           };
         case "workspace": {
           const result = await dialog.showOpenDialog(main, {
@@ -268,6 +283,13 @@ app
         case "create": {
           const root = store.setting("workspace");
           if (!root) throw Error("Choose a workspace first");
+          if (
+            req.mode === "chatgpt" &&
+            (!chatgpt.status().enabled || !availableModels.includes(req.model))
+          )
+            throw Error(
+              "Connect ChatGPT and select an available GPT-6 model first.",
+            );
           return engine.create(
             req.goal,
             workspace(root),
@@ -351,24 +373,31 @@ app
           }
           return null;
         }
-        case "start-local":
-          try {
-            availableModels = await startLocalRuntime(app.getPath("home"));
-            providerError = null;
-          } catch (error) {
-            providerError = redact(String(error));
-            throw error;
-          }
-          return availableModels;
+        case "chatgpt-login":
+          if (engine.active.size)
+            throw Error("Pause tasks before changing the ChatGPT connection.");
+          for (const task of store.tasks()) engine.pause(task.id);
+          await chatgpt.begin((url) => shell.openExternal(url), req.account);
+          availableModels = [];
+          return true;
+        case "chatgpt-cancel":
+          chatgpt.cancel();
+          return true;
+        case "chatgpt-logout":
+          for (const task of store.tasks()) engine.pause(task.id);
+          await chatgpt.signOut();
+          availableModels = [];
+          return true;
+        case "chatgpt-usage":
+          return shell.openExternal("https://chatgpt.com/settings/usage");
         case "select-model":
           if (!availableModels.includes(req.name))
-            throw Error("Model is not installed");
-          store.setting("model", req.name);
+            throw Error("Model is not available to this ChatGPT account.");
+          store.setting("chatgpt-model", req.name);
           return true;
         case "models":
           try {
-            availableModels = await models();
-            providerError = null;
+            await refreshChatGPTModels();
           } catch (e) {
             availableModels = [];
             providerError = String(e);
@@ -516,5 +545,6 @@ app
   });
 app.on("window-all-closed", () => app.quit());
 app.on("before-quit", () => {
+  chatgpt?.cancel();
   engine?.gateway.stop();
 });

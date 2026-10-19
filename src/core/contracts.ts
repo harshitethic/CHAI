@@ -40,7 +40,7 @@ export const planSchema = z
   .strict();
 export type Action = z.infer<typeof actionSchema>;
 export type Plan = z.infer<typeof planSchema>;
-export type Mode = "recipe" | "local" | "assisted";
+export type Mode = "recipe" | "local" | "assisted" | "chatgpt";
 export type State =
   | "PLANNING"
   | "WAITING_APPROVAL"
@@ -98,6 +98,16 @@ export interface Snapshot {
   models: string[];
   providerError: string | null;
   selectedModel: string;
+  version: string;
+  chatgpt: {
+    connected: boolean;
+    enabled: boolean;
+    pending: boolean;
+    error: string | null;
+    active: string | null;
+    accounts: { id: string; label: string }[];
+  };
+  modelLabels: Record<string, string>;
 }
 export const requestSchema = z.discriminatedUnion("op", [
   z.object({ op: z.literal("snapshot") }).strict(),
@@ -106,7 +116,7 @@ export const requestSchema = z.discriminatedUnion("op", [
     .object({
       op: z.literal("create"),
       goal: z.string().min(1).max(12000),
-      mode: z.enum(["recipe", "local", "assisted"]),
+      mode: z.enum(["recipe", "assisted", "chatgpt"]),
       model: z.string().max(100),
       plan: z.string().max(110000).optional(),
     })
@@ -119,7 +129,12 @@ export const requestSchema = z.discriminatedUnion("op", [
   z.object({ op: z.literal("undo"), id: z.uuid() }).strict(),
   z.object({ op: z.literal("stop") }).strict(),
   z.object({ op: z.literal("models") }).strict(),
-  z.object({ op: z.literal("start-local") }).strict(),
+  z
+    .object({ op: z.literal("chatgpt-login"), account: z.string().optional() })
+    .strict(),
+  z.object({ op: z.literal("chatgpt-cancel") }).strict(),
+  z.object({ op: z.literal("chatgpt-logout") }).strict(),
+  z.object({ op: z.literal("chatgpt-usage") }).strict(),
   z
     .object({ op: z.literal("select-model"), name: z.string().min(1).max(100) })
     .strict(),
