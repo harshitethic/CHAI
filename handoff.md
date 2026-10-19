@@ -41,3 +41,6 @@ The core browser-role loop is functional, but the full original project is not c
 - Installed launcher now points to ~/.local/opt/chai-0.3.0-alpha.1/CHAI.AppImage; old version retained. Installed upgrade reopened with connected tool pairing, completed task and original grant intact. Private controller remains .qa/control-browser-bridge.mjs; never commit .qa or browser credentials.
 - Privacy documentation corrected: selected local file contents, goals and evidence are sent to ChatGPT via MCP. No local inference privacy claim applies.
 - Remaining: publish/verify 0.3 assets; stable transport/reboot; broader autonomous computer tools and development workflows. Do not claim complete Codex parity.
+
+
+Release gate update: initial 0.3 CI failed before sandbox execution with Ubuntu AppArmor RTM_NEWADDR denial. A bwrap-specific namespace profile is now loaded only on the disposable CI runner. No global AppArmor/sysctl changes and no reduced application isolation. Re-run the full suite before publishing.

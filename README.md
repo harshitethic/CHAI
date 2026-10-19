@@ -53,3 +53,6 @@ npm run package
 Selected workspace contents, task goals and execution evidence are sent to your ChatGPT conversations through the tool connection. Task data and tool-access records are in an owner-only SQLite directory, not encrypted. ChatGPT login remains in its isolated Chromium profile. No session cookies or assistant text are extracted.
 
 Read brain.md, tasks.md, checks.md, decisions.md, blockers.md and handoff.md before resuming. Integration uses the official [custom MCP plugin flow](https://developers.openai.com/plugins/deploy/connect-chatgpt).
+
+
+On Ubuntu hosts that restrict unprivileged user namespaces, Bubblewrap may fail with `RTM_NEWADDR: Operation not permitted`. CHAI refuses execution rather than dropping network isolation. An administrator should review the system's Bubblewrap/AppArmor profile using [Ubuntu's user-namespace guidance](https://discourse.ubuntu.com/t/understanding-apparmor-user-namespace-restriction/58007). CHAI does not change system policy automatically. CI grants `/usr/bin/bwrap` namespace access on the disposable runner only.
