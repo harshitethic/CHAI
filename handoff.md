@@ -25,7 +25,7 @@ Version 0.2.0-alpha.1 is built and installed on Kali. Typecheck, lint, 30 tests,
 - Private .qa/control-browser-bridge.mjs controls the installed real application. .qa contains private browser screenshots and must never be committed.
 
 ## Remaining work
-1. Version 0.2 release is published and its downloadable AppImage was verified. Publish the 0.3 release and verify its downloadable asset.
+1. Versions 0.2 and 0.3 are published; their downloadable AppImages were independently verified on Kali.
 2. Resolve a persistent user-controlled HTTPS origin for reboot-stable pairing, or document reconnecting a newly created temporary URL.
 3. Arrange a safe whole-PC reboot after other work is saved; verify task history, login, tools and fresh task execution afterward.
 4. Implement the broader original backlog: agent-driven browser/desktop actions, general approved shell workflows and broader file management. Current tools remain bounded and honest.
@@ -44,3 +44,11 @@ The core browser-role loop is functional, but the full original project is not c
 
 
 Release gate update: initial 0.3 CI failed before sandbox execution with Ubuntu AppArmor RTM_NEWADDR denial. A bwrap-specific namespace profile is now loaded only on the disposable CI runner. No global AppArmor/sysctl changes and no reduced application isolation. Re-run the full suite before publishing.
+
+
+## Published 0.3 verification — 2026-10-19
+Release source: 7af878b. CI passed: https://github.com/harshitethic/CHAI/actions/runs/39230787066 . Release passed (including packaged sandbox execution): https://github.com/harshitethic/CHAI/actions/runs/39230789300 . Published AppImage, Debian package and SHA256SUMS: https://github.com/harshitethic/CHAI/releases/tag/v0.3.0-alpha.1 .
+
+Downloaded the published AppImage to Kali, verified SHA256 `06decc28cba27dd8d1ad08b4a82ad1d5fe6724b4b849d36c88389d43eaf4ca0c` and passed native UI/restart/autonomous-permission/real-sandbox E2E against that exact download. Installed published binary under ~/.local/opt/chai-0.3.0-alpha.1/CHAI.AppImage; local build and 0.2 retained. No credentials moved. Both source checkouts are synchronized.
+
+Next work: broader file management and autonomous browser/desktop capabilities; better project development workflows; stable tool endpoint and a user-arranged whole-PC reboot. Do not reintroduce local inference or model API substitution. CHAI and ChatGPT have independent permission boundaries: workspace grants remove CHAI round prompts but cannot suppress ChatGPT's own prompts or service limits.
