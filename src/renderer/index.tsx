@@ -45,27 +45,23 @@ const blank: Snapshot = {
   tasks: [],
   events: [],
   workspace: null,
-  models: [],
-  providerError: null,
-  selectedModel: "",
   version: "",
-  chatgpt: {
-    connected: false,
-    enabled: false,
-    pending: false,
+  bridge: {
+    state: "stopped",
     error: null,
-    active: null,
-    accounts: [],
+    url: null,
+    connected: false,
+    lastSeen: null,
+    jobs: [],
   },
-  modelLabels: {},
 };
 function App() {
   const [data, setData] = useState(blank),
     [route, setRoute] = useState("Chat"),
     [id, setId] = useState<string | null>(null),
     [goal, setGoal] = useState(""),
-    [mode, setMode] = useState<Exclude<Mode, "local">>("chatgpt"),
-    [model, setModel] = useState(""),
+    [mode, setMode] = useState<Exclude<Mode, "local" | "chatgpt">>("browser"),
+    [origin, setOrigin] = useState(""),
     [plan, setPlan] = useState(""),
     [error, setError] = useState(""),
     [search, setSearch] = useState(""),
@@ -109,16 +105,6 @@ function App() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, []);
-  useEffect(() => {
-    if ((!model || !data.models.includes(model)) && data.models.length)
-      setModel(
-        data.models.includes(data.selectedModel)
-          ? data.selectedModel
-          : data.models.includes("gpt-6-sol")
-            ? "gpt-6-sol"
-            : "",
-      );
-  }, [data.models, data.selectedModel, model]);
   const call = async (r: Request) => {
     try {
       setError("");
@@ -139,7 +125,7 @@ function App() {
       op: "create",
       goal,
       mode,
-      model,
+      model: "ChatGPT browser · user-selected model",
       plan: mode === "assisted" ? plan : undefined,
     });
     if (typeof result === "string") {
@@ -183,7 +169,7 @@ function App() {
               : "")
           }
         >
-          {task?.mode === "chatgpt" ? "AI" : "Local"}
+          {task?.mode === "browser" ? "ChatGPT" : "Recipe"}
         </span>
       </header>
       <div className="role-events">
@@ -231,7 +217,7 @@ function App() {
         ))}
         <div className="rail-bottom">
           <ShieldCheck size={21} />
-          <small>LOCAL</small>
+          <small>ON PC</small>
         </div>
       </nav>
       <aside className="sidebar">
@@ -317,9 +303,9 @@ function App() {
           <div>
             <span className="local-pill">
               <span className="dot" />{" "}
-              {data.chatgpt.enabled
-                ? "ChatGPT · High"
-                : "ChatGPT not connected"}
+              {data.bridge.connected
+                ? "ChatGPT tools connected"
+                : "Connect ChatGPT tools"}
             </span>
             <button className="stop" onClick={() => void call({ op: "stop" })}>
               <Square size={12} fill="currentColor" /> Stop all
@@ -386,30 +372,15 @@ function App() {
                     aria-label="Provider mode"
                     value={mode}
                     onChange={(e) =>
-                      setMode(e.target.value as Exclude<Mode, "local">)
+                      setMode(
+                        e.target.value as Exclude<Mode, "local" | "chatgpt">,
+                      )
                     }
                   >
                     <option value="recipe">Offline recipes · not AI</option>
                     <option value="assisted">ChatGPT · manual handoff</option>
-                    <option value="chatgpt">ChatGPT · High reasoning</option>
+                    <option value="browser">ChatGPT browser · 3 roles</option>
                   </select>
-                  {mode === "chatgpt" && (
-                    <select
-                      aria-label="Team model"
-                      value={model}
-                      onChange={(e) => {
-                        setModel(e.target.value);
-                        void call({ op: "select-model", name: e.target.value });
-                      }}
-                    >
-                      <option value="">Choose GPT-6 model</option>
-                      {data.models.map((name) => (
-                        <option value={name} key={name}>
-                          {data.modelLabels[name] ?? name} · High
-                        </option>
-                      ))}
-                    </select>
-                  )}
                   <button
                     className="send"
                     aria-label="Create task"
@@ -417,7 +388,7 @@ function App() {
                       busy ||
                       !data.workspace ||
                       !goal.trim() ||
-                      (mode === "chatgpt" && !model) ||
+                      (mode === "browser" && !data.bridge.connected) ||
                       (mode === "assisted" && !plan.trim())
                     }
                   >
@@ -426,11 +397,11 @@ function App() {
                 </footer>
               </form>
               <p className="caption">
-                {mode === "chatgpt"
-                  ? "Your ChatGPT plan · High reasoning. Goals and approved tool evidence are sent to OpenAI. Actions need your approval."
+                {mode === "browser"
+                  ? "Your normal ChatGPT conversations plan and review. Choose 6 High in each role window. Actions need your approval."
                   : "Every action is previewed. Nothing runs until you approve."}
               </p>
-              {mode === "chatgpt" && !data.models.length && (
+              {mode === "browser" && !data.bridge.connected && (
                 <button
                   className="model-setup"
                   onClick={() => setRoute("Connections")}
@@ -499,7 +470,7 @@ function App() {
                   aria-label="AI team progress"
                 >
                   <span>
-                    <b>{task.model}</b> · ChatGPT · High reasoning
+                    <b>Normal ChatGPT</b> · model chosen in each role window
                   </span>
                   <span>
                     Round {task.agent.round}/3 · {task.agent.calls}/15 model
@@ -694,110 +665,75 @@ function App() {
               <section className="settings-card">
                 <div className="card-title">
                   <MessageSquare />
-                  <h3>ChatGPT</h3>
+                  <h3>ChatGPT tool connection</h3>
                   <span className="badge">
-                    {data.chatgpt.enabled
-                      ? "Connected"
-                      : data.chatgpt.pending
-                        ? "Waiting for sign-in"
-                        : "Sign-in required"}
+                    {data.bridge.connected ? "Connected" : data.bridge.state}
                   </span>
                 </div>
                 <p>
-                  Use your ChatGPT plan for Manager, Builder, and Reviewer with
-                  High reasoning. Sign in on OpenAI’s page and authorize CHAI.
-                  Your goals and approved tool evidence are sent to OpenAI. Your
-                  plan limits apply. CHAI never switches to another provider.
+                  ChatGPT does the thinking in its normal browser conversations.
+                  Connect this CHAI plugin so those conversations can receive
+                  jobs and return structured results. Your ChatGPT sign-in stays
+                  in the browser.
                 </p>
                 <div className="toolbar">
                   <button
-                    disabled={data.chatgpt.pending}
+                    disabled={["starting", "ready"].includes(data.bridge.state)}
                     onClick={() =>
                       void call({
-                        op: "chatgpt-login",
-                        account: data.chatgpt.active ?? undefined,
+                        op: "bridge-start",
+                        origin: origin.trim() || undefined,
                       })
                     }
                   >
-                    Continue with ChatGPT
+                    {data.bridge.state === "starting"
+                      ? "Starting connection…"
+                      : "Start tool connection"}
                   </button>
-                  {data.chatgpt.accounts.length > 0 && (
-                    <button
-                      disabled={data.chatgpt.pending}
-                      onClick={() => void call({ op: "chatgpt-login" })}
-                    >
-                      Add account
-                    </button>
-                  )}
-                  {data.chatgpt.pending && (
-                    <button onClick={() => void call({ op: "chatgpt-cancel" })}>
-                      Cancel sign-in
-                    </button>
-                  )}
-                  <button onClick={() => void call({ op: "models" })}>
-                    Refresh available models
+                  <button onClick={() => void call({ op: "bridge-plugins" })}>
+                    Open ChatGPT Plugins <ArrowUpRight size={14} />
                   </button>
-                  <button onClick={() => void call({ op: "chatgpt-usage" })}>
-                    Plan usage & limits
+                  <button
+                    disabled={data.bridge.state === "stopped"}
+                    onClick={() => void call({ op: "bridge-stop" })}
+                  >
+                    Disconnect tools
                   </button>
-                  {data.chatgpt.connected && (
-                    <button onClick={() => void call({ op: "chatgpt-logout" })}>
-                      Disconnect
-                    </button>
-                  )}
                 </div>
-                {data.chatgpt.accounts.length > 0 && (
+                {data.bridge.url && (
                   <div className="toolbar">
-                    <label>
-                      Account{" "}
-                      <select
-                        aria-label="ChatGPT account"
-                        value={data.chatgpt.active ?? ""}
-                        onChange={(e) =>
-                          void call({
-                            op: "chatgpt-login",
-                            account: e.target.value,
-                          })
-                        }
-                      >
-                        {data.chatgpt.accounts.map((a, i) => (
-                          <option key={a.id} value={a.id}>
-                            {a.label} · account {i + 1}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                    <input
+                      aria-label="CHAI tool URL"
+                      readOnly
+                      value={data.bridge.url}
+                    />
+                    <button onClick={() => void call({ op: "bridge-copy" })}>
+                      Copy tool URL
+                    </button>
                   </div>
                 )}
-                <div className="toolbar">
-                  <label>
-                    Model{" "}
-                    <select
-                      aria-label="ChatGPT model"
-                      value={model}
-                      onChange={(e) => {
-                        setModel(e.target.value);
-                        if (e.target.value)
-                          void call({
-                            op: "select-model",
-                            name: e.target.value,
-                          });
-                      }}
-                    >
-                      <option value="">Choose an available GPT-6 model</option>
-                      {data.models.map((m) => (
-                        <option value={m} key={m}>
-                          {data.modelLabels[m] ?? m}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <span className="badge">Reasoning: High</span>
-                </div>
-                {(data.chatgpt.error || data.providerError) && (
-                  <p className="warning">
-                    {data.chatgpt.error || data.providerError}
+                <p>
+                  Add the tool URL as a custom MCP server in ChatGPT Plugins and
+                  select OAuth. CHAI asks locally before pairing access to its
+                  tools. This pairing does not provide model access or request
+                  ChatGPT credentials.
+                </p>
+                <details>
+                  <summary>Persistent connection address</summary>
+                  <p>
+                    A temporary connection gets a new URL when restarted. For a
+                    stable connection, route your HTTPS domain to this
+                    computer’s port 40671 and enter its origin.
                   </p>
+                  <input
+                    aria-label="Stable HTTPS origin"
+                    placeholder="https://chai.example.com"
+                    value={origin}
+                    onChange={(e) => setOrigin(e.target.value)}
+                  />
+                </details>
+                {data.bridge.error && (
+                  <p className="warning">{data.bridge.error}</p>
                 )}
               </section>
               <section className="settings-card">
@@ -807,8 +743,9 @@ function App() {
                   <span className="badge">Interactive</span>
                 </div>
                 <p>
-                  Your existing browser sign-in is separate from CHAI’s
-                  authorized model connection.
+                  Open each role, select 6 High, and enable the CHAI plugin in
+                  its conversation. CHAI pauses if the required browser controls
+                  are unavailable.
                 </p>
                 <div className="toolbar">
                   {(["manager", "builder", "reviewer"] as Role[]).map(

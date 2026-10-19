@@ -1,35 +1,14 @@
 # DECISIONS — Architecture Decision Log
 
-## User correction — browser ChatGPT is the required product
+## Current implementation — 2026-10-19
 
-The user clarified that CHAI must use the normal ChatGPT website and its interactive signed-in session, with GPT-6 and High thinking selected. They explicitly rejected both local inference and the OAuth/Responses adapter as replacements. The intended design remains one manager and two workers coordinating PC actions through normal ChatGPT conversations. Do not treat the OAuth adapter as acceptance of this requirement.
+The required provider is the normal signed-in ChatGPT website with 6 High selected in each role conversation. Local inference and the abandoned OAuth/Responses inference adapter have been removed. Never substitute either for this requirement.
 
-The OAuth test controller has been stopped and the newly authorized CHAI renewable session revoked successfully; local OAuth tokens were cleared by the application sign-out path. The separate Chromium ChatGPT browser session was preserved. No live model inference was run through the OAuth path. The OAuth source remains an abandoned implementation in history, not the accepted provider architecture. No new installer release was published.
+CHAI now supplies an authenticated MCP tool server. ChatGPT receives a persistent role job through its visible composer, fetches the job with chai_get_job, and returns schema-validated JSON with chai_submit_result. Outputs are not scraped from the page. The MCP OAuth pairing grants access to CHAI's PC tools only; it does not authorize model inference or extract ChatGPT credentials.
 
-The browser-to-agent bridge is still missing. Reopening ChatGPT is not completion. Resolve a permitted browser/session integration under the original provider-compliance requirement before claiming autonomous browser-driven roles work. Never silently swap the requested architecture for API, Codex, local inference or manual copy/paste again.
+Kali validation: typecheck, lint, build, 26 tests, native Electron E2E and SIGKILL recovery passed. Four new tests exercise real HTTP MCP, PKCE/consent/token controls, rejected/canceled jobs, and an approval-gated real file cycle. Scripted test answers are fixtures, not live-model evidence.
 
-
-## Current direction — 2026-10-19: ChatGPT only
-
-The user explicitly rejected local-model substitution. The required provider is their ChatGPT account, targeting GPT-6 with High reasoning. Do not install local model runtimes, route to Codex, silently substitute models, or count manual JSON handoff as the requested integration.
-
-Implemented the documented OpenAI Sign in with ChatGPT plan-usage flow for open-source apps: dynamic client registration, stable host ID, PKCE/state/nonce, loopback callback, JWKS-verified identity, protected per-account credential records, serialized refresh, and sign-out/revocation. The three-role coordinator now uses the official streaming Responses endpoint with store:false and reasoning.effort:high. Model choices come from the signed-in account's catalog; no fallback. Existing browser login is separate from this explicit authorization.
-
-Removed the CHAI-created Ollama runtime/models and the local adapter/start controls. Preserved the provider-independent coordinator, checkpoints, safety fixes and approval gates. No local-model release was published. The previously published alpha installer remains older than main.
-
-Validation on Kali: typecheck, lint, build, 26 automated tests, native Electron E2E, and SIGKILL recovery passed. Real authorization discovery/JWKS endpoints responded successfully. Tests use explicit fixtures and do not prove live GPT-6 inference.
-
-Current gate: the real OpenAI account chooser for CHAI is open on the right monitor. User must choose their account and authorize plan use. No credentials have been requested, printed or copied. After consent, refresh model choices, verify the exact available GPT-6 model with High reasoning, execute an approved disposable file task across all roles, then verify persistence and package/install the new release. Full-system reboot remains unverified.
-
-Official contracts:
-- https://developers.openai.com/siwc/token-sharing-open-source/sign-in
-- https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference
-- https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations
-
-Earlier entries below are historical; this direction supersedes local-model plans.
-
-
-Format: `ADR-ID | Status | Decision | Why | Tradeoffs / review triggers`.
+Live evidence: the CHAI plugin was created in the user's normal ChatGPT account; its actual tool pairing and authenticated MCP discovery succeeded. 6 High was observed in the browser. A live three-role file task is now under test; completion is not yet established. The public installer is still the older v0.1.0-alpha.1.
 
 ## ADR-001 · Electron, Chromium, TypeScript (Accepted as initial default)
 
@@ -88,6 +67,15 @@ Kali npm 12 rejected electron-builder 26.0.12's transitive git dependency (EALLO
 
 MIT selected for CHAI-owned source. Third-party screenshots remain excluded. Authenticated GitHub on the user's Mac is used to publish code; no credential is transferred to Kali. Reboot testing is deferred until the user can safely restart their active desktop.
 
-## ADR-013 · Real local model roles and bounded repair
+## ADR-013 · Real local model roles and bounded repair (provider superseded)
 
 Supersedes the local-mode portion of ADR-009. Each role is a separate structured model request; Reviewer sees recorded outputs and fresh file contents, not Builder claims. A passed review is required before Manager reports completion. Requests/responses and phases persist in SQLite. Existing unread files force a read-only discovery plan; model writes receive an expected hash. Tool grants remain exclusively human-owned. Runtime/model installation is user-space, loopback-only and does not enable boot autostart. Small-model output quality is an explicit acceptance risk.
+
+## ADR-014 · Normal ChatGPT browser is the only model provider
+User corrections reject local models and the OAuth/Responses inference detour. Both were removed from active source; historical decisions remain above for traceability. Retain the durable coordinator and guarded executor.
+
+## ADR-015 · MCP job/result bridge
+Use official ChatGPT custom MCP plugins for model outputs. Send job-only instructions through visible browser controls; get context and submit structured role output through authenticated tools. No cookies, private ChatGPT endpoints, or assistant-text extraction. CHAI-owned OAuth protects the PC tools, not model usage. Role results cannot approve actions. Scope is still bounded file operations and fixed commands.
+
+## ADR-016 · Development HTTPS transport
+A CHAI-owned cloudflared quick tunnel can expose only the authenticated loopback tool server. It does not affect unrelated tunnels. Its hostname changes when recreated, so a persistent HTTPS forwarding origin is required for unattended reboot continuity. Development testing retains the same tunnel while restarting the app; that is not evidence of whole-PC reboot support.

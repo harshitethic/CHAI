@@ -1,70 +1,47 @@
 # CHAI — Chat Has Actions Inside
 
-## User correction — browser ChatGPT is the required product
-
-The user clarified that CHAI must use the normal ChatGPT website and its interactive signed-in session, with GPT-6 and High thinking selected. They explicitly rejected both local inference and the OAuth/Responses adapter as replacements. The intended design remains one manager and two workers coordinating PC actions through normal ChatGPT conversations. Do not treat the OAuth adapter as acceptance of this requirement.
-
-The OAuth test controller has been stopped and the newly authorized CHAI renewable session revoked successfully; local OAuth tokens were cleared by the application sign-out path. The separate Chromium ChatGPT browser session was preserved. No live model inference was run through the OAuth path. The OAuth source remains an abandoned implementation in history, not the accepted provider architecture. No new installer release was published.
-
-The browser-to-agent bridge is still missing. Reopening ChatGPT is not completion. Resolve a permitted browser/session integration under the original provider-compliance requirement before claiming autonomous browser-driven roles work. Never silently swap the requested architecture for API, Codex, local inference or manual copy/paste again.
-
-
 **Stop chatting. Start doing.**
 
-A Chromium-based Linux desktop application with a persistent Manager, Builder and Reviewer, scoped tools, approval gates and recoverable task history.
+A Chromium-based Linux desktop application with a persistent Manager, Builder and Reviewer, scoped computer tools, approvals and recoverable history.
 
 ## Current status
+CHAI uses normal ChatGPT browser conversations for reasoning. Choose **6 High** in each role window. A custom ChatGPT plugin connects those conversations to CHAI's persistent job/result tools. There is no local model or model-inference API adapter.
 
-Main now integrates **Sign in with ChatGPT** using OpenAI's documented ChatGPT plan-usage flow for open-source applications. The requested target is GPT-6 with **High reasoning**. CHAI retrieves the account's available models and never falls back to local inference or another provider.
+The MCP connection has been paired and authenticated with the real ChatGPT browser on Kali. The complete live three-role acceptance test is still in progress. The published v0.1.0-alpha.1 installer predates this integration.
 
-**Live ChatGPT acceptance is pending user authorization.** The real OpenAI account chooser has been opened on Kali. Automated transport/authentication tests, native desktop tests and crash recovery pass; those tests do not demonstrate a completed live GPT-6 task.
+## Connect
+1. Open Connections and start the tool connection.
+2. Add its HTTPS MCP URL in ChatGPT Plugins → Add custom MCP server. Choose OAuth, create CHAI as a plugin and connect it.
+3. Approve the local CHAI pairing prompt. This grants access to PC task tools; it does not request ChatGPT credentials or model-plan authorization.
+4. Open Manager, Builder and Reviewer. Select 6 High and enable CHAI in the conversations.
+5. Choose a dedicated workspace, submit a goal, inspect the proposed actions and approve execution.
 
-The published `v0.1.0-alpha.1` installer predates this integration. A new release will follow live verification.
-
-## Connect ChatGPT
-
-1. Open Connections → **Continue with ChatGPT**.
-2. Choose your account on OpenAI's page and authorize CHAI to use your ChatGPT plan.
-3. Refresh available models and choose the intended GPT-6 model. Reasoning is set to High.
-4. Choose a dedicated workspace and submit a goal.
-5. Review the proposed file/command actions before approving them.
-
-Eligible requests use your ChatGPT plan under its limits and configured credits policy. Review access and limits in [ChatGPT Settings](https://chatgpt.com/settings/usage). A browser login by itself is separate from the plan-usage authorization. CHAI does not read browser cookies or scrape ChatGPT output.
-
-OAuth credentials stay in an owner-only directory/file under the application data directory. They are never returned through renderer IPC, written to task logs, or included in exports. This is protected filesystem storage, not encrypted storage. Signing out attempts remote session revocation and clears credentials locally.
+A temporary tunnel requires cloudflared and gets a new URL when recreated. To retain the connection across restarts, provide an HTTPS origin forwarded to loopback port 40671. A whole-PC reboot with persistent transport is not yet verified. Provider limits still apply; CHAI pauses instead of rotating sessions to bypass them.
 
 ## Implemented
+- Durable Manager assignments, Builder proposals, independent Reviewer decisions and Manager reports.
+- Schema-validated MCP job retrieval/results, PKCE pairing, revocation and local consent.
+- Real workspace read/list/write, fixed terminal commands, evidence hashes and conflict-aware undo.
+- Exact-plan approvals, cancellation, bounded repair rounds and interrupted-effect reconciliation.
+- Isolated browser and manual X11 controls, screenshots and explicit confirmations.
+- Charcoal interface, keyboard shortcuts, task search, role timelines and activity logs.
 
-- Manager assignments, Builder plans, Reviewer decisions and Manager reports, persisted separately.
-- Bounded repair rounds, provider-error pause/resume and cached completed role calls.
-- Real workspace read/list/write and fixed terminal commands.
-- Exact-plan approvals, cancellation, before/after evidence and conflict-aware undo.
-- SQLite task queue and reconciliation after interrupted execution; ambiguous commands are not blindly replayed.
-- Manual isolated browser and X11 controls, screenshots and explicit confirmations.
-- Charcoal desktop interface, keyboard shortcuts, task search, role timelines and activity logs.
-- AppImage and Debian packaging configuration.
-
-Model roles can propose actions; they cannot grant permissions. New plans require approval. Tool execution is bounded to the existing gateway. General autonomous browser/desktop control, arbitrary shell workflows and broader task quality remain unfinished acceptance items.
+The current gateway is bounded. General autonomous browser/desktop control and arbitrary shell development tasks remain unfinished. Model proposals cannot grant permissions. Existing tasks from removed inference adapters remain disabled.
 
 ## Development
-
-Requires modern Node.js, npm, Python 3 and Linux desktop libraries.
+Requires modern Node.js/npm, Python 3 and Linux desktop libraries.
 
 ```sh
 npm ci
 npm run check
-npm start
 npm run test:e2e
 npm run test:crash
+npm start
 npm run package
 ```
 
-The Electron tests require a desktop display or Xvfb. On Kali, native tests use its X11 session. The core suite includes OAuth signature/issuer/audience/nonce/expiry checks, invalid-state rejection, secure file permissions, interrupted SSE, provider failure, cancellation, repair approvals, path protection and crash reconciliation. Fixtures are used only in automated tests.
+26 tests, native Electron UI and SIGKILL recovery pass on Kali. The MCP integration tests use explicitly scripted answers and real HTTP/file operations; they do not prove live model reasoning.
 
-## Limits and handoff
+Task data and tool-access records are in an owner-only SQLite directory, not encrypted. ChatGPT login remains in its isolated Chromium profile. No session cookies or assistant text are extracted.
 
-This is an alpha. Live ChatGPT model availability and a complete real-provider task must be verified after consent. Full-system reboot has not been tested. Existing task data is retained; legacy local-model tasks are disabled rather than silently migrated to another provider.
-
-Read `brain.md`, `tasks.md`, `checks.md`, `decisions.md`, `blockers.md` and `handoff.md` before resuming.
-
-Implementation follows OpenAI's [registration guide](https://developers.openai.com/siwc/token-sharing-open-source/sign-in), [models and inference contract](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference), and [preview limitations](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations).
+Read brain.md, tasks.md, checks.md, decisions.md, blockers.md and handoff.md before resuming. Integration uses the official [custom MCP plugin flow](https://developers.openai.com/plugins/deploy/connect-chatgpt).

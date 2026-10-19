@@ -53,7 +53,7 @@ export class Engine {
       );
       return t.id;
     }
-    if (mode === "chatgpt") {
+    if (mode === "browser") {
       this.schedulePlan(t.id);
       return t.id;
     }
@@ -71,11 +71,11 @@ export class Engine {
     const ctrl = new AbortController();
     this.active.set(t.id, ctrl);
     try {
-      if (t.mode === "local")
+      if (t.mode === "local" || t.mode === "chatgpt")
         throw new ProviderUnavailable(
-          "Legacy local-model task is disabled. Create a new task with ChatGPT.",
+          "Legacy inference task is disabled. Create a new task with ChatGPT.",
         );
-      if (t.mode === "chatgpt") {
+      if (t.mode === "browser") {
         await this.coordinator.prepare(t, ctrl.signal);
         return;
       }
@@ -116,9 +116,9 @@ export class Engine {
   }
   approve(id: string, allow: boolean) {
     const t = this.store.get(id);
-    if (t.mode === "local")
+    if (t.mode === "local" || t.mode === "chatgpt")
       throw new ProviderUnavailable(
-        "Legacy local-model task is disabled. Create a new ChatGPT task.",
+        "Legacy inference task is disabled. Create a new ChatGPT task.",
       );
     if (t.state !== "WAITING_APPROVAL" || !t.plan)
       throw Error("No pending plan");
@@ -304,7 +304,7 @@ export class Engine {
         effects.some((e) => e.state !== "SUCCEEDED")
       )
         throw Error("Missing execution evidence");
-      if (t.mode === "chatgpt") {
+      if (t.mode === "browser") {
         if (!t.agent) this.coordinator.initialize(t).phase = "execute";
         const complete = await this.coordinator.review(t, signal);
         if (!complete) return;
@@ -356,16 +356,16 @@ export class Engine {
   }
   async resume(id: string) {
     const t = this.store.get(id);
-    if (t.mode === "local")
+    if (t.mode === "local" || t.mode === "chatgpt")
       throw new ProviderUnavailable(
-        "Legacy local-model task is disabled. Create a new ChatGPT task.",
+        "Legacy inference task is disabled. Create a new ChatGPT task.",
       );
     if (!["PAUSED", "WAITING_PROVIDER"].includes(t.state))
       throw Error("Task cannot resume from this state");
     if (this.active.has(id))
       throw Error("Wait for canceled operation to finish");
     if (
-      t.mode === "chatgpt" &&
+      t.mode === "browser" &&
       (!t.plan || ["manager", "builder"].includes(t.agent?.phase ?? "manager"))
     ) {
       this.schedulePlan(id);
@@ -376,7 +376,7 @@ export class Engine {
       return;
     }
     if (
-      t.mode === "chatgpt" &&
+      t.mode === "browser" &&
       ["reviewer", "finalize"].includes(t.agent?.phase ?? "")
     ) {
       t.state = "RUNNING";

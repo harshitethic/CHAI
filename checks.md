@@ -1,35 +1,14 @@
 # CHECKS — Verification Gates
 
-## User correction — browser ChatGPT is the required product
+## Current implementation — 2026-10-19
 
-The user clarified that CHAI must use the normal ChatGPT website and its interactive signed-in session, with GPT-6 and High thinking selected. They explicitly rejected both local inference and the OAuth/Responses adapter as replacements. The intended design remains one manager and two workers coordinating PC actions through normal ChatGPT conversations. Do not treat the OAuth adapter as acceptance of this requirement.
+The required provider is the normal signed-in ChatGPT website with 6 High selected in each role conversation. Local inference and the abandoned OAuth/Responses inference adapter have been removed. Never substitute either for this requirement.
 
-The OAuth test controller has been stopped and the newly authorized CHAI renewable session revoked successfully; local OAuth tokens were cleared by the application sign-out path. The separate Chromium ChatGPT browser session was preserved. No live model inference was run through the OAuth path. The OAuth source remains an abandoned implementation in history, not the accepted provider architecture. No new installer release was published.
+CHAI now supplies an authenticated MCP tool server. ChatGPT receives a persistent role job through its visible composer, fetches the job with chai_get_job, and returns schema-validated JSON with chai_submit_result. Outputs are not scraped from the page. The MCP OAuth pairing grants access to CHAI's PC tools only; it does not authorize model inference or extract ChatGPT credentials.
 
-The browser-to-agent bridge is still missing. Reopening ChatGPT is not completion. Resolve a permitted browser/session integration under the original provider-compliance requirement before claiming autonomous browser-driven roles work. Never silently swap the requested architecture for API, Codex, local inference or manual copy/paste again.
+Kali validation: typecheck, lint, build, 26 tests, native Electron E2E and SIGKILL recovery passed. Four new tests exercise real HTTP MCP, PKCE/consent/token controls, rejected/canceled jobs, and an approval-gated real file cycle. Scripted test answers are fixtures, not live-model evidence.
 
-
-## Current direction — 2026-10-19: ChatGPT only
-
-The user explicitly rejected local-model substitution. The required provider is their ChatGPT account, targeting GPT-6 with High reasoning. Do not install local model runtimes, route to Codex, silently substitute models, or count manual JSON handoff as the requested integration.
-
-Implemented the documented OpenAI Sign in with ChatGPT plan-usage flow for open-source apps: dynamic client registration, stable host ID, PKCE/state/nonce, loopback callback, JWKS-verified identity, protected per-account credential records, serialized refresh, and sign-out/revocation. The three-role coordinator now uses the official streaming Responses endpoint with store:false and reasoning.effort:high. Model choices come from the signed-in account's catalog; no fallback. Existing browser login is separate from this explicit authorization.
-
-Removed the CHAI-created Ollama runtime/models and the local adapter/start controls. Preserved the provider-independent coordinator, checkpoints, safety fixes and approval gates. No local-model release was published. The previously published alpha installer remains older than main.
-
-Validation on Kali: typecheck, lint, build, 26 automated tests, native Electron E2E, and SIGKILL recovery passed. Real authorization discovery/JWKS endpoints responded successfully. Tests use explicit fixtures and do not prove live GPT-6 inference.
-
-Current gate: the real OpenAI account chooser for CHAI is open on the right monitor. User must choose their account and authorize plan use. No credentials have been requested, printed or copied. After consent, refresh model choices, verify the exact available GPT-6 model with High reasoning, execute an approved disposable file task across all roles, then verify persistence and package/install the new release. Full-system reboot remains unverified.
-
-Official contracts:
-- https://developers.openai.com/siwc/token-sharing-open-source/sign-in
-- https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference
-- https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations
-
-Earlier entries below are historical; this direction supersedes local-model plans.
-
-
-This file retains the full-product acceptance rubric. Verified alpha scope is recorded in docs/QA_2026-10-19.md and handoff.md; unchecked broader items are not claimed complete.
+Live evidence: the CHAI plugin was created in the user's normal ChatGPT account; its actual tool pairing and authenticated MCP discovery succeeded. 6 High was observed in the browser. A live three-role file task is now under test; completion is not yet established. The public installer is still the older v0.1.0-alpha.1.
 
 ## A. Product truthfulness
 - [ ] CHAI launches as a native Chromium/Electron **Linux app** (not only `npm run dev` in a browser).
@@ -91,7 +70,7 @@ This file retains the full-product acceptance rubric. Verified alpha scope is re
 ## G. Acceptance scenario
 
 1. Open CHAI on Kali with selected empty disposable workspace.
-2. Select **Mock Provider** (offline) and start: `Create notes.txt with three lines, check content, summarize the changes.`
+2. Select **ChatGPT browser · 3 roles** with 6 High in each role window and start: `Create notes.txt with three lines, check content, summarize the changes.`
 3. See Manager plan, Builder tool action, Reviewer verification, Manager evidence-backed completion.
 4. Open Work timeline, inspect actual file diff, tool output and event sequence.
 5. Start a second longer test and quit/restart renderer mid-flight; state persists.
@@ -101,24 +80,15 @@ This file retains the full-product acceptance rubric. Verified alpha scope is re
 
 **Pass condition:** Every step backed by observed result and recorded in HANDOFF. A broken, simulated or omitted step fails the gate.
 
-## Executed alpha gates
+## Executed current gates
+- [x] TypeScript, ESLint and production bundle pass on Kali.
+- [x] 26 tests pass, including real HTTP MCP with authorization and actual filesystem effects.
+- [x] Native Electron UI approval/file/task cycle, renderer reload and application restart pass.
+- [x] Hard-kill recovery retains completed writes and refuses ambiguous command replay.
+- [x] ChatGPT session retained, 6 High visibly selected, CHAI plugin paired.
+- [x] Public HTTPS discovery and authenticated MCP requests observed.
+- [ ] Live browser-based three-role acceptance task complete.
+- [ ] Updated packaged application and installer verified.
+- [ ] Full-system reboot verified.
 
-- [x] Actual native Linux/Electron launch, actual file action, approval before action and persisted task identity.
-- [x] Sandbox/context isolation/no Node confirmed for local and remote views; remote page has no CHAI bridge.
-- [x] Traversal, symlink, hardlink, secret-name, oversized-file and forged schema rejection.
-- [x] Stop terminates process group and blocks queued action; approval expiration tested.
-- [x] SQLite reopen, renderer reload, application restart and hard process kill recovery tested.
-- [x] Packaged executable and installed AppImage extraction mode tested on Kali.
-- [x] Official ChatGPT URL opened with no credentials read; sign-in still manual-pending.
-- [x] All dependency audit entries resolved on tested Kali lockfile.
-- [ ] Full-system reboot and live local-model acceptance remain pending. Automated ChatGPT transport is unsupported.
-
-- [x] Independent GitHub CI and release workflow passed; published artifacts and checksums verified by release API.
-
-## Manual sign-in verification — 2026-10-19
-
-User completed ChatGPT sign-in. Visually verified the authenticated home after closing and reopening only the manager provider window; the isolated session persisted. Initially incomplete page resolved on reopen. CHAI and provider are on the right monitor. No credentials, cookies or tokens were read. This verifies window-reopen persistence, not whole-app restart or reboot persistence. Automatic ChatGPT orchestration remains unimplemented; manual handoff is unchanged.
-
-## Model-backed coordination checkpoint — 2026-10-19
-
-Implemented separate Manager assignment, Builder proposal, Reviewer assessment and Manager report calls using local Ollama. SQLite persists role responses and phases; bounded to 3 rounds/15 calls/36 actions. Repair plans require fresh human approval. Added existing-file discovery enforcement and expected-hash conflict checks. Typecheck, lint, build and 22 unit/integration tests pass on Kali. Actual qwen2.5-coder:3b completed a new-file task with all four calls; the harder existing-file UI test exposed poor proposals, correctly rejected by review/policy. That harder live gate remains in progress. No ChatGPT automation is enabled.
+Automated model fixtures do not count as live ChatGPT acceptance. Prior v0.1.0-alpha.1 release verification remains in docs/QA_2026-10-19.md.

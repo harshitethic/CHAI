@@ -46,7 +46,19 @@ const reportSchema = z
   .strict();
 
 export class ProviderUnavailable extends Error {}
+export function validateRoleOutput(phase: string, value: unknown) {
+  const schemas: Record<string, z.ZodType> = {
+    assignment: briefSchema,
+    proposal: proposalSchema,
+    "independent-review": reviewSchema,
+    "final-report": reportSchema,
+  };
+  if (!schemas[phase]) throw Error("Unknown role phase");
+  return schemas[phase].parse(value);
+}
 export interface AgentRequest {
+  taskId?: string;
+  callId?: string;
   role: Role;
   phase: string;
   model: string;
@@ -141,6 +153,8 @@ export class Coordinator {
         {
           role,
           phase,
+          taskId: task.id,
+          callId: key,
           model: task.model,
           system: boundary + "\n" + instruction,
           input: request,
@@ -178,7 +192,7 @@ export class Coordinator {
       if (signal.aborted) throw error;
       throw new ProviderUnavailable(
         redact(
-          `Local model unavailable or invalid response: ${String(error)}. Resume retries the unfinished role; completed tool effects are retained.`,
+          `ChatGPT browser unavailable or invalid response: ${String(error)}. Resume retries the unfinished role; completed tool effects are retained.`,
         ),
       );
     }
