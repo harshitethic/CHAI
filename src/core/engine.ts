@@ -31,6 +31,7 @@ export class Engine {
           t.state,
         )
       ) {
+        t.recoverable = true;
         t.state = "PAUSED";
         t.approved = false;
         store.put(t);
@@ -55,6 +56,15 @@ export class Engine {
     const t = this.store.create(goal, workspace(root), mode, model);
     t.capabilities = capabilities;
     this.store.put(t);
+    if (capabilities?.project) {
+      if (!this.gateway.project) throw Error("Project runtime is unavailable");
+      try {
+        await this.gateway.project.prepare(t);
+      } catch (error) {
+        this.store.state(t.id, "FAILED", String(error));
+        throw error;
+      }
+    }
     if (permission === "workspace") {
       this.store.db
         .prepare("INSERT INTO task_grants VALUES(?,?,?)")
@@ -161,6 +171,10 @@ export class Engine {
       "browser",
       "desktop",
       "git",
+      "terminal",
+      "repository",
+      "artifact",
+      "connector",
     ]);
     if (t.plan.actions.slice(t.cursor).some((a) => !allowed.has(a.tool)))
       return;
@@ -173,6 +187,7 @@ export class Engine {
     this.approve(id, true, true);
   }
   revoke(id: string) {
+    this.gateway.project?.stopTask(this.store.get(id));
     this.store.db.prepare("DELETE FROM task_grants WHERE taskId=?").run(id);
     this.pause(id);
     const task = this.store.get(id);
@@ -289,7 +304,10 @@ export class Engine {
             a.tool === "run" ||
             a.tool === "browser" ||
             a.tool === "desktop" ||
-            a.tool === "git")
+            a.tool === "git" ||
+            a.tool === "terminal" ||
+            a.tool === "repository" ||
+            a.tool === "connector")
         )
           throw Error(
             "Interrupted action has unknown outcome; create a new task after inspecting evidence. It will not be replayed.",
@@ -365,30 +383,50 @@ export class Engine {
               .prepare("INSERT INTO effects VALUES(?,?,?,?,?,?,?)")
               .run(key, id, idx, "STARTED", null, null, null);
           output =
-            a.tool === "command"
-              ? await this.gateway.command(t.root, a, signal)
-              : a.tool === "run"
-                ? JSON.stringify(await this.gateway.sandbox(t.root, a, signal))
-                : a.tool === "git"
+            a.tool === "terminal"
+              ? JSON.stringify(
+                  await this.gateway.project!.execute(t, a, signal),
+                )
+              : a.tool === "repository"
+                ? JSON.stringify(
+                    await this.gateway.project!.repository(t, a, signal),
+                  )
+                : a.tool === "artifact"
                   ? JSON.stringify(
-                      await this.gateway.git(
-                        t.root,
-                        a,
-                        "chai/" + id + "-" + idx,
-                        signal,
-                      ),
+                      await this.gateway.project!.artifact(t, a, signal),
                     )
-                  : a.tool === "browser" || a.tool === "desktop"
-                    ? JSON.stringify(await this.executeComputer(t, a, signal))
-                    : JSON.stringify(
-                        await this.gateway.file(
-                          t.root,
-                          a.tool,
-                          a.path,
-                          a.tool === "search" ? { query: a.query } : {},
-                          signal,
-                        ),
-                      );
+                  : a.tool === "connector"
+                    ? JSON.stringify(
+                        await this.gateway.connectors!.execute(t, a, signal),
+                      )
+                    : a.tool === "command"
+                      ? await this.gateway.command(t.root, a, signal)
+                      : a.tool === "run"
+                        ? JSON.stringify(
+                            await this.gateway.sandbox(t.root, a, signal),
+                          )
+                        : a.tool === "git"
+                          ? JSON.stringify(
+                              await this.gateway.git(
+                                t.root,
+                                a,
+                                "chai/" + id + "-" + idx,
+                                signal,
+                              ),
+                            )
+                          : a.tool === "browser" || a.tool === "desktop"
+                            ? JSON.stringify(
+                                await this.executeComputer(t, a, signal),
+                              )
+                            : JSON.stringify(
+                                await this.gateway.file(
+                                  t.root,
+                                  a.tool,
+                                  a.path,
+                                  a.tool === "search" ? { query: a.query } : {},
+                                  signal,
+                                ),
+                              );
           this.store.event(
             id,
             "reviewer",
@@ -421,7 +459,9 @@ export class Engine {
         .all(id);
       if (
         effects.length !== t.plan!.actions.length ||
-        effects.some((e) => e.state !== "SUCCEEDED")
+        effects.some(
+          (e) => !["SUCCEEDED", "INTERRUPTED"].includes(String(e.state)),
+        )
       )
         throw Error("Missing execution evidence");
       if (t.mode === "browser") {
@@ -433,16 +473,36 @@ export class Engine {
         }
       }
       if (t.mode !== "browser") {
+        const latest = new Map<
+          string,
+          { exitCode: number | null; termination?: string; state?: string }
+        >();
         for (const row of this.store.db
-          .prepare("SELECT idx,output FROM effects WHERE taskId=?")
+          .prepare(
+            "SELECT idx,output FROM effects WHERE taskId=? AND state='SUCCEEDED' ORDER BY idx",
+          )
           .all(id)) {
-          if (t.plan!.actions[Number(row.idx)].tool !== "run") continue;
-          const result = JSON.parse(String(row.output));
-          if (result.exitCode !== 0 || result.termination)
-            throw Error(
-              "Sandbox check failed; inspect captured execution evidence.",
-            );
+          const action = t.plan!.actions[Number(row.idx)];
+          if (
+            action.tool !== "run" &&
+            !(action.tool === "terminal" && action.operation === "start")
+          )
+            continue;
+          latest.set(
+            JSON.stringify([action.program, action.args]),
+            JSON.parse(String(row.output)),
+          );
         }
+        if (
+          [...latest.values()].some(
+            (result) =>
+              result.state !== "running" &&
+              (result.exitCode !== 0 || result.termination),
+          )
+        )
+          throw Error(
+            "Sandbox check failed or project command failed; inspect captured execution evidence.",
+          );
       }
       if (signal.aborted) return;
       this.store.state(id, "DONE");
@@ -478,9 +538,11 @@ export class Engine {
     const t = this.store.get(id);
     if (terminal.has(t.state)) return;
     t.state = "PAUSED";
+    t.recoverable = false;
     t.approved = false;
     this.store.put(t);
     this.active.get(id)?.abort();
+    this.gateway.project?.stopTask(t);
     this.store.db.prepare("DELETE FROM approvals WHERE taskId=?").run(id);
     this.store.event(
       id,
@@ -488,6 +550,49 @@ export class Engine {
       "TASK_PAUSED",
       "Paused; new execution requires fresh approval.",
     );
+  }
+  async followup(id: string, text: string) {
+    if (this.active.has(id)) {
+      this.pause(id);
+      for (let i = 0; this.active.has(id) && i < 200; i++)
+        await new Promise((r) => setTimeout(r, 25));
+      if (this.active.has(id))
+        throw Error(
+          "The current operation is still stopping; retry the follow-up shortly",
+        );
+    }
+    const task = this.store.get(id);
+    if (task.mode !== "browser")
+      throw Error("Follow-up planning requires a ChatGPT task");
+    task.messages = [
+      ...(task.messages ?? []),
+      { text, created: new Date().toISOString() },
+    ];
+    task.revision = (task.revision ?? 0) + 1;
+    // Retain all applied and uncertain effects. Supersede only actions that never started.
+    const started = this.store.db
+      .prepare("SELECT MAX(idx) AS idx FROM effects WHERE taskId=?")
+      .get(id);
+    const keep = Math.max(
+      task.cursor,
+      started?.idx == null ? 0 : Number(started.idx) + 1,
+    );
+    if (task.plan) task.plan.actions = task.plan.actions.slice(0, keep);
+    task.cursor = keep;
+    task.budgetStart = keep;
+    task.agent = undefined;
+    this.store.db
+      .prepare(
+        "UPDATE effects SET state='INTERRUPTED' WHERE taskId=? AND state='STARTED'",
+      )
+      .run(id);
+    task.error = null;
+    task.recoverable = false;
+    task.approved = false;
+    this.store.put(task);
+    this.store.db.prepare("DELETE FROM approvals WHERE taskId=?").run(id);
+    this.store.event(id, "manager", "USER_FOLLOWUP", text);
+    this.schedulePlan(id);
   }
   async resume(id: string) {
     const t = this.store.get(id);

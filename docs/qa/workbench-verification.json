@@ -1,0 +1,22 @@
+{
+  "verifiedAt": "2026-10-19T13:23:08.543Z",
+  "taskId": "9ca29886-71da-4827-aaf9-6cb5a5780d68",
+  "checks": [
+    "real failing test",
+    "exact patch",
+    "same test passes",
+    "source untouched",
+    "background dev server",
+    "browser observation",
+    "interactive embedded preview",
+    "terminal UI",
+    "side-by-side diff",
+    "file viewer",
+    "artifact list",
+    "declined download leaves no output",
+    "confirmed download bytes and registration",
+    "tray continuation",
+    "Stop all",
+    "restart persisted sessions without replay"
+  ]
+}

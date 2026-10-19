@@ -1,5 +1,18 @@
 # BRAIN — CHAI's Long-Term Memory
 
+## Current status — 0.7.0-alpha.1, 2026-10-19
+
+All nine requested feature areas are implemented: isolated writable projects and dependency installs; persistent process sessions; real local-server browser verification and embedded preview; same-task follow-ups and attachments; paginated repository context and exact patches; independent Git checkout/commit/PR/CI tools; opt-in tray/startup/notifications and safe recovery; document outputs and authenticated MCP connections; browser transfers and selected X11 accessibility/scrolling.
+
+The Work UI includes Terminal, Files, Changes, Preview and Outputs, with current/next actions, durable checklists, actual failed/passing checks, provider waiting/retry and role activity. The original source tree and staging index remain separate from the task working copy.
+
+62 automated checks pass. Native Electron, embedded input, tray continuation, persisted sessions, real npm install/fail/fix/pass/server, HTTPS bearer MCP consent, four document formats, X11 controls and crash recovery were exercised. A live run caught an app-settings path integration issue; only exact recorded task project roots now pass the legacy file gateway, and regression coverage uses the real `.config/chai-desktop/projects` layout. See [0.7 verification](docs/QA_WORKSPACE_2026-10-19.md) for release and live-run evidence.
+
+Provider remains normal signed-in ChatGPT with three persistent roles. No model API, local inference, credential scraping or bypass of provider approvals/limits. Kali GitHub CLI requires its own login before in-app remote PR/CI work; never migrate Mac credentials. External MCP supports HTTPS/bearer, not OAuth-only clients. Selected desktop control is X11. Full-machine reboot remains a separate safe-window acceptance gate. Do not claim complete first-party Codex/Work parity.
+
+Everything below is historical context; older capability exclusions and test counts describe earlier releases.
+
+
 ## Latest status — 0.6.0-alpha.1, 2026-10-19
 
 The Work screen now presents current action, next step, a durable action checklist, real failed/passing check results and readable role activity with expandable evidence. Full requests, reports and raw logs are expandable. Selected-task event queries prevent unrelated activity from hiding its history. Round/call budgets reflect the active permission mode.

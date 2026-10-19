@@ -9,10 +9,17 @@ import {
   desktopCapturer,
   Menu,
   clipboard,
+  safeStorage,
+  Notification,
+  Tray,
+  nativeImage,
 } from "electron";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, existsSync, rmSync } from "node:fs";
+import { ProjectRuntime, projectFile, projectWrite } from "../core/project";
+import { Connectors } from "../core/connectors";
+import { spawn } from "node:child_process";
 import { Store } from "../core/store";
 import { Engine } from "../core/engine";
 import { Gateway, workspace } from "../core/gateway";
@@ -26,6 +33,8 @@ if (process.env.CHAI_DATA_DIR)
   app.setPath("userData", process.env.CHAI_DATA_DIR);
 process.umask(0o077);
 let main: BrowserWindow;
+let tray: Tray | undefined;
+let quitting = false;
 let store: Store;
 let engine: Engine;
 let bridge: BrowserBridge;
@@ -34,6 +43,8 @@ let computer: ComputerTools;
 const providerViews = new Map<string, WebContentsView>();
 const windows = new Map<string, BrowserWindow>();
 let browserView: WebContentsView | undefined;
+let embeddedPreview:
+  { id: string; url: string; view: WebContentsView } | undefined;
 const rendererURL = pathToFileURL(join(__dirname, "index.html")).href;
 function allowedProvider(url: string) {
   try {
@@ -371,6 +382,101 @@ app
         },
       ]),
     );
+    engine.gateway.project = new ProjectRuntime(
+      store,
+      engine.gateway,
+      join(data, "projects"),
+    );
+    mkdirSync(join(data, "projects"), { recursive: true, mode: 0o700 });
+    engine.gateway.project.consent = confirm;
+    engine.gateway.connectors = new Connectors(
+      store,
+      (s) => {
+        if (
+          !safeStorage.isEncryptionAvailable() ||
+          safeStorage.getSelectedStorageBackend() === "basic_text"
+        )
+          throw Error(
+            "Unlock a system keyring before saving connector credentials",
+          );
+        return safeStorage.encryptString(s).toString("base64");
+      },
+      (s) => safeStorage.decryptString(Buffer.from(s, "base64")),
+      confirm,
+    );
+    engine.gateway.project.github = async (repo, args, signal) => {
+      const gh = [
+        join(app.getPath("home"), ".local/bin/gh"),
+        "/usr/bin/gh",
+        "/usr/local/bin/gh",
+      ].find(existsSync);
+      if (!gh)
+        throw Error(
+          "Install GitHub CLI and sign in, or configure a GitHub MCP connector",
+        );
+      const run = (exe: string, argv: string[], cwd: string) =>
+        new Promise<string>((resolve, reject) => {
+          const child = spawn(exe, argv, {
+            cwd,
+            signal,
+            env: {
+              PATH: "/usr/local/bin:/usr/bin:/bin",
+              HOME: app.getPath("home"),
+              LANG: "C.UTF-8",
+              GIT_TERMINAL_PROMPT: "0",
+              GIT_CONFIG_NOSYSTEM: "1",
+              GIT_CONFIG_GLOBAL: "/dev/null",
+            },
+          });
+          let output = "";
+          child.stdout.on("data", (d) => {
+            output += d;
+          });
+          child.stderr.on("data", (d) => {
+            output += d;
+          });
+          const timer = setTimeout(() => child.kill("SIGKILL"), 120000);
+          child.on("error", reject);
+          child.on("close", (code) => {
+            clearTimeout(timer);
+            if (code === 0) resolve(redact(output.slice(-50000)));
+            else reject(Error(redact(output.slice(-12000))));
+          });
+        });
+      if (args[0] !== "chai-publish") return run(gh, args, data);
+      const [, root, branch, title] = args;
+      // Ask gh to supply git credentials without ever reading or copying them.
+      await run(
+        "/usr/bin/git",
+        [
+          "-c",
+          "core.hooksPath=/dev/null",
+          "-c",
+          `credential.helper=!${gh} auth git-credential`,
+          "push",
+          `https://github.com/${repo}.git`,
+          `${branch}:refs/heads/${branch}`,
+        ],
+        root,
+      );
+      return run(
+        gh,
+        [
+          "pr",
+          "create",
+          "--repo",
+          repo,
+          "--head",
+          branch,
+          "--draft",
+          "--title",
+          title.slice(0, 200),
+          "--body",
+          "Changes prepared in CHAI's isolated project. Review the diff and recorded checks before merging.",
+        ],
+        root,
+      );
+    };
     engine.gateway.gitConsent = confirm;
     computer = new ComputerTools(store, engine.gateway, () => main, confirm);
     engine.gateway.computer = (task, action, signal) =>
@@ -393,7 +499,215 @@ app
             workspace: store.setting("workspace") ?? null,
             version: app.getVersion(),
             bridge: toolRuntime.snapshot(),
+            sessions: req.id ? engine.gateway.project!.sessions(req.id) : [],
+            artifacts: req.id ? engine.gateway.project!.artifacts(req.id) : [],
+            preview: req.id ? computer.preview(req.id) : undefined,
+            background: store.setting("background") === "true",
+            startup: store.setting("startup") === "true",
+            connectors: engine.gateway.connectors!.list(),
           };
+        case "followup":
+          return engine.followup(req.id, req.text);
+        case "project-panel": {
+          const t = store.get(req.id);
+          if (req.operation === "skills") return engine.coordinator.skills(t);
+          if (req.operation === "read")
+            return engine.gateway.project!.repository(
+              t,
+              {
+                tool: "repository",
+                operation: "read",
+                path: req.path,
+                offset: 0,
+                limit: 300,
+              },
+              new AbortController().signal,
+            );
+          return engine.gateway.project!.repository(
+            t,
+            {
+              tool: "repository",
+              operation: req.operation,
+              offset: 0,
+              limit: 300,
+            },
+            new AbortController().signal,
+          );
+        }
+        case "terminal-input":
+          return engine.gateway.project!.execute(
+            store.get(req.id),
+            {
+              tool: "terminal",
+              operation: "input",
+              sessionId: req.sessionId,
+              input: req.input,
+              args: [],
+              timeoutSeconds: 300,
+              background: false,
+            },
+            new AbortController().signal,
+          );
+        case "terminal-stop":
+          return engine.gateway.project!.stopSession(
+            store.get(req.id),
+            req.sessionId,
+          );
+        case "preview-embed": {
+          if (!req.bounds) {
+            if (embeddedPreview?.id === req.id) {
+              main.contentView.removeChildView(embeddedPreview.view);
+              embeddedPreview.view.webContents.close();
+              embeddedPreview = undefined;
+            }
+            return true;
+          }
+          const preview = computer.preview(req.id);
+          const t = store.get(req.id);
+          if (
+            !preview ||
+            !engine.gateway.project!.previewAllowed(t, preview.url)
+          )
+            throw Error(
+              "Start a local dev server before embedding its preview",
+            );
+          const [width, height] = main.getContentSize();
+          const b = req.bounds;
+          if (b.x + b.width > width || b.y + b.height > height)
+            throw Error("Preview must fit the visible window");
+          if (
+            !embeddedPreview ||
+            embeddedPreview.id !== req.id ||
+            embeddedPreview.url !== preview.url
+          ) {
+            if (embeddedPreview) {
+              main.contentView.removeChildView(embeddedPreview.view);
+              embeddedPreview.view.webContents.close();
+            }
+            const view = new WebContentsView({
+              webPreferences: {
+                partition: "chai-task-" + req.id,
+                sandbox: true,
+                contextIsolation: true,
+                nodeIntegration: false,
+                webSecurity: true,
+              },
+            });
+            view.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+            view.webContents.on("will-navigate", (e, url) => {
+              if (!engine.gateway.project!.previewAllowed(t, url))
+                e.preventDefault();
+            });
+            embeddedPreview = { id: req.id, url: preview.url, view };
+            main.contentView.addChildView(view);
+            view.setBounds(b);
+            await view.webContents.loadURL(preview.url);
+          } else embeddedPreview.view.setBounds(b);
+          return true;
+        }
+        case "preview-show":
+          return computer.show(req.id);
+        case "artifact-open": {
+          const t = store.get(req.id);
+          const registered = engine.gateway
+            .project!.artifacts(t.id)
+            .find((a) => a.path === req.path);
+          if (!registered) throw Error("Register the output first");
+          const bytes = await projectFile(t.root, req.path);
+          if (
+            !(await confirm(
+              "Open output file?",
+              registered.title + "\n" + registered.path,
+            ))
+          )
+            return;
+          const extension = req.path.split(".").at(-1)!;
+          if (
+            ![
+              "pdf",
+              "png",
+              "jpg",
+              "jpeg",
+              "txt",
+              "csv",
+              "docx",
+              "xlsx",
+              "pptx",
+            ].includes(extension)
+          )
+            throw Error("Use Save for this file type");
+          const previewDir = join(data, "output-previews");
+          mkdirSync(previewDir, { recursive: true, mode: 0o700 });
+          const path = join(
+            previewDir,
+            t.id + "-" + req.path.split("/").at(-1),
+          );
+          writeFileSync(path, bytes, { mode: 0o600 });
+          return shell.openPath(path);
+        }
+        case "artifact-save": {
+          const t = store.get(req.id);
+          const bytes = await projectFile(t.root, req.path);
+          const result = await dialog.showSaveDialog(main, {
+            defaultPath: req.path.split("/").at(-1),
+          });
+          if (!result.canceled && result.filePath)
+            writeFileSync(result.filePath, bytes, { mode: 0o600 });
+          return result.filePath;
+        }
+        case "attach": {
+          const t = store.get(req.id);
+          if (engine.active.has(t.id))
+            throw Error("Pause the task before attaching a file");
+          const chosen = await dialog.showOpenDialog(main, {
+            properties: ["openFile", "multiSelections"],
+          });
+          if (chosen.canceled) return [];
+          const names = [];
+          for (const path of chosen.filePaths) {
+            const name = path.split("/").at(-1)!;
+            const bytes = await projectFile(
+              path.slice(0, path.length - name.length - 1),
+              name,
+            );
+
+            const target = join(t.root, "attachments", Date.now() + "-" + name);
+            await projectWrite(
+              t.root,
+              "attachments/" + target.split("/").at(-1),
+              bytes,
+            );
+            names.push("attachments/" + target.split("/").at(-1));
+          }
+          store.event(t.id, "manager", "FILES_ATTACHED", names.join("\n"));
+          return names;
+        }
+        case "startup": {
+          const dir = join(app.getPath("home"), ".config", "autostart");
+          mkdirSync(dir, { recursive: true });
+          const path = join(dir, "chai.desktop");
+          const executable = process.env.APPIMAGE || process.execPath;
+          if (req.enabled) {
+            if (!app.isPackaged)
+              throw Error("Login startup requires an installed CHAI release");
+            writeFileSync(
+              path,
+              `[Desktop Entry]\nType=Application\nName=CHAI\nExec="${executable.replace(/["`$\\]/g, "\\$&")}"\nTerminal=false\nX-GNOME-Autostart-enabled=true\n`,
+              { mode: 0o600 },
+            );
+          } else rmSync(path, { force: true });
+          store.setting("startup", String(req.enabled));
+          return true;
+        }
+        case "background":
+          store.setting("background", String(req.enabled));
+          return true;
+        case "connector-save":
+          engine.gateway.connectors!.save(req.name, req.url, req.token);
+          return true;
+        case "connector-remove":
+          engine.gateway.connectors!.remove(req.name);
+          return true;
         case "desktop-select":
           return computer.selectDesktop();
         case "workspace": {
@@ -447,7 +761,10 @@ app
           const t = store.get(req.id);
           if (
             !["DONE", "FAILED", "CANCELED", "PAUSED"].includes(t.state) ||
-            engine.active.size
+            engine.active.size ||
+            engine.gateway
+              .project!.sessions(req.id)
+              .some((s) => s.state === "running")
           )
             throw Error("Stop active work first");
           if (
@@ -473,6 +790,8 @@ app
               "task_images",
               "agent_calls",
               "browser_jobs",
+              "terminal_sessions",
+              "artifacts",
             ])
               store.db
                 .prepare(`DELETE FROM ${table} WHERE taskId=?`)
@@ -669,7 +988,95 @@ app
             String(error),
           ),
         );
-    main.on("close", () => {
+    tray = new Tray(
+      nativeImage
+        .createFromPath(join(__dirname, "icon.png"))
+        .resize({ width: 24, height: 24 }),
+    );
+    tray.setToolTip("CHAI · task workspace");
+    tray.setContextMenu(
+      Menu.buildFromTemplate([
+        {
+          label: "Open CHAI",
+          click: () => {
+            main.show();
+            main.focus();
+          },
+        },
+        { label: "Stop all tasks", click: () => engine.stop() },
+        {
+          label: "Quit CHAI",
+          click: () => {
+            quitting = true;
+            app.quit();
+          },
+        },
+      ]),
+    );
+    tray.on("click", () => {
+      main.show();
+      main.focus();
+    });
+    const seen = new Map(store.tasks().map((t) => [t.id, t.state]));
+    setInterval(() => {
+      for (const t of store.tasks()) {
+        if (
+          t.recoverable &&
+          t.state === "PAUSED" &&
+          store.setting("background") === "true" &&
+          bridge.connected &&
+          !engine.active.has(t.id)
+        ) {
+          t.recoverable = false;
+          store.put(t);
+          const uncertain = store.db
+            .prepare(
+              "SELECT id FROM effects WHERE taskId=? AND state='STARTED'",
+            )
+            .get(t.id);
+          if (!uncertain && store.hasWorkspaceGrant(t))
+            void engine
+              .resume(t.id)
+              .catch((error) =>
+                store.event(t.id, "manager", "RECOVERY_BLOCKED", String(error)),
+              );
+          else
+            store.event(
+              t.id,
+              "manager",
+              "RECOVERY_BLOCKED",
+              "Review interrupted effects before resuming; no uncertain command was replayed.",
+            );
+        }
+        const previous = seen.get(t.id);
+        seen.set(t.id, t.state);
+        if (
+          previous &&
+          previous !== t.state &&
+          ["DONE", "FAILED", "WAITING_PROVIDER", "WAITING_APPROVAL"].includes(
+            t.state,
+          ) &&
+          store.setting("background") === "true" &&
+          Notification.isSupported()
+        ) {
+          const notification = new Notification({
+            title: "CHAI · " + t.state.toLowerCase().replaceAll("_", " "),
+            body: t.goal.slice(0, 160),
+          });
+          notification.on("click", () => {
+            main.show();
+            main.focus();
+          });
+          notification.show();
+        }
+      }
+    }, 2000).unref();
+    main.on("close", (event) => {
+      if (!quitting && store.setting("background") === "true") {
+        event.preventDefault();
+        main.hide();
+        return;
+      }
       for (const t of store.tasks()) engine.pause(t.id);
       for (const win of windows.values()) win.close();
       computer.close();
@@ -681,6 +1088,8 @@ app
   });
 app.on("window-all-closed", () => app.quit());
 app.on("before-quit", () => {
+  quitting = true;
+  tray?.destroy();
   void toolRuntime?.shutdown();
   engine?.gateway.stop();
 });

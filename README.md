@@ -9,7 +9,7 @@
     <img src="https://img.shields.io/badge/platform-Linux-aaa6a2" alt="Linux" />
     <img src="https://img.shields.io/badge/status-alpha-e59173" alt="Alpha" />
   </p>
-  <p><a href="https://github.com/harshitethic/CHAI/releases/tag/v0.6.0-alpha.1"><strong>Download 0.6 alpha</strong></a> · <a href="#get-started">Get started</a> · <a href="docs/PRIVACY.md">Privacy</a> · <a href="docs/IMPLEMENTATION.md">Architecture</a></p>
+  <p><a href="https://github.com/harshitethic/CHAI/releases/tag/v0.7.0-alpha.1"><strong>Download 0.7 alpha</strong></a> · <a href="#get-started">Get started</a> · <a href="docs/PRIVACY.md">Privacy</a> · <a href="docs/IMPLEMENTATION.md">Architecture</a></p>
 </div>
 
 ![CHAI's actual progress view showing a completed ChatGPT task and its recorded actions](docs/qa/progress-workspace.jpg)
@@ -20,7 +20,11 @@
 
 Give CHAI a goal and a dedicated project folder. Its Manager assigns work, the Builder proposes concrete actions, and the Reviewer checks captured evidence. You can see what is happening, what finished and what remains.
 
-**New in 0.6:** a current-action panel, next step, persistent action checklist and readable activity feed. Expand any update for the exact evidence, or open the detailed role logs. Paused work, failed checks and unfinished review have distinct states. A full action bar means the actions finished; the task reaches DONE only after its verification flow.
+**New in 0.7:** isolated writable projects, dependency installation, persistent command sessions, interactive local-app previews, follow-up steering, project diffs, document outputs and authenticated app tools. The Work screen keeps the current action, next step, check results and role updates alongside the actual working environment.
+
+![Native CHAI workspace with a failed test, successful repair and interactive running app](docs/qa/workbench-preview.png)
+
+*Native Linux capture from the integration fixture: the failed command stays visible, its rerun passes, and the embedded app responds to a real input event. This screenshot is a scripted integration test, not a claimed live ChatGPT run.*
 
 | What you see | What it comes from |
 | --- | --- |
@@ -32,19 +36,25 @@ Give CHAI a goal and a dedicated project folder. Its Manager assigns work, the B
 
 ## What CHAI can do
 
-- **Work on selected files.** Read, list, search, create directories and edit text, with conflict checks and recorded before-edit snapshots.
-- **Run checks.** Execute Python, Node or Bash using explicit file snapshots inside an offline Bubblewrap sandbox.
-- **Inspect and commit changes.** Preview a selected-file Git diff and, after native confirmation, create a local review-branch commit while preserving your current branch and staging index.
-- **Use a scoped browser.** Preview project pages, visit explicitly allowed HTTPS origins, interact with observed controls and capture screenshots.
-- **Use a selected X11 window.** Observe and send bounded input to a separately authorized application window.
-- **Keep the work.** Save plans, effects, role responses and history in SQLite. Pause, revoke access, stop execution, inspect errors and resume supported checkpoints.
+| Capability | In the app |
+| --- | --- |
+| Project execution | Copy a dedicated project into a private, independent Git checkout; run Node, Python, Bash and package managers in Bubblewrap. Optional network access enables dependencies and local servers. |
+| Terminals | Stream output, send input, stop a process, keep background servers running and retain exit/termination evidence across reloads. |
+| Browser verification | Open an owned local server or authorized website, inspect controls/screenshots/errors and act on observed targets. Local apps have an interactive embedded preview. |
+| Task steering | Send a follow-up on the same task, supersede pending actions and attach files while paused. Existing evidence remains available. |
+| Repository context | Paginated file discovery and reads, scoped source search, exact-match patches with SHA256 conflict checks, project instructions and bounded context compaction. |
+| Git workflow | Inspect changes side by side, create branches and confirmed commits in the working copy, inspect GitHub CI and publish a confirmed draft PR when GitHub CLI is authenticated. The original checkout and index remain separate. |
+| Background work | Opt-in tray continuation, task notifications and login startup. Safe checkpoint recovery can resume authorized work; uncertain actions are never automatically replayed. |
+| Documents and apps | Generate PDF, DOCX, XLSX and PPTX files, register other outputs, save/open deliverables and use authorized HTTPS MCP connections with encrypted bearer credentials. |
+| Computer interaction | Scoped browser uploads/downloads, selected-window X11 input/scrolling and an AT-SPI accessibility tree when the application exposes one. |
 
-Normal signed-in **ChatGPT with 6 High** is the tested reasoning provider. Each role keeps its conversation. CHAI sends job references through the visible composer; the installed CHAI Desktop MCP plugin retrieves context and returns validated results. The application does not extract ChatGPT cookies or assistant text.
+CHAI's three roles still use normal signed-in ChatGPT conversations with **6 High**. The tool connection uses OAuth to protect CHAI's tools; it is not a model-inference API. App connectors are a separate feature and do not inherit credentials from ChatGPT's plugins.
 
 ## Proof from real runs
 
 | Workflow | Observed result | Evidence |
 | --- | --- | --- |
+| Install, repair and preview a project | npm install → unchanged test fails → one-file repair → same test passes → background server → browser 0 → 1 → registered output | [Live project run](docs/qa/project-live-2026-10-19.json) |
 | Repair a Python function | Original failures → code fix → unchanged tests pass | [Live repair](docs/qa/autonomous-live-2026-10-19.json) |
 | Verify a browser counter | Node test passes; actual clicks produce **0 → 1 → 2 → 0** | [Browser run](docs/qa/computer-live-2026-10-19.json) |
 | Make a review commit | Failing test → one-file fix → passing test → confirmed commit; HEAD and staging unchanged | [Git run](docs/qa/git-live-2026-10-19.json) |
@@ -52,26 +62,26 @@ Normal signed-in **ChatGPT with 6 High** is the tested reasoning provider. Each 
 
 The Git run completed in **two rounds and seven role calls**, with one workspace grant and one native Git confirmation. Separate ChatGPT approval prompts still applied.
 
-**54 automated tests** cover the core workflows and boundaries. Native Electron tests cover actual files, sandbox execution, browser previews, Git confirmation, progress display, pause/reload/error behavior and four window widths. Release CI also tests the packaged executable. Scripted tests and live ChatGPT runs are recorded separately.
+**62 automated tests** cover the core workflows and boundaries. Native Electron tests cover actual files, sandbox execution, browser previews, Git confirmation, progress display, pause/reload/error behavior and four window widths. Release CI also tests the packaged executable. Scripted tests and live ChatGPT runs are recorded separately.
 
 ## Get started
 
 ### 1. Install on Linux
 
-Download the AppImage and `SHA256SUMS` from the [release](https://github.com/harshitethic/CHAI/releases/tag/v0.6.0-alpha.1). A Debian amd64 package is also available.
+Download the AppImage and `SHA256SUMS` from the [release](https://github.com/harshitethic/CHAI/releases/tag/v0.7.0-alpha.1). A Debian amd64 package is also available.
 
-Required: Python 3, Bubblewrap and Git. Sandboxed Node execution requires `/usr/bin/node`; selected-window control also requires `xdotool`, `x11-utils` and X11.
+Required: Python 3 with venv support, Bubblewrap, Git, Node and npm. Selected-window control requires X11, `xdotool`, `x11-utils`, Python GI and the AT-SPI typelib. Document libraries install inside the task project when network access is authorized. GitHub publication additionally requires `gh auth login` on this machine.
 
 ```sh
 sha256sum --check --ignore-missing SHA256SUMS
-chmod +x CHAI-0.6.0-alpha.1.AppImage
-APPIMAGE_EXTRACT_AND_RUN=1 ./CHAI-0.6.0-alpha.1.AppImage
+chmod +x CHAI-0.7.0-alpha.1.AppImage
+APPIMAGE_EXTRACT_AND_RUN=1 ./CHAI-0.7.0-alpha.1.AppImage
 ```
 
 For a user-only installation from a source checkout:
 
 ```sh
-sh scripts/install-local.sh /path/to/CHAI-0.6.0-alpha.1.AppImage 0.6.0-alpha.1
+sh scripts/install-local.sh /path/to/CHAI-0.7.0-alpha.1.AppImage 0.7.0-alpha.1
 # Add --upgrade when replacing an existing CHAI installation.
 ```
 
@@ -87,11 +97,18 @@ Pairing authorizes CHAI's PC tools. Your ChatGPT account, available models, perm
 
 ### 3. Start with a dedicated workspace
 
-Choose a project folder and **Autonomous in this workspace**, or **Review each plan**. Browser and selected-window permissions are separate options. Git commits retain a native exact-patch confirmation.
+Choose a project folder and **Autonomous in this workspace**, or **Review each plan**. Expand **Project, browser and app access**:
+
+- Enable **Build in an isolated project copy** for normal development commands.
+- Enable network when the task needs dependency downloads or a development server. This permits network access from project processes, including local services.
+- Enable the browser for verification. Choose any external HTTPS origins explicitly.
+- Select only the app connections and desktop window needed for this task.
+
+Git commits and external app actions retain native confirmation. Under Settings, tray continuation and login startup are separate opt-ins.
 
 An example goal:
 
-> Inspect calculator.py and its existing test. Run the test, fix only the implementation, rerun the unchanged test and explain the result. Show a selected-file Git diff before requesting a review commit.
+> Install this project’s dependencies, reproduce the failing test, fix the implementation and rerun the same test. Start the app on 127.0.0.1, inspect it in the browser and show the changes. Create a draft PR only after I confirm the diff and destination.
 
 The folder and files must exist. Sandbox scripts that import sibling Python modules need `/workspace` on `sys.path`.
 
@@ -101,13 +118,15 @@ CHAI is a working alpha with a deliberately bounded tool set. It is not a drop-i
 
 | Area | Current boundary |
 | --- | --- |
-| Host development | No unrestricted host shell, package installation or network-enabled test environment |
-| Git | Existing repository with an initial commit and its own real `.git` directory; up to 12 selected regular text files totaling 24 KB; no push, checkout, deletion, merge or signing |
-| Computer control | Isolated browser origins and a selected X11 window; no arbitrary whole-desktop or Wayland control |
-| Long tasks | Workspace mode: up to 12 rounds, 60 role calls and 144 actions; review mode: 3 rounds, 15 calls and 36 actions |
-| Recovery | App restart pauses unfinished tasks; Resume reconciles checkpoints. Browser targets are ephemeral and ambiguous actions require inspection |
-| Startup | No unattended app startup; whole-PC reboot acceptance remains unverified |
-| Progress | Shows known actions and recorded updates; future repair rounds can add work. No invented completion percentage or ETA |
+| Execution | Linux Bubblewrap; writable isolated project, clean environment, no host home/browser credentials. Network is an explicit task grant. This is not an unrestricted host shell. |
+| Project size | Up to 20,000 copied source files / 250 MB; common credentials, symlinks, hardlinks, dependencies and build caches excluded. Install dependencies in the copy. |
+| Git | Independent checkouts preserve source history. GitHub PR/CI requires authenticated local GitHub CLI and a GitHub source origin. No automatic merge, force-push or credential migration. Legacy selected-file Git tools keep their narrower limits. |
+| App connections | HTTPS Streamable HTTP MCP; optional encrypted bearer token. OAuth-only services need a compatible gateway or future OAuth client support. Every remote tool invocation is confirmed. |
+| Computer control | Selected X11 window; accessibility depends on the target app. Wayland/whole-desktop automation is not implemented. |
+| Long tasks | Per follow-up: workspace mode allows 12 rounds / 60 role calls / 144 new actions; review mode allows 3 / 15 / 36. Six concurrent processes maximum, up to two hours per command. |
+| Recovery | Closing to tray preserves execution. Exiting/crashing stops processes; logs survive. Uncertain actions require inspection. ChatGPT sign-in, prompts and service limits still apply. |
+| Deliverables | Basic document layouts plus general project-generated files. Creation and output hashes are checked; arbitrary layout quality is not guaranteed. |
+| Progress | Known actions and recorded evidence, with no invented overall percentage, hidden reasoning or ETA. Whole-PC reboot acceptance remains unverified. |
 
 Selected files, goals, patches, tool outputs and authorized screenshots are shared with your signed-in ChatGPT conversations. Local task data has private file permissions but is **not encrypted**. Read [privacy](docs/PRIVACY.md) and [security](docs/SECURITY.md) before granting access.
 
@@ -118,6 +137,10 @@ Requires modern Node.js/npm and the Linux dependencies above.
 ```sh
 npm ci
 npm run check
+npm run test:workspace
+npm run test:connectors
+# Optional network-backed document generation check:
+npm run test:documents
 xvfb-run -a npm run test:e2e
 xvfb-run -a npm run test:computer
 xvfb-run -a npm run test:crash

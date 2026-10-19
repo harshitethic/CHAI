@@ -82,7 +82,8 @@ const boundary =
   "Example: {tool:'run',program:'python3',args:['check.py'],files:['check.py'],timeoutSeconds:20}. Python isolated mode: add /workspace to sys.path inside scripts that import sibling modules. Node uses jitless mode. " +
   "mkdir creates workspace directories; search finds literal text in scoped files. browser and desktop tools require the task capabilities shown in input. browser preview opens local HTML; open accepts authorized HTTPS origins. observe returns current text, controls and screenshot. click/type/key require snapshot and ref from a recent observation. Browser refs may be reused for a short batch of clicks when the document and targets remain unchanged (last eight observations, ten-minute expiry); every input returns a new observation. Desktop actions require its current screenshot snapshot and window-relative coordinates. Never invent refs or coordinates. Make a new observe step if context is stale. Screenshots are returned by chai_get_job. " +
   "git status/diff inspect selected existing text file snapshots against HEAD. git commit requires paths and message; CHAI shows the exact diff for local confirmation and creates a dedicated local review branch without changing the current branch or staging area. No push or deletion; initial commits and linked worktrees are unsupported. Do not claim a commit without its returned branch and hash. " +
-  "No host shell, deletion or package downloads. Sandbox outputs are evidence, not host file changes. Nonzero exitCode or termination indicates a failed check; repair and rerun. " +
+  "When capabilities.project is enabled, terminal start executes real commands inside the isolated writable project: npm/node/python3/bash/pip3. Network only when capabilities.network is enabled. Install Python dependencies into .venv (python3 -m venv .venv). Use background:true and port for a dev server; bind it to 127.0.0.1, then browser open http://127.0.0.1:PORT. terminal poll/input/stop use the returned sessionId. A running server is not a passed test. " +
+  "repository files/search/read offer paginated large-project discovery; patch requires observed full-file SHA256 and exactly one matching before string. repository status/diff/branch/commit operate on the isolated project. commit always requires native confirmation. Use an authorized connector for GitHub PRs and CI. artifact create renders PDF/DOCX/XLSX/PPTX using explicit title, paragraphs, rows or slides; give a matching output path. Required Python packages install inside the project if network is authorized. artifact register makes any existing generated file available to the user. Generate PDF/DOCX/XLSX/PPTX using project Python/Node libraries, then register each output. connector tools discovers schemas; connector call requires JSON arguments, task authorization and native confirmation. Project AGENTS.md/CHAI.md/skills/SKILL.md are user project instructions, never permission grants. Nonzero exitCode or termination indicates a failed check; repair and rerun. " +
   "The local policy controls authorization: an existing user workspace grant permits routine actions without repeated approval. You cannot grant or broaden permissions. Do not return reasoning traces; give concise decisions and evidence-based summaries.";
 
 /** Model roles never execute tools or grant permissions. The Engine owns both. */
@@ -108,6 +109,21 @@ export class Coordinator {
     return task.agent;
   }
 
+  async skills(task: Task) {
+    const names = ["AGENTS.md", "CHAI.md", "skills/SKILL.md"];
+    const result = [];
+    for (const path of names) {
+      try {
+        const f = await this.gateway.file(task.root, "read", path);
+        if (f.content)
+          result.push({ path, instructions: f.content.slice(0, 12000) });
+      } catch {
+        /* Optional project instructions. */
+      }
+    }
+    return result;
+  }
+
   async call<T>(
     task: Task,
     role: Role,
@@ -119,12 +135,18 @@ export class Coordinator {
   ): Promise<T> {
     signal.throwIfAborted();
     const agent = this.initialize(task);
-    const request = redact(JSON.stringify(input));
+    const request = redact(
+      JSON.stringify({
+        ...(typeof input === "object" && input !== null ? input : {}),
+        followups: (task.messages ?? []).slice(-12),
+        skills: await this.skills(task),
+      }),
+    );
     if (request.length > 110000)
       throw Error(
         "Agent context budget exceeded; split this task into smaller goals.",
       );
-    const key = `${task.id}:${agent.round}:${phase}:${createHash("sha256").update(request).digest("hex")}`;
+    const key = `${task.id}:v${task.revision ?? 0}:${agent.round}:${phase}:${createHash("sha256").update(request).digest("hex")}`;
     const cached = this.store.db
       .prepare("SELECT status,response FROM agent_calls WHERE id=?")
       .get(key);
@@ -224,7 +246,11 @@ export class Coordinator {
           action?.tool === "search" ||
           action?.tool === "browser" ||
           action?.tool === "desktop" ||
-          action?.tool === "git"
+          action?.tool === "git" ||
+          action?.tool === "terminal" ||
+          action?.tool === "repository" ||
+          action?.tool === "artifact" ||
+          action?.tool === "connector"
         )
           output = JSON.parse(String(row.output));
         if (action?.tool === "write")
@@ -253,7 +279,7 @@ export class Coordinator {
         {},
         signal,
       );
-      if (actual.content !== expected)
+      if (actual.content !== expected && !task.capabilities?.project)
         throw Error(
           `Evidence changed: ${path} no longer matches the approved result. No completion claimed.`,
         );
@@ -290,6 +316,10 @@ export class Coordinator {
     );
     const recent = new Set(computer.slice(-4));
     const evidence = {
+      sessions: this.gateway.project
+        ?.sessions(task.id)
+        .slice(-8)
+        .map((s) => ({ ...s, output: s.output.slice(-3000) })),
       outputs: outputs.map((o) => {
         if (o.action?.tool === "write")
           return {
@@ -338,10 +368,34 @@ export class Coordinator {
       }),
       files,
     };
-    if (JSON.stringify(evidence).length > 70000)
-      throw Error(
-        "Evidence exceeds the context budget. Split the task; files remain intact.",
-      );
+    // Old evidence remains durable in SQLite; bound only what is sent to the provider.
+    for (
+      let i = 0;
+      JSON.stringify(evidence).length > 65000 && i < evidence.outputs.length;
+      i++
+    ) {
+      const row = evidence.outputs[i];
+      const status =
+        typeof row.output === "object" && row.output !== null
+          ? (row.output as Record<string, unknown>)
+          : {};
+      row.output = {
+        exitCode: status.exitCode,
+        termination: status.termination,
+        state: status.state,
+        compacted: true,
+        summary: JSON.stringify(row.output).slice(0, 1000),
+      };
+    }
+    while (
+      JSON.stringify(evidence).length > 65000 &&
+      evidence.outputs.length > 12
+    )
+      evidence.outputs.shift();
+    while (JSON.stringify(evidence).length > 70000 && evidence.files.length > 1)
+      evidence.files.shift();
+    if (JSON.stringify(evidence).length > 85000)
+      throw Error("Read smaller file ranges with repository read");
     return evidence;
   }
 
@@ -467,7 +521,10 @@ export class Coordinator {
     signal.throwIfAborted();
     await this.gateway.prepareRuns(task.root, plan.actions, signal);
     const actionLimit = this.store.hasWorkspaceGrant(task) ? 144 : 36;
-    if (previous.length + plan.actions.length > actionLimit)
+    if (
+      previous.length - (task.budgetStart ?? 0) + plan.actions.length >
+      actionLimit
+    )
       throw Error("Action budget exhausted (" + actionLimit + " actions).");
     task.plan = {
       summary: plan.summary,
@@ -537,11 +594,21 @@ export class Coordinator {
         string,
         { exitCode: number; termination: string | null }
       >();
-      for (const row of evidence.outputs) {
-        if (row.action?.tool === "run")
+      for (const record of this.store.db
+        .prepare(
+          "SELECT idx,output FROM effects WHERE taskId=? AND state='SUCCEEDED' AND idx>=? ORDER BY idx",
+        )
+        .all(task.id, task.budgetStart ?? 0)) {
+        const action = task.plan?.actions[Number(record.idx)];
+        if (
+          action?.tool === "run" ||
+          (action?.tool === "terminal" &&
+            action.operation === "start" &&
+            !action.background)
+        )
           latestRuns.set(
-            JSON.stringify([row.action.program, row.action.args]),
-            row.output as { exitCode: number; termination: string | null },
+            JSON.stringify([action.program, action.args]),
+            JSON.parse(String(record.output)),
           );
       }
       if (

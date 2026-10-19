@@ -7,6 +7,8 @@ import {
 } from "electron";
 import { randomUUID } from "node:crypto";
 import { extname } from "node:path";
+
+import { projectFile, projectWrite } from "../core/project";
 import type { Action, Capabilities, Task } from "../core/contracts";
 import type { Gateway } from "../core/gateway";
 import type { Store } from "../core/store";
@@ -30,6 +32,20 @@ const forbiddenOrigin = (url: URL) =>
   /(^|\.)(chatgpt\.com|openai\.com)$/.test(url.hostname);
 export class ComputerTools {
   private windows = new Map<string, BrowserWindow>();
+  private previews = new Map<
+    string,
+    { url: string; title: string; image: string; errors: string[] }
+  >();
+  private errors = new Map<string, string[]>();
+  preview(id: string) {
+    return this.previews.get(id);
+  }
+  show(id: string) {
+    const win = this.windows.get(id);
+    if (!win) throw Error("No preview yet; ask CHAI to open the running app");
+    win.show();
+    win.focus();
+  }
   private frames = new Map<string, Frame>();
   constructor(
     readonly store: Store,
@@ -95,6 +111,7 @@ export class ComputerTools {
     try {
       const u = new URL(raw);
       if (u.username || u.password) return false;
+      if (this.gateway.project?.previewAllowed(task, raw)) return true;
       if (u.protocol === "chai-preview:") return u.hostname === task.id;
       return (
         u.protocol === "https:" &&
@@ -113,7 +130,52 @@ export class ComputerTools {
     const part = session.fromPartition("chai-task-" + task.id);
     part.setPermissionRequestHandler((_w, _p, cb) => cb(false));
     part.setPermissionCheckHandler(() => false);
-    part.on("will-download", (e) => e.preventDefault());
+    part.on("will-download", (e, item) => {
+      const filenameHint = item.getFilename();
+      const url = item.getURL();
+      e.preventDefault();
+      if (!this.allowed(task, url)) return;
+      void (async () => {
+        if (!(await this.consent("Download task file?", url))) return;
+        const response = await part.fetch(url, { redirect: "error" });
+        if (!response.ok) throw Error("Download failed");
+        if (Number(response.headers.get("content-length") || 0) > 20_000_000)
+          throw Error("Download exceeds 20 MB");
+        const reader = response.body?.getReader();
+        if (!reader) throw Error("Empty download");
+        const chunks: Uint8Array[] = [];
+        let size = 0;
+        for (;;) {
+          const r = await reader.read();
+          if (r.done) break;
+          size += r.value.length;
+          if (size > 20_000_000) {
+            await reader.cancel();
+            throw Error("Download exceeds 20 MB");
+          }
+          chunks.push(r.value);
+        }
+
+        const filename =
+          randomUUID() +
+          "-" +
+          filenameHint.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-100);
+        await projectWrite(
+          task.root,
+          "downloads/" + filename,
+          Buffer.concat(chunks),
+        );
+        await this.gateway.project?.register(task, "downloads/" + filename);
+        this.store.event(
+          task.id,
+          "builder",
+          "FILE_DOWNLOADED",
+          "downloads/" + filename,
+        );
+      })().catch((error) =>
+        this.store.event(task.id, "builder", "DOWNLOAD_FAILED", String(error)),
+      );
+    });
     part.webRequest.onBeforeRequest((details, cb) =>
       cb({
         cancel:
@@ -161,6 +223,19 @@ export class ComputerTools {
         nodeIntegration: false,
         webSecurity: true,
       },
+    });
+    this.errors.set(task.id, []);
+    win.webContents.on("console-message", (_event, level, message) => {
+      if (level >= 2) {
+        const errors = this.errors.get(task.id) ?? [];
+        errors.push(message.slice(0, 1000));
+        this.errors.set(task.id, errors.slice(-20));
+      }
+    });
+    win.webContents.on("did-fail-load", (_e, code, description) => {
+      const errors = this.errors.get(task.id) ?? [];
+      errors.push(`${code}: ${description}`);
+      this.errors.set(task.id, errors.slice(-20));
     });
     win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
     win.webContents.on("will-navigate", (e, url) => {
@@ -214,8 +289,15 @@ export class ComputerTools {
       width: Math.min(1440, screenshot.getSize().width),
     });
     const imageId = this.store.image(task.id, resized.toJPEG(70));
+    this.previews.set(task.id, {
+      url: data.url,
+      title: data.title,
+      image: "data:image/jpeg;base64," + resized.toJPEG(70).toString("base64"),
+      errors: this.errors.get(task.id) ?? [],
+    });
     return {
       ...data,
+      errors: this.errors.get(task.id) ?? [],
       snapshot: id,
       imageId,
       imageWidth: resized.getSize().width,
@@ -248,6 +330,12 @@ export class ComputerTools {
           "Browser destination is outside the task's authorized origins.",
         );
       await win.loadURL(url);
+    } else if (action.operation === "back") {
+      if (win.webContents.navigationHistory.canGoBack())
+        win.webContents.navigationHistory.goBack();
+    } else if (action.operation === "reload") {
+      win.webContents.reload();
+      await new Promise((r) => setTimeout(r, 500));
     } else if (action.operation !== "observe") {
       if (!action.snapshot || !action.ref)
         throw Error(
@@ -261,7 +349,7 @@ export class ComputerTools {
         const i=Number(${JSON.stringify(action.ref ?? "")}.slice(1)), e=s.nodes[i];
         if(!e || !e.isConnected || !e.getClientRects().length || e.disabled)throw Error('Observed target is unavailable.');
         const type=e.getAttribute('type')||'';
-        if(type==='password' || type==='file' || /password|credit.?card|card.?number|otp|one.?time|security.?code/i.test(e.getAttribute('autocomplete')||''))throw Error('Credential entry requires the user.');
+        if(type==='password' || (type==='file' && ${JSON.stringify(action.operation)}!=='upload') || /password|credit.?card|card.?number|otp|one.?time|security.?code/i.test(e.getAttribute('autocomplete')||''))throw Error('Credential entry requires the user.');
         e.scrollIntoView({block:'center'});
         const r=e.getBoundingClientRect();
         return {x:Math.round(r.x+r.width/2),y:Math.round(r.y+r.height/2),tag:e.tagName,type,label:(e.getAttribute('aria-label')||e.innerText||'').slice(0,200),form:!!e.closest('form'),editable:e.matches('input,textarea,[contenteditable=true]')};
@@ -290,7 +378,30 @@ export class ComputerTools {
         throw Error("Website action declined.");
       signal.throwIfAborted();
       win.show();
-      if (action.operation === "click") {
+      if (action.operation === "upload") {
+        if (info.type !== "file" || !action.path)
+          throw Error(
+            "Upload requires an observed file input and a project path",
+          );
+        const bytes = await projectFile(task.root, action.path);
+        if (
+          !(await this.consent(
+            "Upload project file?",
+            action.path +
+              "\n" +
+              win.webContents.getURL() +
+              "\n" +
+              bytes.length +
+              " bytes",
+          ))
+        )
+          throw Error("Upload declined");
+        signal.throwIfAborted();
+        await this.isolated(
+          win,
+          `(()=>{const e=globalThis.__chaiObservations.get(${JSON.stringify(action.snapshot)}).nodes[Number(${JSON.stringify(action.ref)}.slice(1))];const bytes=Uint8Array.from(atob(${JSON.stringify(bytes.toString("base64"))}),c=>c.charCodeAt(0));const dt=new DataTransfer();dt.items.add(new File([bytes],${JSON.stringify(action.path.split("/").at(-1))}));e.files=dt.files;e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}));return true;})()`,
+        );
+      } else if (action.operation === "click") {
         win.webContents.sendInputEvent({
           type: "mouseDown",
           x: info.x,
@@ -348,6 +459,36 @@ export class ComputerTools {
     const width = Number(geometry.match(/^WIDTH=(\d+)$/m)?.[1]),
       height = Number(geometry.match(/^HEIGHT=(\d+)$/m)?.[1]);
     if (!width || !height) throw Error("Cannot determine window geometry.");
+    if (action.operation === "accessibility") {
+      const script = `import json,sys
+try:
+ import gi
+ gi.require_version('Atspi','2.0')
+ from gi.repository import Atspi
+ nodes=[]
+ def walk(n,depth):
+  if depth>12 or len(nodes)>=250:return
+  try:
+   nodes.append({'name':n.get_name()[:300],'role':n.get_role_name(),'depth':depth})
+   for i in range(min(n.get_child_count(),100)):walk(n.get_child_at_index(i),depth+1)
+  except Exception:pass
+ desktop=Atspi.get_desktop(0)
+ for i in range(desktop.get_child_count()):
+  a=desktop.get_child_at_index(i)
+  if a.get_process_id()==int(sys.argv[1]):\n   candidates=[a.get_child_at_index(j) for j in range(a.get_child_count())]\n   candidates=[n for n in candidates if n.get_name() and (n.get_name()==sys.argv[2] or sys.argv[2].startswith(n.get_name()+' - '))]\n   if len(candidates)==1:walk(candidates[0],0)
+ print(json.dumps({'nodes':nodes,'available':bool(nodes)}))
+except Exception as e:
+ print(json.dumps({'nodes':[],'available':False,'reason':str(e)}))`;
+      const tree = JSON.parse(
+        await this.gateway.run(
+          "/usr/bin/python3",
+          ["-c", script, String(grant.pid), grant.title],
+          task.root,
+          signal,
+        ),
+      );
+      return { title: grant.title, ...tree };
+    }
     if (action.operation !== "observe") {
       const frame = this.frames.get(task.id);
       if (
@@ -377,7 +518,14 @@ export class ComputerTools {
           throw Error("Desktop input declined.");
       signal.throwIfAborted();
       await run(["windowactivate", "--sync", xid]);
-      if (action.operation === "click") {
+      if (action.operation === "scroll") {
+        if ((await run(["getactivewindow"])).trim() !== xid)
+          throw Error("Desktop focus changed");
+        const button = { up: "4", down: "5", left: "6", right: "7" }[
+          action.direction ?? "down"
+        ];
+        await run(["click", "--repeat", "3", "--delay", "80", button]);
+      } else if (action.operation === "click") {
         if (
           action.x === undefined ||
           action.y === undefined ||
@@ -446,6 +594,8 @@ export class ComputerTools {
   closeTask(id: string) {
     this.windows.get(id)?.close();
     this.frames.delete(id);
+    this.previews.delete(id);
+    this.errors.delete(id);
   }
   close() {
     for (const win of this.windows.values()) win.close();

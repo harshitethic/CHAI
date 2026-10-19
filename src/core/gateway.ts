@@ -27,11 +27,19 @@ export function workspace(path: string) {
   return root;
 }
 export class Gateway {
+  project?: import("./project").ProjectRuntime;
+  connectors?: import("./connectors").Connectors;
   gitConsent?: GitConsent;
+  private workspaceRoot(path: string) {
+    const root = realpathSync(path);
+    if (this.project?.ownsRoot(root) && statSync(root).isDirectory())
+      return root;
+    return workspace(root);
+  }
   git(root: string, action: GitAction, branch: string, signal: AbortSignal) {
     return gitAction(
       this,
-      workspace(root),
+      this.workspaceRoot(root),
       action,
       branch,
       signal,
@@ -65,6 +73,12 @@ export class Gateway {
           ...(process.env.DISPLAY ? { DISPLAY: process.env.DISPLAY } : {}),
           ...(process.env.XAUTHORITY
             ? { XAUTHORITY: process.env.XAUTHORITY }
+            : {}),
+          ...(process.env.DBUS_SESSION_BUS_ADDRESS
+            ? { DBUS_SESSION_BUS_ADDRESS: process.env.DBUS_SESSION_BUS_ADDRESS }
+            : {}),
+          ...(process.env.XDG_RUNTIME_DIR
+            ? { XDG_RUNTIME_DIR: process.env.XDG_RUNTIME_DIR }
             : {}),
           GIT_CONFIG_NOSYSTEM: "1",
           GIT_CONFIG_GLOBAL: "/dev/null",
@@ -138,9 +152,9 @@ export class Gateway {
     const output = await this.run(
       "/usr/bin/python3",
       [resolve(this.script)],
-      workspace(root),
+      this.workspaceRoot(root),
       signal,
-      JSON.stringify({ root: workspace(root), op, path, ...extra }),
+      JSON.stringify({ root: this.workspaceRoot(root), op, path, ...extra }),
     );
     return JSON.parse(output);
   }
@@ -150,7 +164,12 @@ export class Gateway {
     signal: AbortSignal,
   ) {
     if (action.command === "git-status" || action.command === "git-diff")
-      return gitLegacyInspection(this, workspace(root), action.command, signal);
+      return gitLegacyInspection(
+        this,
+        this.workspaceRoot(root),
+        action.command,
+        signal,
+      );
     const commands: Record<string, [string, string[]]> = {
       pwd: ["/usr/bin/pwd", []],
       "node-version": ["/usr/bin/node", ["--version"]],
@@ -182,7 +201,14 @@ export class Gateway {
       wait: ["/usr/bin/sleep", [String(action.seconds ?? 10)]],
     };
     const [exe, args] = commands[action.command];
-    return this.run(exe, args, workspace(root), signal, undefined, 65000);
+    return this.run(
+      exe,
+      args,
+      this.workspaceRoot(root),
+      signal,
+      undefined,
+      65000,
+    );
   }
   async prepareRuns(root: string, actions: Action[], signal?: AbortSignal) {
     const written = new Map<string, string>();
@@ -192,7 +218,7 @@ export class Gateway {
       if (action.tool === "git")
         action.expectedHead = await gitHead(
           this,
-          workspace(root),
+          this.workspaceRoot(root),
           signal ?? new AbortController().signal,
         );
       const hashes: Record<string, string> = Object.create(null);
@@ -211,9 +237,10 @@ export class Gateway {
     }
   }
   sandbox(root: string, action: RunAction, signal: AbortSignal) {
-    return sandboxRun(this, workspace(root), action, signal);
+    return sandboxRun(this, this.workspaceRoot(root), action, signal);
   }
   stop() {
+    this.project?.stop();
     for (const child of this.children) {
       try {
         process.kill(-child.pid!, "SIGKILL");

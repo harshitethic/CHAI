@@ -2,6 +2,19 @@ import type { Action, Event, Task, ActionEvidence } from "../core/contracts";
 
 export function actionLabel(action: Action): string {
   switch (action.tool) {
+    case "terminal":
+      return (
+        "Terminal · " +
+        action.operation +
+        " " +
+        (action.program ?? action.sessionId ?? "")
+      );
+    case "repository":
+      return "Project · " + action.operation + " " + (action.path ?? "");
+    case "artifact":
+      return "Output · " + action.operation + " " + (action.path ?? "");
+    case "connector":
+      return action.name + " · " + (action.nameOfTool ?? "discover tools");
     case "read":
       return "Read " + action.path;
     case "list":
@@ -113,17 +126,26 @@ export function progressView(task: Task, evidence: ActionEvidence[] = []) {
               : terminal
                 ? "not-run"
                 : "pending";
+      const isCheck =
+        action.tool === "run" ||
+        (action.tool === "terminal" &&
+          action.operation === "start" &&
+          !action.background);
       const checkFailed =
         finished &&
-        action.tool === "run" &&
+        isCheck &&
         effect != null &&
         (effect.exitCode !== 0 || !!effect.termination);
       const detail = checkFailed
         ? "Finished · check failed"
-        : finished && action.tool === "run" && effect?.exitCode === 0
+        : finished && isCheck && effect?.exitCode === 0
           ? "Finished · exit 0"
           : finished
-            ? "Finished"
+            ? effect?.state === "INTERRUPTED"
+              ? "Interrupted · outcome unverified"
+              : action.tool === "terminal" && action.background
+                ? "Started · see terminal status"
+                : "Finished"
             : state === "running"
               ? "In progress"
               : state === "error"
@@ -235,6 +257,14 @@ export function activityItem(
       return { title: "Review passed", summary: event.detail };
     case "TASK_DONE":
       return { title: "Task completed", summary: event.detail };
+    case "USER_FOLLOWUP":
+      return { title: "Your follow-up", summary: event.detail };
+    case "TERMINAL_STARTED":
+      return { title: "Terminal started", summary: event.detail };
+    case "TERMINAL_EXIT":
+      return { title: "Terminal finished", summary: event.detail };
+    case "PROJECT_CREATED":
+      return { title: "Project ready", summary: event.detail };
     case "TASK_FAILED":
       return { title: "Task stopped with an error", summary: event.detail };
     case "PROVIDER_ERROR":

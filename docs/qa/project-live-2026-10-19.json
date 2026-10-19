@@ -1,0 +1,104 @@
+{
+  "verifiedAt": "2026-10-19T13:22:57.493967+00:00",
+  "version": "0.7.0-alpha.1",
+  "provider": "Normal signed-in ChatGPT browser, 6 High, authenticated MCP job/result exchange",
+  "taskId": "b9aaa7a0-6b9e-41b7-bf70-fbac5d7dc8e0",
+  "state": "DONE",
+  "roundsAfterFollowup": 3,
+  "roleCallsAfterFollowup": 10,
+  "followupRevision": 1,
+  "initialIntegrationFailure": "Legacy read rejected app-owned .config project root. Fixed with exact recorded-root validation, regression tested, continued same task with follow-up.",
+  "originalSourceUnchanged": true,
+  "testFileUnchanged": true,
+  "testSHA256": "8744bebdd2998e2f46b0bb3bdfa7093116758acfa1dd9287664f6494f0d1f416",
+  "terminalEvidence": [
+    {
+      "program": "npm",
+      "args": [
+        "install",
+        "--ignore-scripts",
+        "--no-audit",
+        "--no-fund"
+      ],
+      "state": "exited",
+      "exitCode": 0,
+      "output": "\nadded 1 package in 392ms\n",
+      "port": null
+    },
+    {
+      "program": "npm",
+      "args": [
+        "test"
+      ],
+      "state": "exited",
+      "exitCode": 1,
+      "output": "npm notice run chai-live-project@1.0.0 test\nnpm notice run node check.cjs\nnode:assert:152\n  throw new AssertionError(obj);\n  ^\n\nAssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n-1 !== 5\n\n    at Object.<anonymous> (/workspace/check.cjs:1:156)\n    at Module._compile (node:internal/modules/cjs/loader:1872:14)\n    at Object..js (node:internal/modules/cjs/loader:2003:10)\n    at Module.load (node:internal/modules/cjs/loader:1594:32)\n    at Module._load (node:internal/modules/cjs/loader:1396:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47 {\n  generatedMessage: true,\n  code: 'ERR_ASSERTION',\n  actual: -1,\n  expected: 5,\n  operator: 'strictEqual',\n  diff: 'simple'\n}\n\nNode.js v24.19.0\n",
+      "port": null
+    },
+    {
+      "program": "npm",
+      "args": [
+        "test"
+      ],
+      "state": "exited",
+      "exitCode": 0,
+      "output": "npm notice run chai-live-project@1.0.0 test\nnpm notice run node check.cjs\nBoth addition checks passed\n",
+      "port": null
+    },
+    {
+      "program": "npm",
+      "args": [
+        "start"
+      ],
+      "state": "running",
+      "exitCode": null,
+      "output": "npm notice run chai-live-project@1.0.0 start\nnpm notice run node server.cjs\nPreview ready on 19879\n",
+      "port": 19879
+    }
+  ],
+  "browserObservations": [
+    {
+      "index": 9,
+      "state": "SUCCEEDED",
+      "text": "Live project\n0",
+      "snapshot": "27ca22dd-d0d3-4164-bfb4-4191ffaa4f75",
+      "imageId": "d6c85f9b-b132-45d9-8d52-4821fe8a8201"
+    },
+    {
+      "index": 11,
+      "state": "SUCCEEDED",
+      "text": "Live project\n1",
+      "snapshot": "d4663419-5238-45ba-b1ff-b88172bb5683",
+      "imageId": "ec3f1c9d-42aa-4be6-bfaf-cfdc3b6c774d"
+    },
+    {
+      "index": 12,
+      "state": "SUCCEEDED",
+      "text": "Live project\n1",
+      "snapshot": "cf9d6019-f46a-4731-8544-15d16e3fa642",
+      "imageId": "0d621d23-6b9f-45c8-b0f9-b26425356048"
+    }
+  ],
+  "registeredOutputs": [
+    {
+      "path": "sum.cjs",
+      "title": "sum.cjs",
+      "bytes": 34,
+      "sha256": "3c4a78e286981651d3745d5e79e6e4e61940dfb45c44adad547ed04c5f811519",
+      "mime": "application/octet-stream"
+    }
+  ],
+  "review": {
+    "verdict": "pass",
+    "summary": "The supplied CHAI project evidence supports full completion. Original repository reads identified npm scripts and the subtraction bug. The real project-terminal npm install succeeded (exitCode 0). Pre-patch npm test failed (exitCode 1) on the genuine assertion '-1 !== 5'. A hash-guarded patch altered only sum.cjs to `(a,b)=>a+b`, and the same project-terminal npm test succeeded (exitCode 0, 'Both addition checks passed'). The background npm start launched on port 19879 (timeoutSeconds 1800), reporting 'Preview ready on 19879'. Actual browser open of http://127.0.0.1:19879/ showed 'Live project\\n0', an enabled button ref e0, snapshot 27ca22dd-d0d3-4164-bfb4-4191ffaa4f75 and imageId d6c85f9b-b132-45d9-8d52-4821fe8a8201. A successful real browser click used exactly that observed snapshot and ref and returned 'Live project\\n1' with screenshot imageId ec3f1c9d-42aa-4be6-bfaf-cfdc3b6c774d. A subsequent successful browser observe independently confirmed 'Live project\\n1' with imageId 0d621d23-6b9f-45c8-b0f9-b26425356048. Registration of the fixed sum.cjs artifact succeeded with SHA-256 3c4a78e286981651d3745d5e79e6e4e61940dfb45c44adad547ed04c5f811519. This follow-up adds no file writes, repeated tests, commits, pushes, publication, or original-folder actions. The required browser transition 0 -> 1 is directly verified.",
+    "issues": []
+  },
+  "report": {
+    "summary": "PASS \u2014 the recorded CHAI Desktop project workflow and independent Reviewer verdict confirm all requested steps. CHAI inspected package.json, sum.cjs and check.cjs. In the real isolated PROJECT terminal, `npm install --ignore-scripts --no-audit --no-fund` exited 0. Before the fix, `npm test` exited 1 with the actual addition assertion failure `-1 !== 5`. A SHA-256-guarded repository patch changed only sum.cjs from subtraction to addition (`(a,b)=>a+b`), and the identical project-terminal `npm test` rerun exited 0, reporting `Both addition checks passed`. `npm start` launched as a background terminal on port 19879 (timeoutSeconds 1800) and reported `Preview ready on 19879`. The real CHAI browser opened `http://127.0.0.1:19879/` and observed visible `Live project` / `0`, an enabled button ref e0, snapshot 27ca22dd-d0d3-4164-bfb4-4191ffaa4f75, and imageId d6c85f9b-b132-45d9-8d52-4821fe8a8201. One genuine successful browser click used that observed ref/snapshot and returned visible `Live project` / `1` with screenshot imageId ec3f1c9d-42aa-4be6-bfaf-cfdc3b6c774d. A separate browser observation confirmed value 1 with imageId 0d621d23-6b9f-45c8-b0f9-b26425356048. The fixed sum.cjs was successfully registered as an output (SHA-256 3c4a78e286981651d3745d5e79e6e4e61940dfb45c44adad547ed04c5f811519). Reviewer verdict: pass, no issues. Recorded actions show no test-file modification, commit, push, publication or original-source-folder edits.",
+    "limitations": [
+      "All execution, file-change, browser and artifact claims rely on CHAI's recorded tool evidence and independent Reviewer verdict; no additional external filesystem or deployment audit was performed.",
+      "The live browser interaction proves the requested single 0-to-1 transition on the local application, not broader application behavior or cross-browser compatibility.",
+      "The background server was observed running during testing; continued availability after the recorded actions is not guaranteed."
+    ]
+  }
+}

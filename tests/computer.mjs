@@ -12,13 +12,17 @@ writeFileSync(
   `<!doctype html><title>CHAI browser fixture</title>
 <label>Name <input aria-label="Name"></label><button id="apply">Apply greeting</button><p id="result">Waiting</p>
 <button id="remove">Delete record</button><a href="https://example.org/">Outside origin</a>
-<input type="password" aria-label="Password">
+<input type="password" aria-label="Password"><input type="file" aria-label="Upload fixture" onchange="this.nextElementSibling.textContent=this.files[0].name"><p>No upload</p>
 <script>
 apply.onclick=()=>result.textContent='Hello '+document.querySelector('input').value;
 remove.onclick=()=>result.textContent='Deleted';
 fetch('https://example.org/').then(()=>document.body.dataset.network='leaked').catch(()=>document.body.dataset.network='blocked');
 fetch('/.env').then(r=>document.body.dataset.protected=String(r.status));
 </script>`,
+);
+writeFileSync(
+  join(base, "workspace", "upload.txt"),
+  "Authorized upload fixture",
 );
 writeFileSync(join(base, "workspace", ".env"), "FIXTURE_NOT_A_REAL_SECRET");
 await build({
@@ -147,10 +151,44 @@ try {
     sources.every((p) => p.sandbox && p.contextIsolation && !p.nodeIntegration),
   );
   assert((await app.evaluate(() => globalThis.computerTest.imageCount())) >= 3);
+  await app.evaluate(() => globalThis.computerTest.consent(true));
+  obs = await execute({ tool: "browser", operation: "observe" });
+  const upload = obs.controls.find((c) => c.type === "file");
+  assert(upload);
+  obs = await execute({
+    tool: "browser",
+    operation: "upload",
+    snapshot: obs.snapshot,
+    ref: upload.ref,
+    path: "upload.txt",
+  });
+  assert.match(obs.text, /upload.txt/);
+  await assert.rejects(
+    execute({
+      tool: "browser",
+      operation: "upload",
+      snapshot: obs.snapshot,
+      ref: upload.ref,
+      path: ".env",
+    }),
+    /Protected/,
+  );
   if (process.env.CHAI_TEST_DESKTOP === "1") {
     await app.evaluate(() => globalThis.computerTest.createDesktop());
     let frame = await execute({ tool: "desktop", operation: "observe" });
     assert(frame.imageId && frame.width > 0);
+    const accessible = await execute({
+      tool: "desktop",
+      operation: "accessibility",
+    });
+    assert(Array.isArray(accessible.nodes));
+    await execute({
+      tool: "desktop",
+      operation: "scroll",
+      snapshot: frame.snapshot,
+      direction: "down",
+    });
+    frame = await execute({ tool: "desktop", operation: "observe" });
     frame = await execute({
       tool: "desktop",
       operation: "click",

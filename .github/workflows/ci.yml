@@ -13,7 +13,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Install Linux execution sandbox
-        run: sudo apt-get update -qq && sudo apt-get install -y bubblewrap nodejs xdotool x11-utils git
+        run: sudo apt-get update -qq && sudo apt-get install -y bubblewrap nodejs npm python3-venv xdotool x11-utils git
       - name: Allow Bubblewrap namespaces on disposable Ubuntu runner
         run: |
           # Ubuntu restricts unprivileged user namespaces by application profile.
@@ -30,6 +30,7 @@ jobs:
             sudo apparmor_parser -r /etc/apparmor.d/chai-ci-bwrap
           fi
       - run: npm run check
+      - run: npm run test:connectors
       - name: Configure Chromium sandbox on disposable CI runner
         run: |
           node node_modules/electron/install.js
@@ -38,6 +39,7 @@ jobs:
       - run: xvfb-run -a npm run test:crash
       - run: xvfb-run -a npm run test:computer
       - run: xvfb-run -a npm run test:e2e
+      - run: xvfb-run -a npm run test:workspace
       - run: npm audit --omit=dev
       - uses: actions/upload-artifact@v4
         if: always()

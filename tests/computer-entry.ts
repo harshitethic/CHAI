@@ -4,6 +4,7 @@ import { Gateway } from "../src/core/gateway";
 import { Store } from "../src/core/store";
 import { join } from "node:path";
 import type { Action } from "../src/core/contracts";
+app.commandLine.appendSwitch("force-renderer-accessibility");
 const base = process.env.CHAI_COMPUTER_TEST_DIR!;
 app.setPath("userData", join(base, "profile"));
 void app.whenReady().then(async () => {

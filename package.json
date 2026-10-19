@@ -1,6 +1,6 @@
 {
   "name": "chai-desktop",
-  "version": "0.6.0-alpha.1",
+  "version": "0.7.0-alpha.1",
   "description": "CHAI \u2014 Chat Has Actions Inside. Stop chatting. Start doing.",
   "author": "Harshit Sharma",
   "license": "MIT",
@@ -18,7 +18,10 @@
     "check": "npm run typecheck && npm run lint && npm test && npm run build",
     "format": "prettier --write src tests scripts/*.mjs package.json tsconfig.json eslint.config.mjs",
     "test:crash": "node tests/crash.mjs",
-    "test:computer": "node tests/computer.mjs"
+    "test:computer": "node tests/computer.mjs",
+    "test:workspace": "node tests/workspace-electron.mjs",
+    "test:documents": "tsx tests/documents.ts",
+    "test:connectors": "node --import tsx tests/connectors.integration.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",
@@ -75,12 +78,17 @@
         "nodejs",
         "xdotool",
         "x11-utils",
-        "git"
+        "git",
+        "npm",
+        "python3-venv",
+        "python3-gi",
+        "gir1.2-atspi-2.0"
       ]
     },
     "asarUnpack": [
       "dist/files.py",
-      "dist/sandbox.py"
+      "dist/sandbox.py",
+      "dist/artifacts.py"
     ]
   },
   "homepage": "https://github.com/harshitethic/CHAI",

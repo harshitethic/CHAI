@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import type { Request, Snapshot, Mode, Role } from "../core/contracts";
 import "./style.css";
+import { Workbench, ConnectorSettings } from "./Workbench";
 import { TaskProgress, TaskActivity } from "./TaskProgress";
 declare global {
   interface Window {
@@ -64,6 +65,9 @@ function App() {
     [goal, setGoal] = useState(""),
     [mode, setMode] = useState<Exclude<Mode, "local" | "chatgpt">>("browser"),
     [permission, setPermission] = useState<"review" | "workspace">("workspace"),
+    [projectAccess, setProjectAccess] = useState(false),
+    [networkAccess, setNetworkAccess] = useState(false),
+    [connectorAccess, setConnectorAccess] = useState<string[]>([]),
     [browserAccess, setBrowserAccess] = useState(false),
     [browserOrigins, setBrowserOrigins] = useState(""),
     [desktopTarget, setDesktopTarget] = useState<{
@@ -149,6 +153,9 @@ function App() {
       mode,
       permission,
       capabilities: {
+        project: projectAccess,
+        network: projectAccess && networkAccess,
+        connectors: connectorAccess,
         browser: browserAccess,
         origins: browserAccess
           ? browserOrigins
@@ -414,7 +421,46 @@ function App() {
                   </span>
                 </label>
                 <details className="tool-access">
-                  <summary>Browser and desktop access</summary>
+                  <summary>Project, browser and app access</summary>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={projectAccess}
+                      onChange={(e) => setProjectAccess(e.target.checked)}
+                    />
+                    Build in an isolated project copy
+                  </label>
+                  <p>
+                    Run commands, install project dependencies and start dev
+                    servers. Your original folder stays separate.
+                  </p>
+                  {projectAccess ? (
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={networkAccess}
+                        onChange={(e) => setNetworkAccess(e.target.checked)}
+                      />
+                      Allow network for package downloads, dev servers and
+                      GitHub
+                    </label>
+                  ) : null}
+                  {data.connectors?.map((c) => (
+                    <label key={c.name}>
+                      <input
+                        type="checkbox"
+                        checked={connectorAccess.includes(c.name)}
+                        onChange={(e) =>
+                          setConnectorAccess((v) =>
+                            e.target.checked
+                              ? [...v, c.name]
+                              : v.filter((n) => n !== c.name),
+                          )
+                        }
+                      />
+                      Allow {c.name} tools
+                    </label>
+                  ))}
                   <label>
                     <input
                       type="checkbox"
@@ -690,6 +736,14 @@ function App() {
                 </details>
               )}
               {task && (
+                <Workbench
+                  key={"workspace-" + task.id}
+                  task={task}
+                  data={data}
+                  refresh={refresh}
+                />
+              )}
+              {task && (
                 <TaskActivity key={"activity-" + task.id} events={events} />
               )}
               <details className="raw-role-logs">
@@ -890,6 +944,7 @@ function App() {
                   </button>
                 </div>
               </section>
+              <ConnectorSettings data={data} refresh={refresh} />
               <section className="settings-card">
                 <div className="card-title">
                   <Globe />
@@ -957,6 +1012,29 @@ function App() {
                 <div>
                   <span className="eyebrow">YOUR MACHINE, YOUR RULES</span>
                   <h2>Settings & privacy</h2>
+                  <label className="background-setting">
+                    <input
+                      type="checkbox"
+                      checked={data.background ?? false}
+                      onChange={(e) =>
+                        void call({
+                          op: "background",
+                          enabled: e.target.checked,
+                        })
+                      }
+                    />
+                    Continue in the tray and notify me about task status
+                  </label>
+                  <label className="background-setting">
+                    <input
+                      type="checkbox"
+                      checked={data.startup ?? false}
+                      onChange={(e) =>
+                        void call({ op: "startup", enabled: e.target.checked })
+                      }
+                    />
+                    Open CHAI when I sign in to Linux
+                  </label>
                   <p>Local data. Explicit permissions. No telemetry.</p>
                 </div>
               </div>

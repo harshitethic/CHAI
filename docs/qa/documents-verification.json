@@ -1,0 +1,34 @@
+{
+  "verifiedAt": "2026-10-19T12:49:41.615Z",
+  "root": "/tmp/chai-documents-iIELMU/projects/0f91c379-b325-490b-b2b5-43c51c997e01",
+  "results": [
+    {
+      "path": "outputs/proof.pdf",
+      "title": "CHAI document verification",
+      "bytes": 1933,
+      "sha256": "db1293d7356e573c20e37a5f6e1b1c344f09887fbfd0a6fd92d2f1a0db2c3d3e",
+      "mime": "application/pdf"
+    },
+    {
+      "path": "outputs/proof.docx",
+      "title": "CHAI document verification",
+      "bytes": 36847,
+      "sha256": "cc48f77e37327f10e10169af661d22896288a1017940c562657ff750e52f98c6",
+      "mime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    },
+    {
+      "path": "outputs/proof.xlsx",
+      "title": "CHAI document verification",
+      "bytes": 5061,
+      "sha256": "43a866e7b2443ba38fef164135335f63b2bdf038d241376618b4ad58ff7547dd",
+      "mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    },
+    {
+      "path": "outputs/proof.pptx",
+      "title": "CHAI document verification",
+      "bytes": 28320,
+      "sha256": "aff15dad998dc71ba9e867dc6c69c0be12505b7b2295f536b907707cc8157638",
+      "mime": "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    }
+  ]
+}
