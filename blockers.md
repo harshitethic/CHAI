@@ -1,6 +1,6 @@
 # CHAI remaining acceptance gates — 2026-10-19
 
-Normal signed-in ChatGPT with 6 High is verified live. The 0.4 source adds scoped browser/X11 actions, screenshots, directory creation and search; automated interaction tests pass.
+Normal signed-in ChatGPT with 6 High is verified live. The 0.4 release is published and installed, adding scoped browser/X11 actions, screenshots, directory creation and search. Forty-two automated tests and live ChatGPT browser interaction verification pass. The exact published AppImage passed native tests and a fresh authenticated ChatGPT connection check after upgrade.
 
 - Whole-PC reboot remains unverified. It interrupts other applications and needs a safe restart window after unsaved work is handled.
 - Stable transport is configured on Kali: a dedicated named Cloudflare tunnel maps chai-tools.harshitethic.com to loopback 40671, with an enabled user service. ChatGPT uses the CHAI Desktop plugin. No tunnel credentials are committed.

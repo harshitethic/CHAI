@@ -66,4 +66,14 @@ Next work: broader file management and autonomous browser/desktop capabilities; 
 ## 0.4 live computer verification
 Source implementation 0921d59 includes scoped browser/X11 tools, target validation and multi-round evidence compaction. The initial creation task 51c2b96c-e656-4e5e-ab35-d16eaf66383f created the demo, passed Node execution and clicked once, then exposed duplicate-context growth. It remains FAILED honestly. The fresh verification task 2b8a1b5e-1eae-43e9-a70b-92825ad74c78 completed after the fix: three rounds, ten role calls, seven actions, Node exit 0, preview count 0 and real click results 1/2/0. One workspace grant, zero CHAI manual plan approvals; two ChatGPT tool prompts were reviewed and allowed. Evidence and the actual final screenshot are under docs/qa.
 
-The stable CHAI Desktop MCP plugin uses https://chai-tools.harshitethic.com/mcp. Its dedicated named tunnel is enabled as the user service chai-tools-tunnel.service; the obsolete temporary CHAI tunnel was stopped. Config and credentials remain on Kali, never in git. App and transport restart verification follows installation of the published release. Whole-PC reboot remains unverified; do not reboot while other unsaved work is active.
+The stable CHAI Desktop MCP plugin uses https://chai-tools.harshitethic.com/mcp. Its dedicated named tunnel is enabled as the user service chai-tools-tunnel.service; the obsolete temporary CHAI tunnel was stopped. Config and credentials remain on Kali, never in git. Published 0.4 AppImage installed and verified; app and tunnel-service restart checks pass. Whole-PC reboot remains unverified; do not reboot while other unsaved work is active.
+
+
+## Published 0.4 installation verification
+Release: https://github.com/harshitethic/CHAI/releases/tag/v0.4.0-alpha.1
+Release workflow passed: https://github.com/harshitethic/CHAI/actions/runs/39238073955
+Release source: 1c768d4. Independently downloaded AppImage SHA256: 8d8d2eee7bc0894f8176442ffc2f47214b409d3f9e17b4d03ed4ddfea4033c76.
+
+The exact published download passed native UI/restart/workspace-grant/sandbox/local-preview/Stop checks on Kali. Installed under ~/.local/opt/chai-0.4.0-alpha.1/CHAI.AppImage; ~/.local/bin/chai and desktop shortcut point there. Older versions and launcher backups remain. The installed app reopened with the completed live task, original permissions, ChatGPT login and 6 High intact. A fresh authenticated chai_connection_status request from normal ChatGPT succeeded after both the app upgrade and named-tunnel service restart (lastSeen 2026-10-19T10:37:07.196Z). Structured record: docs/qa/published-0.4-verification.json.
+
+Remaining acceptance gate: arrange a whole-PC reboot after other work is saved. Broader original features remain explicitly outside this alpha; do not claim unrestricted Codex parity or bypass ChatGPT approval controls.

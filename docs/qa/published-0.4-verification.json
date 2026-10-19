@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-19",
+  "version": "0.4.0-alpha.1",
+  "releaseSource": "1c768d4ce3a46017b6d97b411eb32c2cf9fa1b08",
+  "release": "https://github.com/harshitethic/CHAI/releases/tag/v0.4.0-alpha.1",
+  "workflow": "https://github.com/harshitethic/CHAI/actions/runs/39238073955",
+  "workflowConclusion": "success",
+  "appImageSha256": "8d8d2eee7bc0894f8176442ffc2f47214b409d3f9e17b4d03ed4ddfea4033c76",
+  "verification": {
+    "independentDownloadChecksum": true,
+    "publishedAppImageNativeSuite": true,
+    "workspacePermissionAndSandboxExecution": true,
+    "packagedLocalBrowserPreviewAndStop": true,
+    "installedVersion": "0.4.0-alpha.1",
+    "completedLiveTaskRetained": true,
+    "workspaceAndBrowserPermissionsRetained": true,
+    "chatGPTLoginAnd6HighRetained": true,
+    "stableTunnelServiceRestart": true,
+    "postUpgradeAuthenticatedChatGPTToolCall": true,
+    "lastToolSeen": "2026-10-19T10:37:07.196Z",
+    "wholePCReboot": false
+  },
+  "limitations": [
+    "Whole-PC reboot requires a safe user-arranged window.",
+    "General host shell, network/package installs and unrestricted desktop/file management are outside this bounded alpha.",
+    "ChatGPT retains its own approval prompts and service limits."
+  ]
+}
