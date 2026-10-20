@@ -349,6 +349,20 @@ export class ComputerTools {
     if (action.tool === "desktop") return this.desktop(task, action, signal);
     if (!task.capabilities?.browser)
       throw Error("Browser access is not authorized.");
+    // A fresh process has no browser document. Evaluating the never-loaded
+    // initial WebContents can wait indefinitely instead of returning an observation.
+    if (action.operation !== "open" && action.operation !== "preview") {
+      const current = this.windows.get(task.id);
+      if (
+        !current ||
+        current.isDestroyed() ||
+        !current.webContents.getURL() ||
+        current.webContents.getURL() === "about:blank"
+      )
+        throw new ToolPreconditionError(
+          "Task browser has no open page after restart or close. Use preview/open with an authorized destination before observing or sending input.",
+        );
+    }
     const win = await this.window(task);
     if (action.operation === "open" || action.operation === "preview") {
       const url =

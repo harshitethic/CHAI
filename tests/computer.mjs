@@ -59,6 +59,10 @@ try {
   }
   const execute = (action) =>
     app.evaluate((_e, a) => globalThis.computerTest.execute(a), action);
+  await assert.rejects(
+    execute({ tool: "browser", operation: "observe" }),
+    /no open page/,
+  );
   let obs = await execute({
     tool: "browser",
     operation: "preview",
