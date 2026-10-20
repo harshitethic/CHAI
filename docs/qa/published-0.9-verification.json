@@ -1,0 +1,21 @@
+{
+  "version": "0.9.0-alpha.1",
+  "verifiedAt": "2026-10-20T14:17:10.079Z",
+  "taskCount": 9,
+  "previousLiveTask": "DONE",
+  "retainedOutputs": 2,
+  "toolPairingRetained": true,
+  "x11Detected": true,
+  "oauthUI": true,
+  "hostAndDurableControls": true,
+  "source": "1de2845cfed3f46489a49e644594cfd6bf644e48",
+  "release": "https://github.com/harshitethic/CHAI/releases/tag/v0.9.0-alpha.1",
+  "ci": "https://github.com/harshitethic/CHAI/actions/runs/39436652934",
+  "releaseWorkflow": "https://github.com/harshitethic/CHAI/actions/runs/39436657377",
+  "appImageSha256": "23f92714181de6bb1d4c618771bdba2d50681d58f5f659635372dea438d11ce7",
+  "publicBinaryNativeE2E": true,
+  "publicBinaryWorkbench": true,
+  "liveInformationalReply": "DONE; three calls, zero effects, zero workspace grants",
+  "originalGameTask": "PAUSED; 2D prototype, original realistic-game request incomplete",
+  "priorInstallRetained": true
+}

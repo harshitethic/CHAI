@@ -243,6 +243,11 @@ try {
   await page.locator(".diff-view").filter({ hasText: "n + 2" }).waitFor();
   await page.getByRole("tab", { name: "Preview" }).click();
   await page.getByLabel("Interactive local app preview").waitFor();
+  // The conversation can push the preview below the fold on shorter displays.
+  // Native embedding intentionally starts only when its viewport is onscreen.
+  await page
+    .getByLabel("Interactive local app preview")
+    .scrollIntoViewIfNeeded();
   for (let i = 0; i < 100; i++) {
     const count = await app.evaluate(
       ({ webContents }) =>
@@ -512,5 +517,9 @@ try {
   }
   console.log("WORKBENCH_E2E_PASS");
 } finally {
+  // A failing test must not leave its opt-in durable fixture server alive.
+  await page
+    ?.evaluate(() => window.chai.request({ op: "stop" }))
+    .catch(() => {});
   await app.close();
 }

@@ -56,6 +56,8 @@ The workspace includes isolated writable projects, dependency installation, pers
 
 CHAI's three roles still use normal signed-in ChatGPT conversations with **6 High**. The tool connection uses OAuth to protect CHAI's tools; it is not a model-inference API. App connectors are a separate feature and do not inherit credentials from ChatGPT's plugins.
 
+See the [0.9 conversation and retry verification](docs/QA_CONVERSATION_2026-10-20.md), including a real ChatGPT reply with zero tool actions and public-binary installation checks.
+
 See the [0.8 runtime verification](docs/QA_RUNTIME_2026-10-20.md) for host execution, OAuth, Wayland and crash-recovery checks.
 
 ## Proof from real runs
