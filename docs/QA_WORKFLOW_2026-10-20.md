@@ -34,3 +34,11 @@ All 83 automated tests pass with typecheck, lint and build. Recovery tests confi
 Electron key input uses [accelerator key codes](https://www.electronjs.org/docs/latest/api/structures/keyboard-input-event/); the native fixture verifies the resulting DOM events rather than assuming dispatch succeeded.
 
 The resumed audit also caught observe on a fresh, never-loaded BrowserWindow after restart. Electron waited indefinitely for that document. The runtime now rejects observe/input before creating an empty window and requests an explicit authorized preview/open. The native browser suite covers observe before any page is opened. The initial 0.10.1 release workflow was canceled so this fix could be included.
+
+## 0.10.2: recovered evidence and clearer conversation
+
+The live game inputs now succeeded: Start, ArrowUp held 1600 ms, ArrowRight held 850 ms, flight toggle and a follow-up observation. Recorded location changed from (0, 0) to (0, -335), then (41, -431); the flight observation showed FLIGHT MODE, AIRBORNE and altitude 42 m. No game code or test was changed.
+
+Review exposed a further defect when an old interrupted browser receipt with null output fell outside the four recent observations. Evidence compaction now preserves interrupted/missing receipts instead of reading null.text. A regression covers missing and typed-rejected receipts plus five newer successful observations. Public role updates also suppress repeated structured handoff summaries; new calls without progress and final results remain visible.
+
+All 85 tests, typecheck/lint/build and the native workbench pass. The 0.10.1 release completed before these additional fixes; 0.10.2 includes them. The audit has been continued to report creation using the recorded successful interaction evidence.

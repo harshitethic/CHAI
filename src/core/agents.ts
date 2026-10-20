@@ -325,7 +325,11 @@ export class Coordinator {
     }
     // Keep the last four computer observations; old browser text is stale and can dominate context.
     const computer = outputs.filter(
-      (o) => o.action?.tool === "browser" || o.action?.tool === "desktop",
+      (o) =>
+        o.state === "SUCCEEDED" &&
+        o.output !== null &&
+        typeof o.output === "object" &&
+        (o.action?.tool === "browser" || o.action?.tool === "desktop"),
     );
     const recent = new Set(computer.slice(-4));
     const evidence = {
@@ -334,6 +338,14 @@ export class Coordinator {
         .slice(-8)
         .map((s) => ({ ...s, output: s.output.slice(-3000) })),
       outputs: outputs.map((o) => {
+        // Interrupted legacy actions can have no receipt. Keep that uncertainty
+        // and typed rejection details intact; neither is a browser observation.
+        if (
+          o.state !== "SUCCEEDED" ||
+          o.output === null ||
+          typeof o.output !== "object"
+        )
+          return o;
         if (o.action?.tool === "write")
           return {
             ...o,

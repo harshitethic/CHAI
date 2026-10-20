@@ -20,8 +20,14 @@ export function conversation(task: Task, events: Event[]): Message[] {
       created: m.created,
     })),
   ];
-  for (const event of events) {
+  // A role's public updates are its conversation; its structured handoff is
+  // retained in the audit log. Reset at each call so older progress cannot hide
+  // a later response from a provider that did not send an update.
+  const updatedRoles = new Set<string>();
+  for (const event of [...events].sort((a, b) => a.id - b.id)) {
     if (event.taskId !== task.id) continue;
+    if (event.kind === "MODEL_STARTED") updatedRoles.delete(event.role);
+    if (event.kind === "ASSISTANT_PROGRESS") updatedRoles.add(event.role);
     if (event.kind === "MODEL_RESPONSE") {
       try {
         const response = JSON.parse(event.detail);
@@ -33,6 +39,7 @@ export function conversation(task: Task, events: Event[]): Message[] {
         if (response.verdict === "pass" || response.responseOnly === true)
           continue;
         const final = Array.isArray(response.limitations);
+        if (!final && updatedRoles.has(event.role)) continue;
         const limitations = final
           ? response.limitations.filter((v: unknown) => typeof v === "string")
           : [];
@@ -47,6 +54,8 @@ export function conversation(task: Task, events: Event[]): Message[] {
         /* Truncated or invalid legacy evidence stays in detailed logs. */
       }
     } else if (["PLAN_PROPOSED", "ASSISTANT_PROGRESS"].includes(event.kind)) {
+      if (event.kind === "PLAN_PROPOSED" && updatedRoles.has(event.role))
+        continue;
       if (
         messages.at(-1)?.kind === "assistant" &&
         messages.at(-1)?.text === event.detail

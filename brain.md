@@ -1,3 +1,7 @@
+## Current continuation — 0.10.2-alpha.1
+
+Fixed null interrupted receipts during browser evidence compaction and repeated role handoffs after live progress. Verified 85 tests, typecheck/lint/build and native workbench. Actual game driving/steering/flight succeeded; audit report delivery is running. Release/public-binary/install evidence remains pending. Original game task stays PAUSED.
+
 ## Current continuation — 0.10.1-alpha.1
 
 Browser input repair is implemented: grounded targets, canvas observation, bounded held keys, Electron arrow translation, cancellation release and typed pre-dispatch recovery. Verified 83 tests, typecheck/lint/build, native computer and workbench. The actual GhostSprint audit is running again with its original goal and prior evidence preserved; original game task stays paused. Publication/install and live audit outcome are pending. Do not claim completion until their evidence is recorded.

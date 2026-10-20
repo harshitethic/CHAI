@@ -749,3 +749,74 @@ test("browser precondition recovery stops at the existing round budget", async (
     s.store.close();
   }
 });
+
+test("review evidence retains missing and rejected browser receipts after newer observations", async () => {
+  const s = setup(
+    new TestAdapter(() => {
+      throw Error("No provider call expected");
+    }),
+  );
+  try {
+    const task = s.store.create(
+      "Audit recovered browser evidence",
+      s.root,
+      "browser",
+      "fixture",
+    );
+    task.plan = {
+      summary: "Recovered observation sequence",
+      actions: Array.from({ length: 7 }, () => ({
+        tool: "browser" as const,
+        operation: "observe" as const,
+      })),
+    };
+    task.cursor = 7;
+    s.store.put(task);
+    for (let idx = 0; idx < 7; idx++) {
+      const interrupted = idx < 2;
+      const output =
+        idx === 0
+          ? null
+          : JSON.stringify(
+              idx === 1
+                ? { executed: false, error: "Stale observation" }
+                : {
+                    text: "Observation " + idx,
+                    title: "Game",
+                    imageId: "image-" + idx,
+                  },
+            );
+      s.store.db
+        .prepare("INSERT INTO effects VALUES(?,?,?,?,?,?,?)")
+        .run(
+          task.id + ":" + idx,
+          task.id,
+          idx,
+          interrupted ? "INTERRUPTED" : "SUCCEEDED",
+          null,
+          null,
+          output,
+        );
+    }
+    const evidence = await s.engine.coordinator.evidence(
+      task,
+      new AbortController().signal,
+    );
+    assert.equal(evidence.outputs[0].state, "INTERRUPTED");
+    assert.equal(evidence.outputs[0].output, null);
+    assert.deepEqual(evidence.outputs[1].output, {
+      executed: false,
+      error: "Stale observation",
+    });
+    assert.equal(
+      (evidence.outputs[2].output as { superseded?: boolean }).superseded,
+      true,
+    );
+    assert.equal(
+      (evidence.outputs[6].output as { text: string }).text,
+      "Observation 6",
+    );
+  } finally {
+    s.store.close();
+  }
+});

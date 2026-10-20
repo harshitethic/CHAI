@@ -129,3 +129,62 @@ test("live updates appear immediately while successful review chatter and draft 
     ],
   );
 });
+
+test("public updates replace repeated handoffs but later calls and final results remain visible", () => {
+  const manager = [
+    event(1, "MODEL_STARTED", "assignment"),
+    event(
+      2,
+      "ASSISTANT_PROGRESS",
+      "The preview is open; I’ll check driving next.",
+    ),
+    event(
+      3,
+      "MODEL_RESPONSE",
+      JSON.stringify({
+        summary: "The preview has reopened; next check driving.",
+        builderTask: "Drive",
+      }),
+    ),
+    event(4, "MODEL_STARTED", "assignment"),
+    event(
+      5,
+      "MODEL_RESPONSE",
+      JSON.stringify({
+        summary: "Driving passed. Checking flight next.",
+        builderTask: "Fly",
+      }),
+    ),
+  ];
+  const builder = [
+    event(6, "MODEL_STARTED", "proposal"),
+    event(
+      7,
+      "ASSISTANT_PROGRESS",
+      "I’m applying held keys to the observed canvas.",
+    ),
+    event(8, "PLAN_PROPOSED", "Apply held keys to the observed canvas."),
+  ].map((e) => ({ ...e, role: "builder" as const }));
+  const final = event(
+    9,
+    "MODEL_RESPONSE",
+    JSON.stringify({
+      summary: "Audit saved.",
+      limitations: ["Real earning is missing."],
+    }),
+  );
+  const messages = conversation(
+    task,
+    [...manager, ...builder, final].reverse(),
+  );
+  assert.deepEqual(
+    messages.map((m) => m.text),
+    [
+      "Build a game",
+      "The preview is open; I’ll check driving next.",
+      "Driving passed. Checking flight next.",
+      "I’m applying held keys to the observed canvas.",
+      "Audit saved.\n\nReal earning is missing.",
+    ],
+  );
+});
