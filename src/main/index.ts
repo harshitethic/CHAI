@@ -504,6 +504,8 @@ app
             events: store.events(req.id),
             evidenceTaskId: req.id ?? null,
             effects: req.id ? store.actionEvidence(req.id) : [],
+            workPlan: req.id ? store.workPlan(req.id) : null,
+            pendingFollowups: req.id ? store.pendingFollowups(req.id) : [],
             workspace: store.setting("workspace") ?? null,
             version: app.getVersion(),
             bridge: toolRuntime.snapshot(),
@@ -516,7 +518,7 @@ app
             connectors: engine.gateway.connectors!.list(),
           };
         case "followup":
-          return engine.followup(req.id, req.text);
+          return engine.followup(req.id, req.text, req.interrupt);
         case "project-panel": {
           const t = store.get(req.id);
           if (req.operation === "skills") return engine.coordinator.skills(t);
@@ -826,11 +828,18 @@ app
           try {
             store.db
               .prepare(
+                "DELETE FROM browser_progress WHERE jobId IN (SELECT id FROM browser_jobs WHERE taskId=?)",
+              )
+              .run(req.id);
+            store.db
+              .prepare(
                 "DELETE FROM browser_delivery WHERE id IN (SELECT id FROM browser_jobs WHERE taskId=?)",
               )
               .run(req.id);
             for (const table of [
               "events",
+              "work_plans",
+              "pending_followups",
               "effects",
               "approvals",
               "task_grants",

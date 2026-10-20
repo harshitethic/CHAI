@@ -92,3 +92,40 @@ test("completed answers survive the bounded event window and keep material limit
   const reply = event(1, "MODEL_RESPONSE", JSON.stringify(done.agent!.report));
   assert.equal(conversation(done, [reply]).filter((m) => m.final).length, 1);
 });
+
+test("live updates appear immediately while successful review chatter and draft answers stay out of the conversation", () => {
+  const messages = conversation(task, [
+    event(
+      1,
+      "ASSISTANT_PROGRESS",
+      "The first check failed; I’m inspecting the mismatch.",
+    ),
+    event(
+      2,
+      "MODEL_RESPONSE",
+      JSON.stringify({ responseOnly: true, summary: "Draft answer" }),
+    ),
+    event(
+      3,
+      "MODEL_RESPONSE",
+      JSON.stringify({
+        verdict: "pass",
+        summary: "Repeated answer",
+        issues: [],
+      }),
+    ),
+    event(
+      4,
+      "MODEL_RESPONSE",
+      JSON.stringify({ summary: "Final answer", limitations: [] }),
+    ),
+  ]);
+  assert.deepEqual(
+    messages.map((m) => m.text),
+    [
+      "Build a game",
+      "The first check failed; I’m inspecting the mismatch.",
+      "Final answer",
+    ],
+  );
+});

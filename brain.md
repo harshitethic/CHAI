@@ -1,3 +1,9 @@
+## Workflow update — 2026-10-20, 0.10.0-alpha.1
+
+Implemented authenticated live progress and revision-scoped milestone plans, durable queued follow-ups at action/planning/review boundaries, explicit interrupt, original-goal continuity, and less repeated review chatter. Progress never grants permissions or marks execution complete. Native follow-up queue survives restart and waits for resume.
+
+Verified locally on Kali: 77 tests, typecheck/lint/build and native workbench including new milestone/progress rendering. Actual HTTP MCP integration covers progress while executing real files. Release/public-binary and live-provider results are recorded separately after they finish. See `docs/WORKFLOW.md` for the nine-area acceptance contract and remaining gaps. Do not claim proprietary parity or equate the original game prototype with its requested graphics/crypto outcome.
+
 # Current work — 0.9.0-alpha.1, 2026-10-20
 
 Conversation UI, informational answers without tools, explicit fresh projects, provider waiting/recovery controls, and more natural agent summaries are implemented. User-facing defaults enable isolated project commands, network and browser previews, with visible controls before submission; existing permissions are not migrated. Published and installed on Kali. CI/release and public-binary native checks passed; 72 automated checks pass. A live ChatGPT informational reply and explicit retry passed with zero tool actions; all previous tasks, outputs and pairing were retained. See docs/QA_CONVERSATION_2026-10-20.md. See docs/RELEASE_BROWSER_ALPHA.md and the current git history. Older entries below are historical and may describe superseded limits.

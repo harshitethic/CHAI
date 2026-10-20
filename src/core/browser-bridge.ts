@@ -8,7 +8,8 @@ import {
   type AgentAdapter,
   type AgentRequest,
 } from "./agents";
-import type { Role } from "./contracts";
+import { redact, type Role } from "./contracts";
+import { progressUpdateSchema, type WorkPlan } from "./work-plan";
 const roleSchema = z.enum(["manager", "builder", "reviewer"]);
 export class BrowserBridge implements AgentAdapter {
   readonly name = "ChatGPT browser · tool bridge";
@@ -153,6 +154,13 @@ export class BrowserBridge implements AgentAdapter {
     if (!row || row.role !== role || row.status === "CANCELED")
       throw Error("No active job for this role.");
     const task = this.store.get(String(row.taskId));
+    const request = JSON.parse(String(row.body)) as AgentRequest;
+    if (
+      (request.revision ??
+        Number(request.callId?.match(/:v(\d+):/)?.[1] ?? 0)) !==
+      (task.revision ?? 0)
+    )
+      throw Error("This job was superseded by a follow-up");
     if (
       !["PLANNING", "VALIDATING", "RUNNING", "WAITING_PROVIDER"].includes(
         task.state,
@@ -160,7 +168,6 @@ export class BrowserBridge implements AgentAdapter {
     )
       throw Error("Task is paused or finished.");
     this.lastSeen = new Date().toISOString();
-    const request = JSON.parse(String(row.body)) as AgentRequest;
     return {
       id,
       role,
@@ -169,6 +176,80 @@ export class BrowserBridge implements AgentAdapter {
       instructions: request.system,
       input: JSON.parse(request.input),
       responseSchema: request.schema,
+      progress: {
+        nextSequence: this.nextProgressSequence(id),
+        planVersion: this.store.workPlan(String(row.taskId))?.version ?? 0,
+        plan: this.store.workPlan(String(row.taskId)),
+        instructions:
+          "Use chai_report_progress for concise public updates and milestone plans during this job. This never executes actions or completes the task. Submit the final structured result with chai_submit_result.",
+      },
+    };
+  }
+  private nextProgressSequence(id: string) {
+    const row = this.store.db
+      .prepare("SELECT MAX(sequence) n FROM browser_progress WHERE jobId=?")
+      .get(id);
+    return Number(row?.n ?? 0) + 1;
+  }
+  progress(id: string, role: Role, value: unknown) {
+    const update = progressUpdateSchema.parse(value);
+    const job = this.get(id, role);
+    const encoded = JSON.stringify(update);
+    const prior = this.store.db
+      .prepare("SELECT body FROM browser_progress WHERE jobId=? AND sequence=?")
+      .get(id, update.sequence);
+    if (prior) {
+      if (prior.body !== encoded)
+        throw Error("This progress sequence already has different content");
+      return { accepted: true, duplicate: true };
+    }
+    if (job.status !== "WAITING")
+      throw Error("Progress requires an unanswered job");
+    if (update.sequence !== this.nextProgressSequence(id))
+      throw Error(
+        "Progress sequence is stale or out of order; read chai_get_job again",
+      );
+    const row = this.store.db
+      .prepare("SELECT taskId FROM browser_jobs WHERE id=?")
+      .get(id)!;
+    const taskId = String(row.taskId),
+      task = this.store.get(taskId);
+    const current = this.store.workPlan(taskId);
+    if (update.plan && update.expectedPlanVersion !== (current?.version ?? 0))
+      throw Error("Work plan changed; read chai_get_job before updating it");
+    // Separate from task JSON: an in-flight Coordinator save cannot erase progress.
+    // One synchronous transaction persists the receipt, plan and conversation together.
+    this.store.db.exec("BEGIN IMMEDIATE");
+    try {
+      if (update.plan) {
+        const plan: WorkPlan = {
+          taskId,
+          revision: task.revision ?? 0,
+          version: (current?.version ?? 0) + 1,
+          updated: new Date().toISOString(),
+          steps: update.plan.map((s) => ({
+            ...s,
+            title: redact(s.title),
+            ...(s.detail === undefined ? {} : { detail: redact(s.detail) }),
+          })),
+        };
+        this.store.db
+          .prepare("INSERT OR REPLACE INTO work_plans VALUES(?,?)")
+          .run(taskId, JSON.stringify(plan));
+      }
+      this.store.db
+        .prepare("INSERT INTO browser_progress VALUES(?,?,?)")
+        .run(id, update.sequence, encoded);
+      this.store.event(taskId, role, "ASSISTANT_PROGRESS", update.message);
+      this.store.db.exec("COMMIT");
+    } catch (error) {
+      this.store.db.exec("ROLLBACK");
+      throw error;
+    }
+    return {
+      accepted: true,
+      nextSequence: update.sequence + 1,
+      planVersion: this.store.workPlan(taskId)?.version ?? 0,
     };
   }
   images(id: string, role: Role) {

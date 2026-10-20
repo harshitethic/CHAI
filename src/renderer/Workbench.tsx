@@ -89,6 +89,7 @@ export function Workbench({
 }) {
   const [tab, setTab] = useState<string>("terminal"),
     [followup, setFollowup] = useState(""),
+    [interrupt, setInterrupt] = useState(false),
     [error, setError] = useState(""),
     [sending, setSending] = useState(false),
     [panel, setPanel] = useState<unknown>(null),
@@ -151,7 +152,7 @@ export function Workbench({
     if (!followup.trim()) return;
     setSending(true);
     try {
-      await run({ op: "followup", id: task.id, text: followup });
+      await run({ op: "followup", id: task.id, text: followup, interrupt });
       setFollowup("");
     } catch {
       /* Visible error retained. */
@@ -573,6 +574,22 @@ export function Workbench({
       ) : null}
       {task.mode === "browser" ? (
         <form className="followup-composer" onSubmit={send}>
+          {data.evidenceTaskId === task.id &&
+            !!data.pendingFollowups?.length && (
+              <div className="queued-followups" role="status">
+                <strong>Queued for the next safe stopping point</strong>
+                {data.pendingFollowups.map((m, i) => (
+                  <p key={i}>{m.text}</p>
+                ))}
+                {["PAUSED", "WAITING_PROVIDER", "FAILED"].includes(
+                  task.state,
+                ) && (
+                  <p>
+                    Work is stopped. Resume or send a follow-up to continue.
+                  </p>
+                )}
+              </div>
+            )}
           <textarea
             aria-label="Task follow-up"
             placeholder="Add a detail, change direction, or continue this task…"
@@ -596,7 +613,19 @@ export function Workbench({
               <Paperclip size={15} />
               Attach files
             </button>
-            <span>Sending pauses current work and revises the plan.</span>
+            <label>
+              <input
+                type="checkbox"
+                checked={interrupt}
+                onChange={(e) => setInterrupt(e.target.checked)}
+              />{" "}
+              Interrupt current work
+            </label>
+            <span>
+              {interrupt
+                ? "Stops the current operation before replanning."
+                : "Applies after the current step; running previews stay open."}
+            </span>
             <button className="primary" disabled={sending || !followup.trim()}>
               <ArrowUp size={16} />
               {sending ? "Updating…" : "Send follow-up"}

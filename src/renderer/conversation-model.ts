@@ -28,6 +28,10 @@ export function conversation(task: Task, events: Event[]): Message[] {
         if (typeof response.summary !== "string") continue;
         // Builder proposals are announced by PLAN_PROPOSED after validation.
         if (Array.isArray(response.actions)) continue;
+        // Successful reviews and draft informational answers stay in the audit
+        // history. The final answer is the user-facing result, not three paraphrases.
+        if (response.verdict === "pass" || response.responseOnly === true)
+          continue;
         const final = Array.isArray(response.limitations);
         const limitations = final
           ? response.limitations.filter((v: unknown) => typeof v === "string")
@@ -42,7 +46,7 @@ export function conversation(task: Task, events: Event[]): Message[] {
       } catch {
         /* Truncated or invalid legacy evidence stays in detailed logs. */
       }
-    } else if (event.kind === "PLAN_PROPOSED") {
+    } else if (["PLAN_PROPOSED", "ASSISTANT_PROGRESS"].includes(event.kind)) {
       if (
         messages.at(-1)?.kind === "assistant" &&
         messages.at(-1)?.text === event.detail

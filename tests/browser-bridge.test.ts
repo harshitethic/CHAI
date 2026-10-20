@@ -133,6 +133,7 @@ test("MCP pairing requires consent and PKCE; tokens remain scoped, hashed, revoc
     assert.deepEqual(listed.tools.map((t) => t.name).sort(), [
       "chai_connection_status",
       "chai_get_job",
+      "chai_report_progress",
       "chai_submit_result",
     ]);
     const status = await sdk.callTool({
@@ -220,6 +221,40 @@ test("actual HTTP MCP results drive three roles, approval, filesystem evidence a
       const content = result.content as { type: string; text: string }[];
       const job = JSON.parse(content[0].text);
       phases.push(job.phase);
+      const update = {
+        sequence: job.progress.nextSequence,
+        message:
+          job.phase === "assignment"
+            ? "I’ll create the file and check its contents."
+            : "I’m checking the saved evidence.",
+        ...(job.phase === "assignment"
+          ? {
+              expectedPlanVersion: job.progress.planVersion,
+              plan: [
+                {
+                  id: "build",
+                  title: "Create notes.txt",
+                  status: "in_progress",
+                },
+                {
+                  id: "verify",
+                  title: "Check exact contents",
+                  status: "pending",
+                },
+              ],
+            }
+          : {}),
+      };
+      const progress = await client.callTool({
+        name: "chai_report_progress",
+        arguments: { jobId: id, role, update },
+      });
+      assert(!progress.isError);
+      if (job.phase === "assignment") {
+        const taskId = s.bridge.jobs().find((j) => j.id === id)!.taskId;
+        assert.equal(s.store.get(taskId).approved, false);
+        assert.equal(s.store.actionEvidence(taskId).length, 0);
+      }
       if (job.phase === "independent-review")
         assert.equal(job.input.evidence.files[0].content, "hello");
       const answer =
@@ -259,6 +294,11 @@ test("actual HTTP MCP results drive three roles, approval, filesystem evidence a
     await engine.idle();
     assert.equal(s.store.get(id).state, "DONE");
     assert.equal(readFileSync(join(s.root, "notes.txt"), "utf8"), "hello");
+    assert.equal(s.store.workPlan(id)?.steps[1].status, "pending"); // Reporting is never completion authority.
+    assert.equal(
+      s.store.events(id).filter((e) => e.kind === "ASSISTANT_PROGRESS").length,
+      4,
+    );
     assert.deepEqual(phases, [
       "assignment",
       "proposal",

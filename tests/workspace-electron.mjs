@@ -84,6 +84,39 @@ try {
   const fixtureDb = new DatabaseSync(
     join(base, ".config", "chai-desktop", "chai.sqlite"),
   );
+  fixtureDb.prepare("INSERT INTO work_plans VALUES(?,?)").run(
+    freshId,
+    JSON.stringify({
+      taskId: freshId,
+      revision: 0,
+      version: 1,
+      updated: new Date().toISOString(),
+      steps: [
+        {
+          id: "create",
+          title: "Create the requested file",
+          status: "completed",
+        },
+        {
+          id: "verify",
+          title: "Verify exact contents",
+          status: "completed",
+          detail: "Read back fresh.txt",
+        },
+      ],
+    }),
+  );
+  fixtureDb
+    .prepare(
+      "INSERT INTO events(taskId,role,kind,detail,created) VALUES(?,?,?,?,?)",
+    )
+    .run(
+      freshId,
+      "builder",
+      "ASSISTANT_PROGRESS",
+      "The file is saved; I’m checking its exact contents.",
+      new Date().toISOString(),
+    );
   fixtureDb
     .prepare(
       "INSERT INTO events(taskId,role,kind,detail,created) VALUES(?,?,?,?,?)",
@@ -108,6 +141,17 @@ try {
     .getByRole("region", { name: "Task conversation" })
     .getByText("Created", { exact: false })
     .waitFor();
+  await page
+    .getByRole("region", { name: "Work plan", exact: true })
+    .getByText("Verify exact contents", { exact: true })
+    .waitFor();
+  await page
+    .getByRole("region", { name: "Task conversation" })
+    .getByText("The file is saved; I’m checking its exact contents.", {
+      exact: true,
+    })
+    .waitFor();
+
   assert.equal(
     await page.locator(".final-message strong").last().innerText(),
     "fresh.txt",

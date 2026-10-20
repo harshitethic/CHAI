@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { WorkPlan } from "./work-plan";
 const sandboxPath = z
   .string()
   .min(1)
@@ -392,6 +393,8 @@ export interface ActionEvidence {
   termination?: string | null;
 }
 export interface Snapshot {
+  workPlan?: WorkPlan | null;
+  pendingFollowups?: { text: string; created: string }[];
   evidenceTaskId?: string | null;
   effects?: ActionEvidence[];
   tasks: Task[];
@@ -496,6 +499,7 @@ export const requestSchema = z.discriminatedUnion("op", [
       op: z.literal("followup"),
       id: z.uuid(),
       text: z.string().min(1).max(12000),
+      interrupt: z.boolean().optional(),
     })
     .strict(),
   z.object({ op: z.literal("attach"), id: z.uuid() }).strict(),

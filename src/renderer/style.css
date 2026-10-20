@@ -893,7 +893,7 @@ h1 em {
   text-align: left;
   margin: 16px 0;
   padding: 12px 16px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 12px;
 }
 .tool-access summary {
@@ -1653,4 +1653,58 @@ details.result-card > summary {
     grid-column: 1;
     grid-row: 3;
   }
+}
+
+.milestone {
+  display: flex;
+  gap: 10px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+.milestone > span {
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+.milestone strong {
+  font-size: 13px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.milestone p,
+.milestone small {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 5px 0 0;
+  overflow-wrap: anywhere;
+}
+.milestone.in_progress > span {
+  color: var(--accent);
+}
+.milestone.completed > span {
+  color: #8bc3a4;
+}
+.milestone.blocked > span {
+  color: #f1bd78;
+}
+.queued-followups {
+  border-bottom: 1px solid var(--border);
+  padding: 12px;
+  font-size: 13px;
+}
+.queued-followups p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.followup-composer label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.followup-composer input[type="checkbox"] {
+  width: auto;
+}
+
+.milestone small {
+  display: block;
 }

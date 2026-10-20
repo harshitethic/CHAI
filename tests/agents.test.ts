@@ -373,3 +373,123 @@ test("file appearing after model plan preparation is not overwritten", async () 
   );
   s.store.close();
 });
+
+test("queued steering finishes the active write, skips unstarted work and preserves the original goal", async () => {
+  let began!: () => void, release!: () => void;
+  const started = new Promise<void>((r) => {
+    began = r;
+  });
+  const gate = new Promise<void>((r) => {
+    release = r;
+  });
+  const adapter = new TestAdapter((r) => {
+    const input = JSON.parse(r.input);
+    assert.equal(input.goal, "Build the complete project");
+    if (r.phase === "assignment") return brief;
+    if (r.phase === "proposal")
+      return {
+        summary: "Apply the current request",
+        actions: input.followups.length
+          ? [{ tool: "write", path: "steered.txt", content: "new direction" }]
+          : [
+              { tool: "write", path: "first.txt", content: "retained" },
+              {
+                tool: "write",
+                path: "obsolete.txt",
+                content: "must not execute",
+              },
+            ],
+      };
+    if (r.phase === "independent-review") return passed;
+    return report;
+  });
+  const s = setup(adapter),
+    file = s.gateway.file.bind(s.gateway);
+  s.gateway.file = async (...args: Parameters<Gateway["file"]>) => {
+    if (args[1] === "write" && args[2] === "first.txt") {
+      began();
+      await gate;
+      assert.equal(args[4]?.aborted, false);
+    }
+    return file(...args);
+  };
+  try {
+    const id = await s.engine.create(
+      "Build the complete project",
+      s.root,
+      "browser",
+      "fixture",
+      undefined,
+      "workspace",
+    );
+    await started;
+    await s.engine.followup(id, "Add the new direction");
+    await s.engine.followup(id, "continue");
+    assert.equal(s.store.get(id).state, "RUNNING");
+    assert.equal(s.store.pendingFollowups(id).length, 2);
+    assert.equal(s.store.get(id).revision, undefined);
+    release();
+    await s.engine.idle();
+    assert.equal(s.store.get(id).state, "DONE");
+    assert.equal(readFileSync(join(s.root, "first.txt"), "utf8"), "retained");
+    assert.equal(
+      readFileSync(join(s.root, "steered.txt"), "utf8"),
+      "new direction",
+    );
+    assert(!existsSync(join(s.root, "obsolete.txt")));
+    assert.equal(s.store.pendingFollowups(id).length, 0);
+    assert.equal(s.store.get(id).revision, 1);
+    assert.deepEqual(
+      s.store.get(id).messages?.map((m) => m.text),
+      ["Add the new direction", "continue"],
+    );
+    assert.equal(s.store.actionEvidence(id).length, 2);
+    assert(!s.store.events(id).some((e) => e.kind === "TASK_PAUSED"));
+  } finally {
+    release();
+    await s.engine.idle();
+    s.store.close();
+  }
+});
+
+test("queued follow-ups survive restart and wait for resume before replanning", async () => {
+  const adapter = new TestAdapter((r) => {
+    assert.equal(JSON.parse(r.input).goal, "Original goal");
+    assert.equal(
+      JSON.parse(r.input).followups[0].text,
+      "Keep the original goal and add notes",
+    );
+    if (r.phase === "assignment") return brief;
+    if (r.phase === "proposal") return plan("hello");
+    if (r.phase === "independent-review") return passed;
+    return report;
+  });
+  const s = setup(adapter);
+  const t = s.store.create("Original goal", s.root, "browser", "fixture");
+  s.store.state(t.id, "RUNNING");
+  s.store.db
+    .prepare("INSERT INTO task_grants VALUES(?,?,?)")
+    .run(t.id, t.root, new Date().toISOString());
+  s.store.db
+    .prepare("INSERT INTO pending_followups(taskId,text,created) VALUES(?,?,?)")
+    .run(
+      t.id,
+      "Keep the original goal and add notes",
+      new Date().toISOString(),
+    );
+  s.store.close();
+  const store = new Store(s.db),
+    engine = new Engine(store, s.gateway, adapter);
+  try {
+    assert.equal(store.get(t.id).state, "PAUSED");
+    assert.equal(adapter.calls.length, 0);
+    assert.equal(store.pendingFollowups(t.id).length, 1);
+    await engine.resume(t.id);
+    await engine.idle();
+    assert.equal(store.get(t.id).state, "DONE");
+    assert.equal(store.pendingFollowups(t.id).length, 0);
+    assert.equal(readFileSync(join(s.root, "notes.txt"), "utf8"), "hello");
+  } finally {
+    store.close();
+  }
+});

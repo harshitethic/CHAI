@@ -14,17 +14,24 @@ import {
   type ActionEvidence,
 } from "../core/contracts";
 import { activityItem, progressView } from "./progress";
+import type { WorkPlan } from "../core/work-plan";
 
 export function TaskProgress({
   task,
   evidence,
+  workPlan,
 }: {
   task: Task;
   evidence: ActionEvidence[];
+  workPlan?: WorkPlan | null;
 }) {
   const view = progressView(task, evidence);
   const currentRole =
     task.agent?.phase === "finalize" ? "manager" : task.agent?.phase;
+  const milestones =
+    workPlan?.taskId === task.id && workPlan.revision === (task.revision ?? 0)
+      ? workPlan.steps
+      : [];
   return (
     <div className="work-overview">
       <section
@@ -65,6 +72,54 @@ export function TaskProgress({
           </div>
         )}
       </section>
+      {milestones.length > 0 && (
+        <section className="work-checklist milestones" aria-label="Work plan">
+          <header>
+            <ListChecks size={19} />
+            <h3>Work plan</h3>
+            <span>
+              {milestones.filter((s) => s.status === "completed").length} /{" "}
+              {milestones.length}
+            </span>
+          </header>
+          <p className="plan-explanation">
+            CHAI’s reported milestones. Checks and tool results are recorded
+            separately below.
+          </p>
+          <ol>
+            {milestones.map((step) => (
+              <li
+                key={step.id}
+                className={`milestone ${step.status}`}
+                aria-current={
+                  step.status === "in_progress" ? "step" : undefined
+                }
+              >
+                <span aria-hidden="true">
+                  {step.status === "completed" ? (
+                    <Check size={17} />
+                  ) : step.status === "blocked" ? (
+                    <TriangleAlert size={17} />
+                  ) : step.status === "in_progress" && view.active ? (
+                    <LoaderCircle size={17} className="spin" />
+                  ) : (
+                    <Circle size={17} />
+                  )}
+                </span>
+                <div>
+                  <strong>{step.title}</strong>
+                  {step.detail && <p>{step.detail}</p>}
+                  <small>
+                    {step.status === "in_progress" && !view.active
+                      ? "Pending continuation"
+                      : step.status.replaceAll("_", " ")}
+                  </small>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
       <section className="work-checklist" aria-label="Task checklist">
         <header>
           <ListChecks size={19} />

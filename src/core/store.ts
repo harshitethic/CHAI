@@ -2,6 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 import { chmodSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { randomUUID } from "node:crypto";
+import type { WorkPlan } from "./work-plan";
 import {
   redact,
   type Event,
@@ -26,12 +27,30 @@ export class Store {
   CREATE TABLE IF NOT EXISTS task_grants(taskId TEXT PRIMARY KEY,root TEXT NOT NULL,granted TEXT NOT NULL);
   CREATE TABLE IF NOT EXISTS host_grants(taskId TEXT PRIMARY KEY,root TEXT NOT NULL,granted TEXT NOT NULL);
   CREATE TABLE IF NOT EXISTS task_images(id TEXT PRIMARY KEY,taskId TEXT NOT NULL,data TEXT NOT NULL,created TEXT NOT NULL);
+  CREATE TABLE IF NOT EXISTS work_plans(taskId TEXT PRIMARY KEY,body TEXT NOT NULL);
+  CREATE TABLE IF NOT EXISTS pending_followups(id INTEGER PRIMARY KEY AUTOINCREMENT,taskId TEXT NOT NULL,text TEXT NOT NULL,created TEXT NOT NULL);
+  CREATE TABLE IF NOT EXISTS browser_progress(jobId TEXT NOT NULL,sequence INTEGER NOT NULL,body TEXT NOT NULL,PRIMARY KEY(jobId,sequence));
   PRAGMA user_version=4;`);
   }
   put(task: Task) {
     this.db
       .prepare("INSERT OR REPLACE INTO tasks VALUES (?,?)")
       .run(task.id, JSON.stringify(task));
+  }
+  workPlan(taskId: string): WorkPlan | null {
+    const row = this.db
+      .prepare("SELECT body FROM work_plans WHERE taskId=?")
+      .get(taskId);
+    if (!row) return null;
+    const plan = JSON.parse(String(row.body)) as WorkPlan;
+    return plan.revision === (this.get(taskId).revision ?? 0) ? plan : null;
+  }
+  pendingFollowups(taskId: string): { text: string; created: string }[] {
+    return this.db
+      .prepare(
+        "SELECT text,created FROM pending_followups WHERE taskId=? ORDER BY id",
+      )
+      .all(taskId) as { text: string; created: string }[];
   }
   get(id: string): Task {
     const row = this.db.prepare("SELECT body FROM tasks WHERE id=?").get(id);

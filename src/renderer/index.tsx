@@ -835,6 +835,9 @@ function App() {
                   <TaskProgress
                     key={"progress-" + task.id}
                     task={task}
+                    workPlan={
+                      data.evidenceTaskId === task.id ? data.workPlan : null
+                    }
                     evidence={
                       data.evidenceTaskId === task.id
                         ? (data.effects ?? [])

@@ -8,6 +8,7 @@ import { z } from "zod";
 import { BrowserBridge } from "./browser-bridge";
 import { ToolConnectionAuth } from "./tool-connection-auth";
 import { redact } from "./contracts";
+import { progressUpdateSchema } from "./work-plan";
 export class ToolServer {
   readonly http: Server;
   auth?: ToolConnectionAuth;
@@ -148,7 +149,7 @@ export class ToolServer {
     this.route = route;
   }
   createMcp() {
-    const mcp = new McpServer({ name: "CHAI", version: "0.6.0-alpha.1" });
+    const mcp = new McpServer({ name: "CHAI", version: "0.10.0-alpha.1" });
     const role = z.enum(["manager", "builder", "reviewer"]);
     const result = (data: unknown) => ({
       content: [{ type: "text" as const, text: JSON.stringify(data) }],
@@ -223,6 +224,30 @@ export class ToolServer {
           return result(
             this.bridge.answer(jobId, role, JSON.parse(resultJSON)),
           );
+        } catch (e) {
+          return { ...result({ error: redact(String(e)) }), isError: true };
+        }
+      },
+    );
+    mcp.registerTool(
+      "chai_report_progress",
+      {
+        title: "Update CHAI progress and work plan",
+        description:
+          "Send a short public update during your exact assigned job. Optionally replace the milestone plan using its current planVersion from chai_get_job. Use stable milestone IDs and at most one in_progress step. Report observed outcomes only; this neither executes tools nor marks the task done. Sequence starts at nextSequence from chai_get_job; retry identical content with the same sequence. Do not send private reasoning.",
+        inputSchema: z
+          .object({ jobId: z.uuid(), role, update: progressUpdateSchema })
+          .strict(),
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
+      },
+      async ({ jobId, role, update }) => {
+        try {
+          return result(this.bridge.progress(jobId, role, update));
         } catch (e) {
           return { ...result({ error: redact(String(e)) }), isError: true };
         }

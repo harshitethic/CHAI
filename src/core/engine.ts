@@ -152,6 +152,7 @@ export class Engine {
         );
       if (t.mode === "browser") {
         await this.coordinator.prepare(t, ctrl.signal);
+        if (ctrl.signal.aborted || this.applyPendingFollowups(t.id)) return;
         this.continueAuthorized(t.id);
         return;
       }
@@ -318,6 +319,7 @@ export class Engine {
         if (signal.aborted) throw Error("Canceled");
         t = this.store.get(id);
         if (t.state !== "RUNNING") return;
+        if (this.applyPendingFollowups(id)) return;
         const grant = this.store.db
           .prepare("SELECT * FROM approvals WHERE taskId=?")
           .get(id);
@@ -512,6 +514,7 @@ export class Engine {
           `Step ${idx + 1}/${t.plan!.actions.length} persisted.`,
         );
       }
+      if (this.applyPendingFollowups(id)) return;
       t = this.store.state(id, "VALIDATING");
       const effects = this.store.db
         .prepare("SELECT state FROM effects WHERE taskId=?")
@@ -526,6 +529,7 @@ export class Engine {
       if (t.mode === "browser") {
         if (!t.agent) this.coordinator.initialize(t).phase = "execute";
         const complete = await this.coordinator.review(t, signal);
+        if (signal.aborted || this.applyPendingFollowups(id)) return;
         if (!complete) {
           this.continueAuthorized(id);
           return;
@@ -610,7 +614,27 @@ export class Engine {
       "Paused; new execution requires fresh approval.",
     );
   }
-  async followup(id: string, text: string) {
+  async followup(id: string, text: string, interrupt = false) {
+    if (this.store.get(id).mode !== "browser")
+      throw Error("Follow-up planning requires a ChatGPT task");
+    if (this.store.pendingFollowups(id).length >= 12)
+      throw Error(
+        "Twelve follow-ups are already queued; let the current step finish",
+      );
+    if (this.active.has(id) && !interrupt) {
+      this.store.db
+        .prepare(
+          "INSERT INTO pending_followups(taskId,text,created) VALUES(?,?,?)",
+        )
+        .run(id, text, new Date().toISOString());
+      this.store.event(
+        id,
+        "manager",
+        "FOLLOWUP_QUEUED",
+        "Your follow-up will be applied after the current planning, action or review step finishes.",
+      );
+      return;
+    }
     if (this.active.has(id)) {
       this.pause(id);
       for (let i = 0; this.active.has(id) && i < 200; i++)
@@ -620,13 +644,32 @@ export class Engine {
           "The current operation is still stopping; retry the follow-up shortly",
         );
     }
+    this.store.db
+      .prepare(
+        "INSERT INTO pending_followups(taskId,text,created) VALUES(?,?,?)",
+      )
+      .run(id, text, new Date().toISOString());
+    this.applyPendingFollowups(id, true);
+  }
+  private applyPendingFollowups(id: string, explicit = false) {
     const task = this.store.get(id);
-    if (task.mode !== "browser")
-      throw Error("Follow-up planning requires a ChatGPT task");
-    task.messages = [
-      ...(task.messages ?? []),
-      { text, created: new Date().toISOString() },
-    ];
+    if (
+      !explicit &&
+      ["PAUSED", "CANCELED", "FAILED", "WAITING_PROVIDER"].includes(task.state)
+    )
+      return false;
+    const pending = this.store.pendingFollowups(id);
+    if (!pending.length) return false;
+    if (
+      !explicit &&
+      this.store.db
+        .prepare(
+          "SELECT 1 FROM effects WHERE taskId=? AND state='STARTED' LIMIT 1",
+        )
+        .get(id)
+    )
+      return false;
+    task.messages = [...(task.messages ?? []), ...pending];
     task.revision = (task.revision ?? 0) + 1;
     // Retain all applied and uncertain effects. Supersede only actions that never started.
     const started = this.store.db
@@ -640,18 +683,30 @@ export class Engine {
     task.cursor = keep;
     task.budgetStart = keep;
     task.agent = undefined;
-    this.store.db
-      .prepare(
-        "UPDATE effects SET state='INTERRUPTED' WHERE taskId=? AND state='STARTED'",
-      )
-      .run(id);
     task.error = null;
     task.recoverable = false;
     task.approved = false;
-    this.store.put(task);
-    this.store.db.prepare("DELETE FROM approvals WHERE taskId=?").run(id);
-    this.store.event(id, "manager", "USER_FOLLOWUP", text);
+    this.store.db.exec("BEGIN IMMEDIATE");
+    try {
+      this.store.db
+        .prepare(
+          "UPDATE effects SET state='INTERRUPTED' WHERE taskId=? AND state='STARTED'",
+        )
+        .run(id);
+      this.store.put(task);
+      this.store.db.prepare("DELETE FROM approvals WHERE taskId=?").run(id);
+      this.store.db
+        .prepare("DELETE FROM pending_followups WHERE taskId=?")
+        .run(id);
+      for (const message of pending)
+        this.store.event(id, "manager", "USER_FOLLOWUP", message.text);
+      this.store.db.exec("COMMIT");
+    } catch (error) {
+      this.store.db.exec("ROLLBACK");
+      throw error;
+    }
     this.schedulePlan(id);
+    return true;
   }
   async resume(id: string) {
     const t = this.store.get(id);
@@ -663,6 +718,7 @@ export class Engine {
       throw Error("Task cannot resume from this state");
     if (this.active.has(id))
       throw Error("Wait for canceled operation to finish");
+    if (this.applyPendingFollowups(id, true)) return;
     if (
       t.mode === "browser" &&
       (!t.plan || ["manager", "builder"].includes(t.agent?.phase ?? "manager"))
