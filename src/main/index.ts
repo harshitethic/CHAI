@@ -784,6 +784,7 @@ app
         case "approve":
           return engine.approve(req.id, req.allow);
         case "resume":
+          bridge.retryPending(req.id);
           return engine.resume(req.id);
         case "revoke":
           computer.closeTask(req.id);

@@ -46,6 +46,27 @@ export class BrowserBridge implements AgentAdapter {
         .get(taskId),
     );
   }
+  /** Explicit user retry may re-deliver an unanswered job; restart alone never does. */
+  retryPending(taskId: string) {
+    const task = this.store.get(taskId);
+    if (!["WAITING_PROVIDER", "PAUSED"].includes(task.state))
+      throw Error(
+        "Wait for the current provider request to finish before retrying",
+      );
+    const result = this.store.db
+      .prepare(
+        "DELETE FROM browser_delivery WHERE id IN (SELECT j.id FROM browser_jobs j JOIN agent_calls a ON a.id=j.callKey WHERE j.taskId=? AND j.status='WAITING' AND a.status='FAILED')",
+      )
+      .run(taskId);
+    if (result.changes)
+      this.store.event(
+        taskId,
+        "manager",
+        "PROVIDER_RETRY_REQUESTED",
+        "Retrying the unanswered ChatGPT request with the same job identity. Completed tool actions are retained.",
+      );
+    return Number(result.changes);
+  }
   async send(request: AgentRequest, signal: AbortSignal): Promise<unknown> {
     if (!request.taskId || !request.callId)
       throw new ProviderUnavailable(

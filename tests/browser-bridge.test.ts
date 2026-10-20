@@ -338,6 +338,64 @@ test("browser result survives database restart; completed jobs are immutable and
   assert.equal(bridge.jobs().length, 1);
   store.close();
 });
+test("explicit provider retry redelivers an unanswered failed call once with the same job identity", async () => {
+  const base = mkdtempSync(join(tmpdir(), "chai-explicit-retry-"));
+  const store = new Store(join(base, "state.sqlite"));
+  const bridge = new BrowserBridge(store);
+  const task = store.create("fixture", base, "browser", "browser");
+  const request = {
+    taskId: task.id,
+    callId: "failed-call",
+    role: "manager" as const,
+    phase: "assignment",
+    model: "browser",
+    system: "fixture",
+    input: "{}",
+    schema: {},
+  };
+  const id = crypto.randomUUID(),
+    created = new Date().toISOString();
+  store.db
+    .prepare("INSERT INTO browser_jobs VALUES(?,?,?,?,?,?,?,?)")
+    .run(
+      id,
+      request.callId,
+      task.id,
+      "manager",
+      JSON.stringify(request),
+      null,
+      "WAITING",
+      created,
+    );
+  store.db.prepare("INSERT INTO browser_delivery VALUES(?,?)").run(id, created);
+  store.db
+    .prepare("INSERT INTO agent_calls VALUES(?,?,?,?,?,?,?,?)")
+    .run(request.callId, task.id, "manager", 1, "FAILED", "{}", null, created);
+  assert.throws(() => bridge.retryPending(task.id), /current provider request/);
+  store.state(task.id, "WAITING_PROVIDER");
+  assert.equal(bridge.retryPending(task.id), 1);
+  assert.equal(bridge.retryPending(task.id), 0);
+  bridge.connected = true;
+  let deliveries = 0;
+  bridge.deliver = async (role, jobId) => {
+    deliveries++;
+    assert.equal(jobId, id);
+    bridge.answer(jobId, role, brief);
+  };
+  assert.deepEqual(
+    await bridge.send(request, new AbortController().signal),
+    brief,
+  );
+  assert.equal(deliveries, 1);
+  assert.equal(bridge.jobs().length, 1);
+  assert.equal(bridge.retryPending(task.id), 0);
+  assert.deepEqual(
+    await bridge.send(request, new AbortController().signal),
+    brief,
+  );
+  assert.equal(deliveries, 1);
+  store.close();
+});
 test("normal tool-server shutdown preserves pairing; explicit disconnect revokes it", async () => {
   const s = await setup();
   const grant = (await (await s.token(s.verifier)).json()) as {

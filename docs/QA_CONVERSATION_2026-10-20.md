@@ -12,7 +12,7 @@ Informational questions may use a no-action answer path. The answer is independe
 
 ## Local/native checks
 
-- TypeScript, lint, build and 71 automated checks passed on Kali.
+- TypeScript, lint, build and 72 automated checks passed on Kali.
 - Native Electron E2E passed: file writes, approvals, restart/reload, sandbox, browser, Git confirmation, progress and multiple widths.
 - Native workbench passed: fresh-project isolation from a selected source, persisted conversation rendering after reload, real fail/fix/pass terminal workflow, preview, durable sessions, host consent and manual commands.
 - The native screenshot in `qa/conversation-workspace.png` uses a scripted response fixture. It is not live model-quality evidence.
@@ -28,3 +28,9 @@ The result is a 2D arcade prototype, not the requested realistic game or a real 
 ## Limits of this evidence
 
 Instruction changes request more natural summaries and review the full user outcome; passing fixture tests does not establish equal model quality or reliability to Codex/Work. CHAI still uses normal signed-in ChatGPT conversations with structured job returns. It does not stream model tokens, bypass provider limits, or reproduce proprietary first-party infrastructure. Live provider and publication results must be recorded separately.
+
+## Retry and release environment correction
+
+Explicit Resume/Retry now allows re-delivery of an unanswered failed provider call using its existing job ID. An ordinary restart still preserves the delivery receipt; answered jobs remain immutable and no execution effects are replayed. Regression coverage checks all three cases.
+
+The first release attempt ran on the newly selected Ubuntu 26.04 image and failed Bubblewrap network-namespace setup with `RTM_NEWADDR: Operation not permitted`. CI and release are now pinned to Ubuntu 24.04. Isolation flags and test assertions were not weakened; Ubuntu 26.04 compatibility remains unverified.
