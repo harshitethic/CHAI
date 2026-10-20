@@ -7,7 +7,12 @@ import {
   ListChecks,
   Activity,
 } from "lucide-react";
-import type { Task, Event, ActionEvidence } from "../core/contracts";
+import {
+  taskLimits,
+  type Task,
+  type Event,
+  type ActionEvidence,
+} from "../core/contracts";
 import { activityItem, progressView } from "./progress";
 
 export function TaskProgress({
@@ -54,8 +59,8 @@ export function TaskProgress({
               </span>
             ))}
             <small>
-              Round {task.agent.round}/{task.autonomous ? 12 : 3} ·{" "}
-              {task.agent.calls}/{task.autonomous ? 60 : 15} role calls
+              Round {task.agent.round}/{taskLimits(task).rounds} ·{" "}
+              {task.agent.calls}/{taskLimits(task).calls} role calls
             </small>
           </div>
         )}

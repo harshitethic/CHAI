@@ -13,6 +13,9 @@ const sandboxPath = z
 export const capabilitiesSchema = z
   .object({
     project: z.boolean().optional(),
+    host: z.boolean().optional(),
+    durable: z.boolean().optional(),
+    budget: z.enum(["standard", "extended"]).optional(),
     network: z.boolean().optional(),
     connectors: z
       .array(z.string().regex(/^[a-z0-9-]{1,40}$/))
@@ -40,9 +43,10 @@ export const capabilitiesSchema = z
       .default([]),
     desktop: z
       .object({
-        id: z.string().regex(/^window:[0-9]+:[0-9]+$/),
+        id: z.string().regex(/^(?:window:[0-9]+:[0-9]+|portal:[a-f0-9-]{36})$/),
         title: z.string().max(500),
-        pid: z.number().int().positive(),
+        pid: z.number().int().positive().optional(),
+        backend: z.enum(["x11", "wayland"]).optional(),
       })
       .strict()
       .optional(),
@@ -200,6 +204,7 @@ export const actionSchema = z.discriminatedUnion("tool", [
   z
     .object({
       tool: z.literal("terminal"),
+      target: z.enum(["project", "host"]).optional(),
       operation: z.enum(["start", "poll", "input", "stop"]),
       sessionId: z.uuid().optional(),
       program: z
@@ -223,7 +228,12 @@ export const actionSchema = z.discriminatedUnion("tool", [
         )
         .max(80)
         .default([]),
-      cwd: sandboxPath.optional(),
+      cwd: z
+        .string()
+        .min(1)
+        .max(4096)
+        .refine((v) => !v.includes("\0"))
+        .optional(),
       input: z.string().max(16000).optional(),
       timeoutSeconds: z.number().int().min(1).max(7200).default(300),
       background: z.boolean().default(false),
@@ -392,8 +402,14 @@ export interface Snapshot {
   preview?: { url: string; image?: string; title?: string; errors?: string[] };
   background?: boolean;
   startup?: boolean;
-  desktopSupport?: { available: boolean; reason: string };
-  connectors?: { name: string; url: string }[];
+  desktopSupport?: {
+    available: boolean;
+    reason: string;
+    backend?: "x11" | "wayland";
+  };
+  connectors?: (ConnectorConfig & {
+    authStatus?: "signed-in" | "signed-out" | "signing-in";
+  })[];
   bridge: {
     preferredOrigin: string;
     state: string;
@@ -410,10 +426,21 @@ export interface Snapshot {
     }[];
   };
 }
+export interface ConnectorConfig {
+  name: string;
+  url: string;
+  auth?: "bearer" | "oauth";
+  clientId?: string;
+  issuer?: string;
+  redirectPort?: number;
+}
 export interface TerminalSession {
   id: string;
   taskId: string;
   program: string;
+  target?: "project" | "host";
+  durable?: boolean;
+  effectKey?: string;
   args: string[];
   cwd: string;
   state: "running" | "exited" | "interrupted";
@@ -432,6 +459,19 @@ export interface Artifact {
   mime: string;
 }
 export const requestSchema = z.discriminatedUnion("op", [
+  z
+    .object({
+      op: z.literal("terminal-start"),
+      id: z.uuid(),
+      command: z
+        .string()
+        .min(1)
+        .max(16000)
+        .refine((v) => !v.includes("\0")),
+      target: z.enum(["project", "host"]),
+      background: z.boolean().default(true),
+    })
+    .strict(),
   z.object({ op: z.literal("snapshot"), id: z.uuid().optional() }).strict(),
   z.object({ op: z.literal("workspace") }).strict(),
   z
@@ -495,6 +535,28 @@ export const requestSchema = z.discriminatedUnion("op", [
       name: z.string().regex(/^[a-z0-9-]{1,40}$/),
       url: z.string().url(),
       token: z.string().max(8000).optional(),
+      auth: z.enum(["bearer", "oauth"]).optional(),
+      clientId: z.string().max(2000).optional(),
+      issuer: z.string().url().optional(),
+      redirectPort: z.number().int().min(1024).max(65535).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      op: z.literal("connector-sign-in"),
+      name: z.string().regex(/^[a-z0-9-]{1,40}$/),
+    })
+    .strict(),
+  z
+    .object({
+      op: z.literal("connector-sign-out"),
+      name: z.string().regex(/^[a-z0-9-]{1,40}$/),
+    })
+    .strict(),
+  z
+    .object({
+      op: z.literal("connector-cancel"),
+      name: z.string().regex(/^[a-z0-9-]{1,40}$/),
     })
     .strict(),
   z
@@ -570,4 +632,12 @@ export function redact(value: string) {
       /((?:password|token|api[_-]?key|authorization)\s*[:=]\s*)\S+/gi,
       "$1[REDACTED]",
     );
+}
+
+export function taskLimits(task: Task, authorized = Boolean(task.autonomous)) {
+  return authorized
+    ? task.capabilities?.budget === "extended"
+      ? { rounds: 50, calls: 250, actions: 600 }
+      : { rounds: 12, calls: 60, actions: 144 }
+    : { rounds: 3, calls: 15, actions: 36 };
 }

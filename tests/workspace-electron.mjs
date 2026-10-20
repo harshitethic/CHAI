@@ -52,11 +52,11 @@ async function waitState(id, state) {
 }
 try {
   page = await app.firstWindow();
+  page.setDefaultTimeout(15000);
   await page
     .getByRole("heading", { name: "Stop chatting. Start doing." })
     .waitFor();
-  // Simulate Wayland indicators under the X11 test runner: no native input
-  // or confirmation may be reached through either desktop IPC entry point.
+  // Wayland uses portal sharing. Manual X11 input must never fall back to XWayland.
   const savedDisplay = await app.evaluate(() => {
     const saved = process.env.WAYLAND_DISPLAY;
     process.env.WAYLAND_DISPLAY = "wayland-fixture";
@@ -67,36 +67,16 @@ try {
       async () =>
         (await window.chai.request({ op: "snapshot" })).desktopSupport,
     );
-    assert.equal(support.available, false);
-    for (const request of [
-      { op: "desktop-select" },
-      { op: "desktop-click", x: 0, y: 0 },
-    ]) {
-      const error = await page.evaluate(async (request) => {
-        try {
-          await window.chai.request(request);
-          return "unexpected success";
-        } catch (error) {
-          return String(error);
-        }
-      }, request);
-      assert.match(error, /Wayland desktop control is not implemented/);
-    }
-    await page
-      .getByText("Project, browser and app access", { exact: true })
-      .click();
-    await page.waitForFunction(
-      () => document.querySelector("button[title*='Wayland']")?.disabled,
-    );
-    assert.equal(
-      await page
-        .getByRole("button", { name: "Choose desktop window" })
-        .isDisabled(),
-      true,
-    );
-    await page
-      .getByText("Project, browser and app access", { exact: true })
-      .click();
+    assert.equal(support.backend, "wayland");
+    const error = await page.evaluate(async () => {
+      try {
+        await window.chai.request({ op: "desktop-click", x: 0, y: 0 });
+        return "unexpected success";
+      } catch (error) {
+        return String(error);
+      }
+    });
+    assert.match(error, /manual click tool requires X11/);
   } finally {
     await app.evaluate((_electron, saved) => {
       if (saved === undefined) delete process.env.WAYLAND_DISPLAY;
@@ -154,6 +134,8 @@ try {
         permission: "workspace",
         capabilities: {
           project: true,
+          durable: true,
+          budget: "extended",
           network: true,
           browser: true,
           origins: [],
@@ -308,6 +290,20 @@ try {
       .find((w) => w.webContents.getURL().startsWith("file:"))
       .show(),
   );
+  await app.close();
+  assert.equal(await (await fetch("http://127.0.0.1:19877/")).status, 200);
+  app = await launch();
+  page = await app.firstWindow();
+  page.setDefaultTimeout(15000);
+  await page
+    .getByRole("heading", { name: "Stop chatting. Start doing." })
+    .waitFor();
+  snapshot = await page.evaluate(
+    (id) => window.chai.request({ op: "snapshot", id }),
+    id,
+  );
+  assert.equal(snapshot.sessions[2].state, "running");
+  assert.equal(snapshot.sessions[2].durable, true);
   await page.evaluate(() => window.chai.request({ op: "stop" }));
   for (let i = 0; i < 100; i++) {
     snapshot = await page.evaluate(
@@ -321,6 +317,7 @@ try {
   await app.close();
   app = await launch();
   page = await app.firstWindow();
+  page.setDefaultTimeout(15000);
   await page
     .getByRole("heading", { name: "Stop chatting. Start doing." })
     .waitFor();
@@ -352,6 +349,7 @@ try {
           "declined download leaves no output",
           "confirmed download bytes and registration",
           "tray continuation",
+          "durable project server survives app quit and reconnects",
           "Stop all",
           "restart persisted sessions without replay",
         ],
@@ -359,6 +357,65 @@ try {
       null,
       2,
     ),
+  );
+  // Test native grant denial/acceptance and the real host command UI in this disposable profile.
+  const hostRequest = {
+    op: "create",
+    goal: "Host terminal UI fixture",
+    mode: "assisted",
+    model: "native fixture",
+    permission: "workspace",
+    capabilities: { host: true, durable: true, browser: false, origins: [] },
+    plan: JSON.stringify({
+      summary: "Read fixture",
+      actions: [{ tool: "read", path: "sum.cjs" }],
+    }),
+  };
+  await app.evaluate(({ dialog }) => {
+    dialog.showMessageBox = async () => ({ response: 0 });
+  });
+  const denied = await page.evaluate(async (request) => {
+    try {
+      await window.chai.request(request);
+      return "unexpected success";
+    } catch (error) {
+      return String(error);
+    }
+  }, hostRequest);
+  assert.match(denied, /not authorized/);
+  await app.evaluate(({ dialog }) => {
+    dialog.showMessageBox = async () => ({ response: 1 });
+  });
+  const hostId = await page.evaluate(
+    (request) => window.chai.request(request),
+    hostRequest,
+  );
+  await waitState(hostId, "DONE");
+  await page
+    .getByRole("button", { name: /Host terminal UI fixture/ })
+    .first()
+    .click();
+  await page.getByRole("tab", { name: "Terminal" }).click();
+  await page
+    .getByLabel("New terminal command")
+    .fill("printf 'HOST_UI_VERIFIED' > host-ui.txt; cat host-ui.txt");
+  assert.equal(
+    await page.getByLabel("Command environment").inputValue(),
+    "host",
+  );
+  await page.getByRole("button", { name: "Run", exact: true }).click();
+  await page
+    .getByLabel("Terminal output")
+    .filter({ hasText: "HOST_UI_VERIFIED" })
+    .waitFor();
+  assert.equal(
+    readFileSync(join(root, "host-ui.txt"), "utf8"),
+    "HOST_UI_VERIFIED",
+  );
+  await page.screenshot({ path: ".qa/host-terminal-ui.png" });
+  await page.evaluate(
+    (id) => window.chai.request({ op: "revoke", id }),
+    hostId,
   );
   if (await app.evaluate(({ app }) => app.isPackaged)) {
     const previousHome = await app.evaluate(({ app }, home) => {

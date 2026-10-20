@@ -32,4 +32,7 @@ await copyFile("src/core/files.py", "dist/files.py");
 await copyFile("src/core/sandbox.py", "dist/sandbox.py");
 
 await copyFile("src/core/artifacts.py", "dist/artifacts.py");
+await copyFile("src/core/wayland.py", "dist/wayland.py");
 await copyFile("assets/icon.png", "dist/icon.png");
+
+await copyFile("src/core/terminal-worker.py", "dist/terminal-worker.py");

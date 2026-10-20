@@ -12,10 +12,13 @@ import {
   readFile,
 } from "node:fs/promises";
 import { join, dirname, resolve } from "node:path";
+import { homedir } from "node:os";
 import type { Action, Task, TerminalSession, Artifact } from "./contracts";
 import { redact } from "./contracts";
 import type { Store } from "./store";
 import type { Gateway } from "./gateway";
+
+import { DurableTerminals } from "./durable-terminal";
 
 const excluded = new Set([
   ".git",
@@ -196,6 +199,7 @@ export async function projectFiles(root: string, limit = 20000) {
   return { files: files.sort(), truncated };
 }
 export class ProjectRuntime {
+  readonly durable: DurableTerminals;
   private running = new Map<
     string,
     {
@@ -216,6 +220,9 @@ export class ProjectRuntime {
     readonly gateway: Gateway,
     readonly directory: string,
   ) {
+    this.durable = new DurableTerminals(
+      join(dirname(directory), "terminal-workers"),
+    );
     store.db.exec(
       "CREATE TABLE IF NOT EXISTS terminal_sessions(id TEXT PRIMARY KEY,taskId TEXT NOT NULL,body TEXT NOT NULL); CREATE TABLE IF NOT EXISTS artifacts(taskId TEXT NOT NULL,path TEXT NOT NULL,body TEXT NOT NULL,PRIMARY KEY(taskId,path));",
     );
@@ -223,7 +230,7 @@ export class ProjectRuntime {
       .prepare("SELECT body FROM terminal_sessions")
       .all()) {
       const session = JSON.parse(String(r.body)) as TerminalSession;
-      if (session.state === "running") {
+      if (session.state === "running" && !session.durable) {
         session.state = "interrupted";
         session.termination = "Application restarted; command was not replayed";
         this.save(session);
@@ -253,7 +260,7 @@ export class ProjectRuntime {
         "SELECT body FROM terminal_sessions WHERE taskId=? ORDER BY rowid",
       )
       .all(taskId)
-      .map((r) => JSON.parse(String(r.body)));
+      .map((r) => this.durable.refresh(JSON.parse(String(r.body))));
   }
   private owned(task: Task, id?: string) {
     const s = this.sessions(task.id).find((s) => s.id === id);
@@ -358,12 +365,19 @@ export class ProjectRuntime {
     task: Task,
     a: Extract<Action, { tool: "terminal" }>,
     signal: AbortSignal,
+    effectKey?: string,
   ) {
-    this.assert(task);
     signal.throwIfAborted();
     if (a.operation !== "start") {
       const s = this.owned(task, a.sessionId);
       if (a.operation === "input") {
+        if (s.target === "host" && !this.store.hasHostGrant(task))
+          throw Error("Host execution grant was revoked");
+        if (s.durable) {
+          if (s.state !== "running") throw Error("Session is not running");
+          this.durable.control(s.id, "input", a.input ?? "");
+          return s;
+        }
         const live = this.running.get(s.id);
         if (!live) throw Error("Session is not running");
         live.child.stdin.write(a.input ?? "");
@@ -371,94 +385,138 @@ export class ProjectRuntime {
       if (a.operation === "stop") this.stopSession(task, s.id);
       return this.owned(task, s.id);
     }
+    const host = a.target === "host";
+    if (host) {
+      if (!this.store.hasHostGrant(task))
+        throw Error("Host execution requires a native task grant");
+    } else this.assert(task);
+    const previous =
+      effectKey &&
+      this.sessions(task.id).find((s) => s.effectKey === effectKey);
+    if (previous) {
+      if (!previous.durable || previous.state === "interrupted")
+        throw Error(
+          "Interrupted terminal has unknown outcome; inspect its evidence",
+        );
+      return a.background ? previous : this.durable.wait(previous, signal);
+    }
     if (!a.program) throw Error("Program required");
-    if (!existsSync("/usr/bin/bwrap"))
+    if (!host && !existsSync("/usr/bin/bwrap"))
       throw Error("Bubblewrap is required; no host-shell fallback");
-    if (a.port && (!a.background || !task.capabilities?.network))
+    if (a.port && (!a.background || (!host && !task.capabilities?.network)))
       throw Error(
         "Preview server requires background mode and task network access",
       );
-    if (this.running.size >= 6)
+    if (
+      this.store
+        .tasks()
+        .flatMap((t) => this.sessions(t.id))
+        .filter((s) => s.state === "running").length >= 6
+    )
       throw Error("Six active sessions maximum; stop an existing session");
-    const cwd = a.cwd ? safeProjectPath(a.cwd) : "";
-    if (cwd && (await realpath(join(task.root, cwd))) !== join(task.root, cwd))
+    const cwd = host
+      ? await realpath(resolve(task.sourceRoot ?? task.root, a.cwd ?? "."))
+      : a.cwd
+        ? safeProjectPath(a.cwd)
+        : "";
+    if (
+      !host &&
+      cwd &&
+      (await realpath(join(task.root, cwd))) !== join(task.root, cwd)
+    )
       throw Error("Unsafe working directory");
-    const args = [
-      "--unshare-all",
-      "--unshare-user",
-      "--disable-userns",
-      "--die-with-parent",
-      "--new-session",
-      "--cap-drop",
-      "ALL",
-    ];
-    if (task.capabilities?.network) args.push("--share-net");
-    for (const p of ["/usr", "/bin", "/lib", "/lib64"])
-      if (existsSync(p)) args.push("--ro-bind", p, p);
-    args.push(
-      "--proc",
-      "/proc",
-      "--dev",
-      "/dev",
-      "--tmpfs",
-      "/tmp",
-      "--dir",
-      "/home",
-      "--dir",
-      "/home/chai",
-      "--dir",
-      "/etc",
-    );
-    for (const p of [
-      "/etc/ssl",
-      "/etc/resolv.conf",
-      "/etc/hosts",
-      "/etc/nsswitch.conf",
-    ])
-      if (existsSync(p)) args.push("--ro-bind", p, p);
-    args.push(
-      "--bind",
-      task.root,
-      "/workspace",
-      "--tmpfs",
-      "/workspace/.git",
-      "--chdir",
-      "/workspace" + (cwd ? "/" + cwd : ""),
-      "--clearenv",
-      "--setenv",
-      "PATH",
-      "/workspace/node_modules/.bin:/usr/local/bin:/usr/bin:/bin",
-      "--setenv",
-      "HOME",
-      "/home/chai",
-      "--setenv",
-      "LANG",
-      "C.UTF-8",
-      "--setenv",
-      "CI",
-      "1",
-      "--setenv",
-      "PIP_DISABLE_PIP_VERSION_CHECK",
-      "1",
-      "--setenv",
-      "npm_config_cache",
-      "/workspace/.cache/npm",
-      "--setenv",
-      "PYTHONUNBUFFERED",
-      "1",
-      a.program,
-      ...a.args,
-    );
-    const child = spawn("/usr/bin/bwrap", args, {
-      cwd: task.root,
-      detached: true,
-      env: { PATH: "/usr/bin:/bin", LANG: "C.UTF-8" },
-      stdio: ["pipe", "pipe", "pipe"],
-    });
+    const args = host
+      ? [...a.args]
+      : [
+          "--unshare-all",
+          "--unshare-user",
+          "--disable-userns",
+          "--die-with-parent",
+          "--new-session",
+          "--cap-drop",
+          "ALL",
+        ];
+    if (!host) {
+      if (task.capabilities?.network) args.push("--share-net");
+      for (const p of ["/usr", "/bin", "/lib", "/lib64"])
+        if (existsSync(p)) args.push("--ro-bind", p, p);
+      args.push(
+        "--proc",
+        "/proc",
+        "--dev",
+        "/dev",
+        "--tmpfs",
+        "/tmp",
+        "--dir",
+        "/home",
+        "--dir",
+        "/home/chai",
+        "--dir",
+        "/etc",
+      );
+      for (const p of [
+        "/etc/ssl",
+        "/etc/resolv.conf",
+        "/etc/hosts",
+        "/etc/nsswitch.conf",
+      ])
+        if (existsSync(p)) args.push("--ro-bind", p, p);
+      args.push(
+        "--bind",
+        task.root,
+        "/workspace",
+        "--tmpfs",
+        "/workspace/.git",
+        "--chdir",
+        "/workspace" + (cwd ? "/" + cwd : ""),
+        "--clearenv",
+        "--setenv",
+        "PATH",
+        "/workspace/node_modules/.bin:/usr/local/bin:/usr/bin:/bin",
+        "--setenv",
+        "HOME",
+        "/home/chai",
+        "--setenv",
+        "LANG",
+        "C.UTF-8",
+        "--setenv",
+        "CI",
+        "1",
+        "--setenv",
+        "PIP_DISABLE_PIP_VERSION_CHECK",
+        "1",
+        "--setenv",
+        "npm_config_cache",
+        "/workspace/.cache/npm",
+        "--setenv",
+        "PYTHONUNBUFFERED",
+        "1",
+        a.program,
+        ...a.args,
+      );
+    }
+    const env: NodeJS.ProcessEnv = host
+      ? {
+          PATH: process.env.PATH ?? "/usr/local/bin:/usr/bin:/bin",
+          HOME: homedir(),
+          USER: process.env.USER,
+          LANG: process.env.LANG ?? "C.UTF-8",
+          TERM: "xterm-256color",
+          DISPLAY: process.env.DISPLAY,
+          WAYLAND_DISPLAY: process.env.WAYLAND_DISPLAY,
+          XAUTHORITY: process.env.XAUTHORITY,
+          XDG_RUNTIME_DIR: process.env.XDG_RUNTIME_DIR,
+          DBUS_SESSION_BUS_ADDRESS: process.env.DBUS_SESSION_BUS_ADDRESS,
+          PYTHONUNBUFFERED: "1",
+        }
+      : { PATH: "/usr/bin:/bin", LANG: "C.UTF-8" };
     const s: TerminalSession = {
       id: randomUUID(),
       taskId: task.id,
       program: a.program,
+      target: host ? "host" : "project",
+      durable: Boolean(task.capabilities?.durable),
+      ...(effectKey ? { effectKey } : {}),
       args: a.args,
       cwd: cwd || ".",
       state: "running",
@@ -470,6 +528,51 @@ export class ProjectRuntime {
       ...(a.port ? { port: a.port } : {}),
     };
     this.save(s);
+    if (s.durable) {
+      this.durable.launch(
+        s,
+        [host ? a.program : "/usr/bin/bwrap", ...args],
+        host ? cwd : task.root,
+        env,
+        a.timeoutSeconds,
+      );
+      this.store.event(
+        task.id,
+        "builder",
+        "TERMINAL_STARTED",
+        JSON.stringify({ sessionId: s.id, target: s.target, durable: true }),
+      );
+      if (a.background && a.port) {
+        for (let attempt = 0; attempt < 100; attempt++) {
+          signal.throwIfAborted();
+          if (this.durable.refresh(s).state !== "running") return s;
+          const ready = await new Promise<boolean>((resolve) => {
+            const socket = createConnection({
+              host: "127.0.0.1",
+              port: a.port!,
+            });
+            const finish = (ready: boolean) => {
+              socket.destroy();
+              resolve(ready);
+            };
+            socket.once("connect", () => finish(true));
+            socket.once("error", () => finish(false));
+            socket.setTimeout(200, () => finish(false));
+          });
+          if (ready) return s;
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+        this.durable.control(s.id, "stop");
+        throw Error("Preview port did not become ready; command stopped");
+      }
+      return a.background ? s : this.durable.wait(s, signal);
+    }
+    const child = spawn(host ? a.program : "/usr/bin/bwrap", args, {
+      cwd: host ? cwd : task.root,
+      detached: true,
+      env,
+      stdio: ["pipe", "pipe", "pipe"],
+    });
     let finish!: (s: TerminalSession) => void;
     const done = new Promise<TerminalSession>((r) => {
       finish = r;
@@ -518,6 +621,7 @@ export class ProjectRuntime {
       "TERMINAL_STARTED",
       JSON.stringify({
         sessionId: s.id,
+        target: s.target,
         program: a.program,
         args: a.args,
         port: a.port,
@@ -566,7 +670,11 @@ export class ProjectRuntime {
     }
   }
   stopSession(task: Task, id: string) {
-    this.owned(task, id);
+    const session = this.owned(task, id);
+    if (session.durable && session.state === "running") {
+      this.durable.control(id, "stop");
+      return;
+    }
     const live = this.running.get(id);
     if (live) {
       live.record.termination = "stopped";
@@ -581,7 +689,9 @@ export class ProjectRuntime {
     for (const s of this.sessions(task.id))
       if (s.state === "running") this.stopSession(task, s.id);
   }
-  stop() {
+  stop(preserveDurable = false) {
+    if (!preserveDurable)
+      for (const task of this.store.tasks()) this.stopTask(task);
     for (const live of this.running.values()) {
       live.record.termination = "application stopped";
       try {

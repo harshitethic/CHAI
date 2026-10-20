@@ -239,8 +239,8 @@ export class Gateway {
   sandbox(root: string, action: RunAction, signal: AbortSignal) {
     return sandboxRun(this, this.workspaceRoot(root), action, signal);
   }
-  stop() {
-    this.project?.stop();
+  stop(preserveDurable = false) {
+    this.project?.stop(preserveDurable);
     for (const child of this.children) {
       try {
         process.kill(-child.pid!, "SIGKILL");

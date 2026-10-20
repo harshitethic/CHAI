@@ -84,7 +84,7 @@ if (process.env.CHAI_CONNECTOR_FIXTURE) {
         },
         signal,
       ),
-      /authentication failed.*OAuth-only app connections are not implemented/,
+      /authentication failed.*choose OAuth/,
     );
     console.log("AUTHENTICATED_MCP_PASS");
   } finally {

@@ -24,6 +24,7 @@ export class Store {
   CREATE TABLE IF NOT EXISTS approvals(taskId TEXT PRIMARY KEY,plan TEXT NOT NULL,expires INTEGER NOT NULL);
   CREATE TABLE IF NOT EXISTS agent_calls(id TEXT PRIMARY KEY,taskId TEXT NOT NULL,role TEXT NOT NULL,round INTEGER NOT NULL,status TEXT NOT NULL,request TEXT NOT NULL,response TEXT,updated TEXT NOT NULL);
   CREATE TABLE IF NOT EXISTS task_grants(taskId TEXT PRIMARY KEY,root TEXT NOT NULL,granted TEXT NOT NULL);
+  CREATE TABLE IF NOT EXISTS host_grants(taskId TEXT PRIMARY KEY,root TEXT NOT NULL,granted TEXT NOT NULL);
   CREATE TABLE IF NOT EXISTS task_images(id TEXT PRIMARY KEY,taskId TEXT NOT NULL,data TEXT NOT NULL,created TEXT NOT NULL);
   PRAGMA user_version=4;`);
   }
@@ -131,6 +132,12 @@ export class Store {
       .prepare("SELECT root FROM task_grants WHERE taskId=?")
       .get(task.id);
     return !!grant && grant.root === task.root;
+  }
+  hasHostGrant(task: Task) {
+    const grant = this.db
+      .prepare("SELECT root FROM host_grants WHERE taskId=?")
+      .get(task.id);
+    return !!task.capabilities?.host && !!grant && grant.root === task.root;
   }
   image(taskId: string, data: Buffer) {
     if (data.length > 2000000) throw Error("Screenshot exceeds 2 MB limit");

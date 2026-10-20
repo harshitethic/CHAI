@@ -37,6 +37,15 @@ export class BrowserBridge implements AgentAdapter {
         created: String(r.created),
       }));
   }
+  hasPendingAnswer(taskId: string) {
+    return Boolean(
+      this.store.db
+        .prepare(
+          "SELECT j.id FROM browser_jobs j JOIN agent_calls a ON a.id=j.callKey WHERE j.taskId=? AND j.status='ANSWERED' AND a.status IN ('STARTED','FAILED') LIMIT 1",
+        )
+        .get(taskId),
+    );
+  }
   async send(request: AgentRequest, signal: AbortSignal): Promise<unknown> {
     if (!request.taskId || !request.callId)
       throw new ProviderUnavailable(

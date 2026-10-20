@@ -9,7 +9,7 @@
     <img src="https://img.shields.io/badge/platform-Linux-aaa6a2" alt="Linux" />
     <img src="https://img.shields.io/badge/status-alpha-e59173" alt="Alpha" />
   </p>
-  <p><a href="https://github.com/harshitethic/CHAI/releases/tag/v0.7.1-alpha.1"><strong>Download 0.7.1 alpha</strong></a> · <a href="#get-started">Get started</a> · <a href="docs/PRIVACY.md">Privacy</a> · <a href="docs/IMPLEMENTATION.md">Architecture</a></p>
+  <p><a href="https://github.com/harshitethic/CHAI/releases/tag/v0.8.0-alpha.1"><strong>Download 0.8 alpha</strong></a> · <a href="#get-started">Get started</a> · <a href="docs/PRIVACY.md">Privacy</a> · <a href="docs/IMPLEMENTATION.md">Architecture</a></p>
 </div>
 
 ![CHAI's actual progress view showing a completed ChatGPT task and its recorded actions](docs/qa/progress-workspace.jpg)
@@ -20,7 +20,9 @@
 
 Give CHAI a goal and a dedicated project folder. Its Manager assigns work, the Builder proposes concrete actions, and the Reviewer checks captured evidence. You can see what is happening, what finished and what remains.
 
-**New in 0.7:** isolated writable projects, dependency installation, persistent command sessions, interactive local-app previews, follow-up steering, project diffs, document outputs and authenticated app tools. The Work screen keeps the current action, next step, check results and role updates alongside the actual working environment.
+**New in 0.8:** opt-in host commands, OAuth app sign-in, Wayland portal sharing, durable terminal recovery and extended task budgets.
+
+The workspace includes isolated writable projects, dependency installation, persistent command sessions, interactive local-app previews, follow-up steering, project diffs, document outputs and authenticated app tools. The Work screen keeps the current action, next step, check results and role updates alongside the actual working environment.
 
 ![Native CHAI workspace with a failed test, successful repair and interactive running app](docs/qa/workbench-preview.png)
 
@@ -39,16 +41,18 @@ Give CHAI a goal and a dedicated project folder. Its Manager assigns work, the B
 | Capability | In the app |
 | --- | --- |
 | Project execution | Copy a dedicated project into a private, independent Git checkout; run Node, Python, Bash and package managers in Bubblewrap. Optional network access enables dependencies and local servers. |
-| Terminals | Stream output, send input, stop a process, keep background servers running and retain exit/termination evidence across reloads. |
+| Terminals | Run manual or agent commands, stream output, send stdin and stop processes. Opt-in durable sessions survive app exit/crash and reconnect without replay. |
 | Browser verification | Open an owned local server or authorized website, inspect controls/screenshots/errors and act on observed targets. Local apps have an interactive embedded preview. |
 | Task steering | Send a follow-up on the same task, supersede pending actions and attach files while paused. Existing evidence remains available. |
 | Repository context | Paginated file discovery and reads, scoped source search, exact-match patches with SHA256 conflict checks, project instructions and bounded context compaction. |
 | Git workflow | Inspect changes side by side, create branches and confirmed commits in the working copy, inspect GitHub CI and publish a confirmed draft PR when GitHub CLI is authenticated. The original checkout and index remain separate. |
 | Background work | Opt-in tray continuation, task notifications and login startup. Safe checkpoint recovery can resume authorized work; uncertain actions are never automatically replayed. |
-| Documents and apps | Generate PDF, DOCX, XLSX and PPTX files, register other outputs, save/open deliverables and use authorized HTTPS MCP connections with encrypted bearer credentials. |
-| Computer interaction | Scoped browser uploads/downloads, selected-window X11 input/scrolling and an AT-SPI accessibility tree when the application exposes one. |
+| Documents and apps | Generate PDF, DOCX, XLSX and PPTX files, register other outputs, save/open deliverables and use authorized HTTPS MCP connections with OAuth sign-in or encrypted bearer credentials. |
+| Computer interaction | Scoped browser uploads/downloads, X11 window input/scrolling and AT-SPI inspection; Wayland portal capture and input after native sharing consent. |
 
 CHAI's three roles still use normal signed-in ChatGPT conversations with **6 High**. The tool connection uses OAuth to protect CHAI's tools; it is not a model-inference API. App connectors are a separate feature and do not inherit credentials from ChatGPT's plugins.
+
+See the [0.8 runtime verification](docs/QA_RUNTIME_2026-10-20.md) for host execution, OAuth, Wayland and crash-recovery checks.
 
 ## Proof from real runs
 
@@ -63,26 +67,26 @@ CHAI's three roles still use normal signed-in ChatGPT conversations with **6 Hig
 
 The Git run completed in **two rounds and seven role calls**, with one workspace grant and one native Git confirmation. Separate ChatGPT approval prompts still applied.
 
-**63 automated tests** cover the core workflows and boundaries. Native Electron tests cover actual files, sandbox execution, browser previews, Git confirmation, progress display, pause/reload/error behavior and four window widths. Release CI also tests the packaged executable. Scripted tests and live ChatGPT runs are recorded separately.
+Automated tests cover the core workflows and boundaries. Native Electron tests cover actual files, sandbox execution, browser previews, Git confirmation, progress display, pause/reload/error behavior and four window widths. Release CI also tests the packaged executable. Scripted tests and live ChatGPT runs are recorded separately.
 
 ## Get started
 
 ### 1. Install on Linux
 
-Download the AppImage and `SHA256SUMS` from the [release](https://github.com/harshitethic/CHAI/releases/tag/v0.7.1-alpha.1). A Debian amd64 package is also available.
+Download the AppImage and `SHA256SUMS` from the [release](https://github.com/harshitethic/CHAI/releases/tag/v0.8.0-alpha.1). A Debian amd64 package is also available.
 
-Required: Python 3 with venv support, Bubblewrap, Git, Node and npm. Selected-window control requires X11, `xdotool`, `x11-utils`, Python GI and the AT-SPI typelib. Document libraries install inside the task project when network access is authorized. GitHub publication additionally requires `gh auth login` on this machine.
+Required: Python 3 with venv support, Bubblewrap, Git, Node and npm. X11 control requires `xdotool`, `x11-utils`, Python GI and the AT-SPI typelib. Wayland control requires a working RemoteDesktop/ScreenCast portal backend (GNOME or KDE), PipeWire, Python GI/GStreamer and the PipeWire/base/good GStreamer plugins. Document libraries install inside the task project when network access is authorized. GitHub publication additionally requires `gh auth login` on this machine.
 
 ```sh
 sha256sum --check --ignore-missing SHA256SUMS
-chmod +x CHAI-0.7.1-alpha.1.AppImage
-APPIMAGE_EXTRACT_AND_RUN=1 ./CHAI-0.7.1-alpha.1.AppImage
+chmod +x CHAI-0.8.0-alpha.1.AppImage
+APPIMAGE_EXTRACT_AND_RUN=1 ./CHAI-0.8.0-alpha.1.AppImage
 ```
 
 For a user-only installation from a source checkout:
 
 ```sh
-sh scripts/install-local.sh /path/to/CHAI-0.7.1-alpha.1.AppImage 0.7.1-alpha.1
+sh scripts/install-local.sh /path/to/CHAI-0.8.0-alpha.1.AppImage 0.8.0-alpha.1
 # Add --upgrade when replacing an existing CHAI installation.
 ```
 
@@ -102,6 +106,9 @@ Choose a project folder and **Autonomous in this workspace**, or **Review each p
 
 - Enable **Build in an isolated project copy** for normal development commands.
 - Enable network when the task needs dependency downloads or a development server. This permits network access from project processes, including local services.
+- Enable **Allow host commands** only for tasks that need your installed tools or files outside the isolated copy. CHAI confirms the grant natively.
+- Enable **Keep terminal commands running when CHAI closes** to reconnect to commands after app restart. Use Stop or Revoke to end them.
+- Choose the extended workspace budget for longer tasks.
 - Enable the browser for verification. Choose any external HTTPS origins explicitly.
 - Select only the app connections and desktop window needed for this task.
 
@@ -117,22 +124,17 @@ The folder and files must exist. Sandbox scripts that import sibling Python modu
 
 CHAI is a working alpha with a deliberately bounded tool set. It is not a drop-in replacement for every ChatGPT Work or Codex workflow.
 
-Four limits apply even in autonomous mode:
-
-1. Commands execute inside isolated projects or file-snapshot sandboxes. There is no unrestricted PC shell access.
-2. External app connections support HTTPS MCP with optional bearer authentication. OAuth-only app connections are not implemented; ChatGPT’s OAuth pairing with CHAI is separate.
-3. Desktop input supports X11. Wayland, including sessions exposing XWayland, is rejected before input; the UI explains why desktop input is unavailable.
-4. Background work has fixed budgets and pauses for uncertain actions or provider restrictions. Closing to the tray continues authorized work; quitting stops processes and preserves their logs.
+Choose the capabilities each task needs. The Work screen shows the current role, next action, completed and pending steps, terminal results, file changes and outputs. Provider sign-in and permissions remain visible when work needs attention.
 
 | Area | Current boundary |
 | --- | --- |
-| Execution | Linux Bubblewrap; writable isolated project, clean environment, no host home/browser credentials. Network is an explicit task grant. This is not an unrestricted host shell. |
+| Execution | Linux Bubblewrap; writable isolated project, clean environment, no host home/browser credentials. Network is an explicit project grant. Optional host commands run as your OS account outside Bubblewrap after native task authorization. |
 | Project size | Up to 20,000 copied source files / 250 MB; common credentials, symlinks, hardlinks, dependencies and build caches excluded. Install dependencies in the copy. |
 | Git | Independent checkouts preserve source history. GitHub PR/CI requires authenticated local GitHub CLI and a GitHub source origin. No automatic merge, force-push or credential migration. Legacy selected-file Git tools keep their narrower limits. |
-| App connections | HTTPS Streamable HTTP MCP; optional encrypted bearer token. OAuth-only services need a compatible gateway or future OAuth client support. Every remote tool invocation is confirmed. |
-| Computer control | Selected X11 window; accessibility depends on the target app. Wayland/whole-desktop automation is not implemented. |
-| Long tasks | Per follow-up: workspace mode allows 12 rounds / 60 role calls / 144 new actions; review mode allows 3 / 15 / 36. Six concurrent processes maximum, up to two hours per command. |
-| Recovery | Closing to tray preserves execution. Exiting/crashing stops processes; logs survive. Uncertain actions require inspection. ChatGPT sign-in, prompts and service limits still apply. |
+| App connections | HTTPS Streamable HTTP MCP with OAuth discovery, PKCE, dynamic registration or a pre-registered public client, encrypted credentials and token refresh; bearer authentication remains available. Every remote tool invocation is confirmed. Provider-specific registration may still be required. |
+| Computer control | Selected X11 window or a source selected in the Wayland sharing portal. Wayland capture/input needs a compatible portal backend; X11 accessibility depends on the target app. |
+| Long tasks | Per follow-up: workspace mode allows 12 rounds / 60 role calls / 144 new actions; extended workspace mode allows 50 / 250 / 600; review mode allows 3 / 15 / 36. Six concurrent processes maximum, up to two hours per command. |
+| Recovery | Closing to tray preserves execution. Opt-in durable commands survive app exit/crash, retain output and reconnect by session identity. Computer reboot ends commands. Uncertain external actions require inspection. ChatGPT sign-in, prompts and service limits still apply. |
 | Deliverables | Basic document layouts plus general project-generated files. Creation and output hashes are checked; arbitrary layout quality is not guaranteed. |
 | Progress | Known actions and recorded evidence, with no invented overall percentage, hidden reasoning or ETA. Whole-PC reboot acceptance remains unverified. |
 
@@ -147,6 +149,7 @@ npm ci
 npm run check
 npm run test:workspace
 npm run test:connectors
+npm run test:oauth
 # Optional network-backed document generation check:
 npm run test:documents
 xvfb-run -a npm run test:e2e

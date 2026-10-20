@@ -100,3 +100,11 @@ The project runtime creates an independent private Git checkout, with a source-f
 Binary input/output paths are walked with open directory descriptors and no-follow leaf operations. Imports/downloads use exclusive creation. Project patches check the observed file hash and require a unique literal match. Project Git helpers use CHAI-owned repository metadata, disable hooks/external diff/textconv/signing, and require native approval for commits and publication. A copied repository's existing history is retained; historical credentials are not sanitized automatically.
 
 Embedded previews are sandboxed WebContentsViews with no Node integration or preload. Their task partition blocks requests outside approved origins and declared active local server ports. Connector redirects are rejected; configured bearer tokens require a system keyring. Remote tool metadata cannot grant itself approval. Existing ChatGPT inference transport and permissions remain unchanged.
+
+## 0.8 execution modes
+
+The project sandbox remains the default command boundary. Explicit host grants are separately persisted and bound to the task root; host commands deliberately run outside this sandbox as the user account. The model cannot create or restore a revoked host grant. OS privilege escalation still requires user authorization.
+
+Durable supervisors use private directories, atomic receipts and an exclusive launch marker. Recovery reconnects to the original session and never replays an uncertain terminal start. Stop/Revoke remain effective after an app restart. Completed terminal receipts do not assert that external actions succeeded.
+
+OAuth uses HTTPS metadata, PKCE, state and exact loopback callback validation. Token/registration requests are constrained to discovered endpoints; bearer credentials cannot be forwarded to unrelated endpoints. Wayland input requires native portal sharing and an active session; XWayland is not an input fallback.

@@ -26,7 +26,13 @@ import {
   Monitor,
   Globe,
 } from "lucide-react";
-import type { Request, Snapshot, Mode, Role } from "../core/contracts";
+import type {
+  Request,
+  Snapshot,
+  Mode,
+  Role,
+  Capabilities,
+} from "../core/contracts";
 import "./style.css";
 import { Workbench, ConnectorSettings } from "./Workbench";
 import { TaskProgress, TaskActivity } from "./TaskProgress";
@@ -66,15 +72,16 @@ function App() {
     [mode, setMode] = useState<Exclude<Mode, "local" | "chatgpt">>("browser"),
     [permission, setPermission] = useState<"review" | "workspace">("workspace"),
     [projectAccess, setProjectAccess] = useState(false),
+    [hostAccess, setHostAccess] = useState(false),
+    [durableCommands, setDurableCommands] = useState(false),
+    [extendedBudget, setExtendedBudget] = useState(false),
     [networkAccess, setNetworkAccess] = useState(false),
     [connectorAccess, setConnectorAccess] = useState<string[]>([]),
     [browserAccess, setBrowserAccess] = useState(false),
     [browserOrigins, setBrowserOrigins] = useState(""),
-    [desktopTarget, setDesktopTarget] = useState<{
-      id: string;
-      title: string;
-      pid: number;
-    } | null>(null),
+    [desktopTarget, setDesktopTarget] = useState<
+      Capabilities["desktop"] | null
+    >(null),
     [origin, setOrigin] = useState(""),
     [plan, setPlan] = useState(""),
     [error, setError] = useState(""),
@@ -154,6 +161,9 @@ function App() {
       permission,
       capabilities: {
         project: projectAccess,
+        host: hostAccess,
+        durable: durableCommands,
+        budget: extendedBudget ? "extended" : "standard",
         network: projectAccess && networkAccess,
         connectors: connectorAccess,
         browser: browserAccess,
@@ -171,6 +181,7 @@ function App() {
     if (typeof result === "string") {
       setId(result);
       setGoal("");
+      setDesktopTarget(null);
       setRoute("Work");
     }
     setBusy(false);
@@ -433,7 +444,7 @@ function App() {
                   <p>
                     Run commands, install project dependencies and start dev
                     servers inside Bubblewrap. Your original folder stays
-                    separate. No unrestricted PC shell access.
+                    separate. Host commands require the separate grant below.
                   </p>
                   {projectAccess ? (
                     <label>
@@ -446,6 +457,42 @@ function App() {
                       GitHub
                     </label>
                   ) : null}
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={hostAccess}
+                      onChange={(e) => setHostAccess(e.target.checked)}
+                    />
+                    Allow host commands on this computer
+                  </label>
+                  <p>
+                    Host commands can change files outside the project and use
+                    your installed tools and network. A native prompt confirms
+                    this grant for the task. Revoke stops processes and removes
+                    access.
+                  </p>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={durableCommands}
+                      onChange={(e) => setDurableCommands(e.target.checked)}
+                    />
+                    Keep terminal commands running when CHAI closes
+                  </label>
+                  <p>
+                    Reconnect to output after reopening CHAI. Stop or Revoke
+                    ends the commands. Commands still have time limits and
+                    cannot survive a computer restart.
+                  </p>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={extendedBudget}
+                      onChange={(e) => setExtendedBudget(e.target.checked)}
+                    />
+                    Extended workspace budget: 50 rounds, 250 role calls, 600
+                    actions
+                  </label>
                   {data.connectors?.map((c) => (
                     <label key={c.name}>
                       <input
@@ -493,12 +540,12 @@ function App() {
                     onClick={async () => {
                       const target = await call({ op: "desktop-select" });
                       if (target)
-                        setDesktopTarget(
-                          target as { id: string; title: string; pid: number },
-                        );
+                        setDesktopTarget(target as Capabilities["desktop"]);
                     }}
                   >
-                    Choose desktop window
+                    {data.desktopSupport?.backend === "wayland"
+                      ? "Choose shared desktop source"
+                      : "Choose desktop window"}
                   </button>
                   <p>
                     {data.desktopSupport?.reason ?? "Checking desktop support…"}
@@ -1004,7 +1051,10 @@ function App() {
                     Browser click
                   </button>
                   <button
-                    disabled={!data.desktopSupport?.available}
+                    disabled={
+                      !data.desktopSupport?.available ||
+                      data.desktopSupport?.backend === "wayland"
+                    }
                     title={data.desktopSupport?.reason}
                     onClick={() => void call({ op: "desktop-click", x, y })}
                   >
@@ -1044,10 +1094,10 @@ function App() {
                     Open CHAI when I sign in to Linux
                   </label>
                   <p>
-                    Closing to the tray keeps authorized tasks running. Quit
-                    stops processes; saved logs remain. Recovery pauses for
-                    uncertain actions, and ChatGPT sign-in, approvals and
-                    service limits still apply.
+                    Closing to the tray keeps authorized tasks running. Commands
+                    with durable execution enabled also survive quitting CHAI.
+                    Recovery pauses for uncertain actions, and ChatGPT sign-in,
+                    approvals and service limits still apply.
                   </p>
                   <p>Local data. Explicit permissions. No telemetry.</p>
                 </div>
@@ -1066,8 +1116,9 @@ function App() {
                   Bubblewrap. Network access requires a separate task grant.
                   Without project access, script execution uses selected file
                   snapshots in an offline sandbox. Host home directories,
-                  credentials and browser sessions are not mounted. There is no
-                  unrestricted PC shell access.
+                  credentials and browser sessions are not mounted. Optional
+                  host execution runs as your OS account after native
+                  confirmation.
                 </p>
                 <p>
                   Git commits require confirmation of the diff. Project mode
@@ -1078,9 +1129,9 @@ function App() {
                 </p>
                 <h3>Supported connections and desktop</h3>
                 <p>
-                  External apps use HTTPS MCP with optional encrypted bearer
-                  tokens. OAuth-only app connections are not implemented.
-                  ChatGPT’s OAuth pairing with CHAI is a separate connection.
+                  External apps use HTTPS MCP with OAuth sign-in, PKCE and token
+                  refresh, or encrypted bearer tokens. ChatGPT’s OAuth pairing
+                  with CHAI is a separate connection.
                 </p>
                 <p>
                   {data.desktopSupport?.reason ?? "Checking desktop support…"}
@@ -1089,9 +1140,10 @@ function App() {
                 <p>
                   Each follow-up allows up to 12 rounds, 60 role calls and 144
                   new actions in workspace mode; review mode allows 3 rounds, 15
-                  calls and 36 actions. Up to six command sessions can run at
-                  once, with a two-hour maximum per command. The Work view shows
-                  recorded progress and what needs your attention.
+                  calls and 36 actions. Extended workspace mode allows 50
+                  rounds, 250 calls and 600 actions. Up to six command sessions
+                  can run at once, with a two-hour maximum per command. The Work
+                  view shows recorded progress and what needs your attention.
                 </p>
                 <h3>Data on this computer</h3>
                 <p>

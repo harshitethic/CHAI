@@ -55,6 +55,115 @@ async function until(fn: () => boolean) {
   assert.fail("Timed out");
 }
 
+test("host commands require native consent, retain real output and stop after revocation", async () => {
+  const f = fixture();
+  const engine = new Engine(f.store, f.gateway);
+  try {
+    const caps = { host: true, browser: false, origins: [] };
+    const forged = f.store.create("No grant", f.root, "assisted", "test");
+    forged.capabilities = caps;
+    f.store.put(forged);
+    await assert.rejects(
+      f.project.execute(
+        forged,
+        terminal({
+          target: "host",
+          program: "node",
+          args: ["-e", "process.exit(0)"],
+        }),
+        signal(),
+      ),
+      /native task grant/,
+    );
+    f.project.consent = async () => false;
+    await assert.rejects(
+      engine.create(
+        "Declined host",
+        f.root,
+        "assisted",
+        "",
+        undefined,
+        "workspace",
+        caps,
+      ),
+      /not authorized/,
+    );
+    f.project.consent = async () => true;
+    const id = await engine.create(
+      "Authorized host fixture",
+      f.root,
+      "assisted",
+      "",
+      undefined,
+      "workspace",
+      caps,
+    );
+    const t = f.store.get(id);
+    const outside = join(f.base, "host-proof.txt");
+    const result = await f.project.execute(
+      t,
+      terminal({
+        target: "host",
+        program: "node",
+        cwd: f.base,
+        args: [
+          "-e",
+          `require('fs').writeFileSync(${JSON.stringify(outside)},'host verified');console.log(process.cwd())`,
+        ],
+      }),
+      signal(),
+    );
+    assert.equal(result.exitCode, 0);
+    assert.equal(result.target, "host");
+    assert.equal(readFileSync(outside, "utf8"), "host verified");
+    assert.match(result.output, new RegExp(f.base));
+    const live = await f.project.execute(
+      t,
+      terminal({
+        target: "host",
+        program: "node",
+        args: ["-e", "setInterval(()=>{},1000)"],
+        background: true,
+      }),
+      signal(),
+    );
+    engine.revoke(id);
+    await until(
+      () =>
+        f.project.sessions(id).find((s) => s.id === live.id)?.state ===
+        "exited",
+    );
+    await assert.rejects(
+      f.project.execute(
+        t,
+        terminal({
+          target: "host",
+          program: "node",
+          args: ["-e", "process.exit(0)"],
+        }),
+        signal(),
+      ),
+      /native task grant/,
+    );
+    await assert.rejects(
+      f.project.execute(
+        t,
+        terminal({
+          target: "host",
+          operation: "input",
+          sessionId: live.id,
+          input: "ignored",
+        }),
+        signal(),
+      ),
+      /revoked/,
+    );
+  } finally {
+    engine.stop();
+    f.store.close();
+  }
+});
+
 test("project copy preserves source and rejects secrets, links and escaping binary reads", async () => {
   const f = fixture();
   try {

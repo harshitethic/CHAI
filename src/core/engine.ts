@@ -12,6 +12,27 @@ import {
 const terminal = new Set(["DONE", "FAILED", "CANCELED"]);
 export class Engine {
   active = new Map<string, AbortController>();
+  canRecover(id: string) {
+    const task = this.store.get(id);
+    return this.store.db
+      .prepare("SELECT id,idx FROM effects WHERE taskId=? AND state='STARTED'")
+      .all(id)
+      .every((effect) => {
+        const action = task.plan?.actions[Number(effect.idx)];
+        return (
+          action?.tool === "terminal" &&
+          action.operation === "start" &&
+          this.gateway.project
+            ?.sessions(id)
+            .some(
+              (session) =>
+                session.effectKey === effect.id &&
+                session.durable &&
+                session.state !== "interrupted",
+            )
+        );
+      });
+  }
   private queue: Promise<void> = Promise.resolve();
   readonly coordinator: Coordinator;
   constructor(
@@ -64,6 +85,25 @@ export class Engine {
         this.store.state(t.id, "FAILED", String(error));
         throw error;
       }
+    }
+    if (capabilities?.host) {
+      const allowed = await this.gateway.project?.consent?.(
+        "Allow host commands for this task?",
+        `${goal}\n\nHost commands run as your Linux user, outside the project sandbox. They can change files elsewhere on this computer, access the network and use your installed tools. This grant lasts for this task, including follow-ups. Revoke stops its processes and removes host access.\n\nStarting directory: ${t.sourceRoot ?? t.root}`,
+      );
+      if (!allowed) {
+        this.store.state(t.id, "CANCELED", "Host execution was not authorized");
+        throw Error("Host execution was not authorized");
+      }
+      this.store.db
+        .prepare("INSERT INTO host_grants VALUES(?,?,?)")
+        .run(t.id, t.root, new Date().toISOString());
+      this.store.event(
+        t.id,
+        "manager",
+        "HOST_AUTHORIZED",
+        "User authorized host commands for this task; commands run with the user's OS permissions outside Bubblewrap.",
+      );
     }
     if (permission === "workspace") {
       this.store.db
@@ -189,9 +229,11 @@ export class Engine {
   revoke(id: string) {
     this.gateway.project?.stopTask(this.store.get(id));
     this.store.db.prepare("DELETE FROM task_grants WHERE taskId=?").run(id);
+    this.store.db.prepare("DELETE FROM host_grants WHERE taskId=?").run(id);
     this.pause(id);
     const task = this.store.get(id);
     task.autonomous = false;
+    if (task.capabilities) task.capabilities.host = false;
     this.store.put(task);
     this.store.event(
       id,
@@ -305,7 +347,18 @@ export class Engine {
             a.tool === "browser" ||
             a.tool === "desktop" ||
             a.tool === "git" ||
-            a.tool === "terminal" ||
+            (a.tool === "terminal" &&
+              !(
+                a.operation === "start" &&
+                this.gateway.project
+                  ?.sessions(id)
+                  .some(
+                    (s) =>
+                      s.effectKey === key &&
+                      s.durable &&
+                      s.state !== "interrupted",
+                  )
+              )) ||
             a.tool === "repository" ||
             a.tool === "connector")
         )
@@ -385,7 +438,7 @@ export class Engine {
           output =
             a.tool === "terminal"
               ? JSON.stringify(
-                  await this.gateway.project!.execute(t, a, signal),
+                  await this.gateway.project!.execute(t, a, signal, key),
                 )
               : a.tool === "repository"
                 ? JSON.stringify(

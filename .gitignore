@@ -12,3 +12,6 @@ refs/
 # OAuth credentials are never source artifacts
 **/chatgpt-auth/
 **/credentials.json
+
+__pycache__/
+*.pyc

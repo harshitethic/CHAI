@@ -28,3 +28,13 @@ HTTPS MCP app connections use their own configured credentials, not ChatGPT's pl
 Tray continuation and login startup are opt-in. Restart recovery resumes only checkpoints without uncertain started effects, with the existing workspace grant and a connected provider. Interrupted processes are not replayed. Deleting task history removes terminal/artifact records but does not delete the working-copy files; inspect and manage retained project folders separately.
 
 The earlier offline-sandbox and selected-file Git sections describe the legacy tools, which remain available. Their no-network/no-push statements do not describe the separately authorized 0.7 project tools.
+
+## 0.8 host, OAuth, portal and durable execution
+
+Optional host execution runs as your Linux account outside Bubblewrap. The native grant covers the task and follow-ups; commands can access files and network available to that account. Revoke removes the grant and stops tracked commands. The project-only restrictions above continue to apply to project commands.
+
+App OAuth credentials, registration data and refresh tokens are encrypted with the OS-backed safeStorage keyring. Sign-out clears CHAI's saved credentials; revoke access at the provider separately when needed. OAuth opens the service authorization page and uses a state-checked loopback callback and PKCE. ChatGPT sign-in remains separate.
+
+Wayland sharing uses the desktop's consent picker. Shared-screen images may include other applications and notifications and are sent to the task's ChatGPT conversation. Portal input can control the shared desktop; end sharing or revoke the task to close the session.
+
+Durable terminal execution is opt-in per task. A detached supervisor stores private, unencrypted command configuration, bounded output and status receipts under CHAI user data. It continues after app exit until completion, timeout, Stop or Revoke. A system reboot stops commands. Deleting task history does not remove retained project or supervisor files.

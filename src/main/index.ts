@@ -404,6 +404,7 @@ app
       },
       (s) => safeStorage.decryptString(Buffer.from(s, "base64")),
       confirm,
+      (url) => shell.openExternal(url),
     );
     engine.gateway.project.github = async (repo, args, signal) => {
       const gh = [
@@ -532,6 +533,24 @@ app
               operation: req.operation,
               offset: 0,
               limit: 300,
+            },
+            new AbortController().signal,
+          );
+        }
+        case "terminal-start": {
+          const task = store.get(req.id);
+          if (["PLANNING", "RUNNING", "VALIDATING"].includes(task.state))
+            throw Error("Pause the agent before starting a manual command");
+          return engine.gateway.project!.execute(
+            task,
+            {
+              tool: "terminal",
+              operation: "start",
+              target: req.target,
+              program: "bash",
+              args: ["-c", req.command],
+              timeoutSeconds: 7200,
+              background: req.background,
             },
             new AbortController().signal,
           );
@@ -705,7 +724,20 @@ app
           store.setting("background", String(req.enabled));
           return true;
         case "connector-save":
-          engine.gateway.connectors!.save(req.name, req.url, req.token);
+          engine.gateway.connectors!.save(req.name, req.url, req.token, {
+            auth: req.auth,
+            clientId: req.clientId,
+            issuer: req.issuer,
+            redirectPort: req.redirectPort,
+          });
+          return true;
+        case "connector-sign-in":
+          return engine.gateway.connectors!.signIn(req.name);
+        case "connector-sign-out":
+          engine.gateway.connectors!.oauth.clear(req.name);
+          return true;
+        case "connector-cancel":
+          engine.gateway.connectors!.oauth.cancel(req.name);
           return true;
         case "connector-remove":
           engine.gateway.connectors!.remove(req.name);
@@ -789,6 +821,7 @@ app
               "effects",
               "approvals",
               "task_grants",
+              "host_grants",
               "task_images",
               "agent_calls",
               "browser_jobs",
@@ -926,7 +959,7 @@ app
           );
           return true;
         case "desktop-click":
-          requireDesktopSupport();
+          requireDesktopSupport(true);
           if (
             !(await confirm(
               "Click on your desktop?",
@@ -1024,20 +1057,16 @@ app
     setInterval(() => {
       for (const t of store.tasks()) {
         if (
-          t.recoverable &&
-          t.state === "PAUSED" &&
+          ((t.recoverable && t.state === "PAUSED") ||
+            (t.state === "WAITING_PROVIDER" &&
+              bridge.hasPendingAnswer(t.id))) &&
           store.setting("background") === "true" &&
           bridge.connected &&
           !engine.active.has(t.id)
         ) {
           t.recoverable = false;
           store.put(t);
-          const uncertain = store.db
-            .prepare(
-              "SELECT id FROM effects WHERE taskId=? AND state='STARTED'",
-            )
-            .get(t.id);
-          if (!uncertain && store.hasWorkspaceGrant(t))
+          if (engine.canRecover(t.id) && store.hasWorkspaceGrant(t))
             void engine
               .resume(t.id)
               .catch((error) =>
@@ -1080,7 +1109,7 @@ app
         main.hide();
         return;
       }
-      for (const t of store.tasks()) engine.pause(t.id);
+      // Active tasks are recovered from durable checkpoints at next launch.
       for (const win of windows.values()) win.close();
       computer.close();
     });
@@ -1094,5 +1123,5 @@ app.on("before-quit", () => {
   quitting = true;
   tray?.destroy();
   void toolRuntime?.shutdown();
-  engine?.gateway.stop();
+  engine?.gateway.stop(true);
 });

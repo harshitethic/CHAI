@@ -94,6 +94,8 @@ export function Workbench({
     [panel, setPanel] = useState<unknown>(null),
     [loading, setLoading] = useState(false),
     [terminalInput, setTerminalInput] = useState("");
+  const [command, setCommand] = useState(""),
+    [commandTarget, setCommandTarget] = useState<"project" | "host">("project");
   const sessions = data.evidenceTaskId === task.id ? (data.sessions ?? []) : [];
   const [selectedSession, setSelectedSession] = useState("");
   const session =
@@ -237,7 +239,9 @@ export function Workbench({
                   >
                     {sessions.map((s) => (
                       <option key={s.id} value={s.id}>
-                        {s.program} {s.args.join(" ").slice(0, 80)} · {s.state}
+                        {s.target === "host" ? "Host" : "Project"} · {s.program}{" "}
+                        {s.args.join(" ").slice(0, 80)} · {s.state}
+                        {s.durable ? " · survives app close" : ""}
                       </option>
                     ))}
                   </select>
@@ -301,10 +305,67 @@ export function Workbench({
             ) : (
               <p className="panel-empty">
                 Commands and their live output will appear here.
-                {!task.capabilities?.project
+                {!task.capabilities?.project && !task.capabilities?.host
                   ? " Enable project execution on a new task to run builds and install dependencies."
                   : ""}
               </p>
+            )}
+            {(task.capabilities?.project || task.capabilities?.host) && (
+              <form
+                className="terminal-input"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const target = !task.capabilities?.host
+                    ? "project"
+                    : task.capabilities?.project
+                      ? commandTarget
+                      : "host";
+                  void run({
+                    op: "terminal-start",
+                    id: task.id,
+                    command,
+                    target,
+                    background: true,
+                  })
+                    .then(() => setCommand(""))
+                    .catch(() => {});
+                }}
+              >
+                <select
+                  aria-label="Command environment"
+                  value={
+                    !task.capabilities?.host
+                      ? "project"
+                      : task.capabilities?.project
+                        ? commandTarget
+                        : "host"
+                  }
+                  onChange={(e) =>
+                    setCommandTarget(e.target.value as "project" | "host")
+                  }
+                >
+                  {task.capabilities?.project && (
+                    <option value="project">Isolated project</option>
+                  )}
+                  {task.capabilities?.host && (
+                    <option value="host">Host computer</option>
+                  )}
+                </select>
+                <input
+                  aria-label="New terminal command"
+                  placeholder="Run a command (pause the agent first)"
+                  value={command}
+                  onChange={(e) => setCommand(e.target.value)}
+                  required
+                />
+                <button
+                  disabled={["PLANNING", "RUNNING", "VALIDATING"].includes(
+                    task.state,
+                  )}
+                >
+                  Run
+                </button>
+              </form>
             )}
           </>
         ) : null}
@@ -547,6 +608,10 @@ export function ConnectorSettings({
     [url, setUrl] = useState(""),
     [token, setToken] = useState(""),
     [error, setError] = useState("");
+  const [authMode, setAuthMode] = useState<"bearer" | "oauth">("oauth"),
+    [clientId, setClientId] = useState(""),
+    [issuer, setIssuer] = useState(""),
+    [redirectPort, setRedirectPort] = useState("");
   async function save(e: React.FormEvent) {
     e.preventDefault();
     try {
@@ -555,10 +620,20 @@ export function ConnectorSettings({
         name,
         url,
         token: token || undefined,
+        auth: authMode,
+        clientId: authMode === "oauth" ? clientId || undefined : undefined,
+        issuer: authMode === "oauth" ? issuer || undefined : undefined,
+        redirectPort:
+          authMode === "oauth" && redirectPort
+            ? Number(redirectPort)
+            : undefined,
       });
       setToken("");
       setName("");
       setUrl("");
+      setClientId("");
+      setIssuer("");
+      setRedirectPort("");
       setError("");
       await refresh();
     } catch (e) {
@@ -574,14 +649,47 @@ export function ConnectorSettings({
         your system keyring.
       </p>
       <p>
-        OAuth-only app connections are not implemented. Use an endpoint that
-        supports bearer authentication or no authentication. This is separate
-        from the OAuth pairing used to connect ChatGPT to CHAI’s tools.
+        Choose browser OAuth sign-in or a bearer token. OAuth credentials and
+        refresh tokens stay encrypted in your system keyring-backed storage.
+        This app sign-in is separate from ChatGPT’s pairing with CHAI.
       </p>
       {data.connectors?.map((c) => (
         <div className="toolbar" key={c.name}>
           <strong>{c.name}</strong>
           <span>{c.url}</span>
+          {c.auth === "oauth" && (
+            <>
+              <span>
+                {c.authStatus === "signing-in"
+                  ? "Waiting for browser sign-in"
+                  : c.authStatus === "signed-in"
+                    ? "Signed in"
+                    : "Sign-in needed"}
+              </span>
+              <button
+                onClick={() =>
+                  void window.chai
+                    .request({
+                      op:
+                        c.authStatus === "signing-in"
+                          ? "connector-cancel"
+                          : c.authStatus === "signed-in"
+                            ? "connector-sign-out"
+                            : "connector-sign-in",
+                      name: c.name,
+                    })
+                    .then(refresh)
+                    .catch((e) => setError(String(e)))
+                }
+              >
+                {c.authStatus === "signing-in"
+                  ? "Cancel sign-in"
+                  : c.authStatus === "signed-in"
+                    ? "Sign out"
+                    : "Sign in"}
+              </button>
+            </>
+          )}
           <button
             onClick={() =>
               void window.chai
@@ -595,6 +703,17 @@ export function ConnectorSettings({
         </div>
       ))}
       <form onSubmit={save} className="connector-form">
+        <select
+          aria-label="App authentication"
+          value={authMode}
+          onChange={(e) => {
+            setAuthMode(e.target.value as "bearer" | "oauth");
+            setToken("");
+          }}
+        >
+          <option value="oauth">OAuth · sign in with browser</option>
+          <option value="bearer">Bearer token / no authentication</option>
+        </select>
         <input
           aria-label="Connector name"
           placeholder="github"
@@ -611,14 +730,49 @@ export function ConnectorSettings({
           onChange={(e) => setUrl(e.target.value)}
           required
         />
-        <input
-          aria-label="Connector bearer token"
-          placeholder="Bearer token (if required)"
-          type="password"
-          autoComplete="off"
-          value={token}
-          onChange={(e) => setToken(e.target.value)}
-        />
+        {authMode === "bearer" && (
+          <input
+            aria-label="Connector bearer token"
+            placeholder="Bearer token (if required)"
+            type="password"
+            autoComplete="off"
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+          />
+        )}
+        {authMode === "oauth" && (
+          <details>
+            <summary>Pre-registered OAuth client (optional)</summary>
+            <p>
+              Leave empty for automatic client registration. If the service
+              requires registration, enter its public client ID and issuer.
+              Register http://127.0.0.1:PORT/oauth/callback/NAME as the redirect
+              URI using the port and connection name below.
+            </p>
+            <input
+              aria-label="OAuth client ID"
+              placeholder="Public client ID"
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+            />
+            <input
+              aria-label="OAuth issuer"
+              placeholder="https://auth.service.example"
+              type="url"
+              value={issuer}
+              onChange={(e) => setIssuer(e.target.value)}
+            />
+            <input
+              aria-label="OAuth callback port"
+              placeholder="Callback port (random when empty)"
+              type="number"
+              min={1024}
+              max={65535}
+              value={redirectPort}
+              onChange={(e) => setRedirectPort(e.target.value)}
+            />
+          </details>
+        )}
         <button>Save connection</button>
       </form>
       {error ? (

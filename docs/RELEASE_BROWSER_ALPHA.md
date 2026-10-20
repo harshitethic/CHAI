@@ -1,3 +1,18 @@
+# CHAI 0.8.0-alpha.1 — Host commands, OAuth and durable work
+
+- Optional host terminal execution with a native task grant, real output, stdin, Stop and Revoke.
+- HTTPS MCP OAuth discovery, PKCE sign-in, dynamic or pre-registered public clients, encrypted credentials, refresh and local sign-out. Bearer authentication remains supported.
+- Wayland RemoteDesktop/ScreenCast portal capture and input through a user-selected source; X11 support remains available.
+- Opt-in terminal supervisors survive application exit/crash and reconnect to the same command. Saved effect identities prevent duplicate launches. Computer reboot ends processes.
+- Standard or extended workspace budgets, shown in the progress UI. Completed provider replies can resume background work; uncertain external mutations still pause.
+- Updated task controls, terminal environment selector, connection status and setup documentation.
+
+Normal signed-in ChatGPT conversations remain the reasoning provider. Native sharing/authorization prompts and provider restrictions still apply. This does not claim every proprietary Codex/Work feature.
+
+Earlier release notes follow for historical context.
+
+---
+
 # CHAI 0.7.1-alpha.1 — Clear capability boundaries
 
 - Keep command execution isolated, with no unrestricted PC shell.

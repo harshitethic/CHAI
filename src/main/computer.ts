@@ -9,7 +9,8 @@ import { randomUUID } from "node:crypto";
 import { extname } from "node:path";
 
 import { projectFile, projectWrite } from "../core/project";
-import { requireDesktopSupport } from "../core/desktop-support";
+import { desktopSupport, requireDesktopSupport } from "../core/desktop-support";
+import { WaylandSession, type PortalFrame } from "./wayland";
 import type { Action, Capabilities, Task } from "../core/contracts";
 import type { Gateway } from "../core/gateway";
 import type { Store } from "../core/store";
@@ -32,6 +33,7 @@ type Frame = {
 const forbiddenOrigin = (url: URL) =>
   /(^|\.)(chatgpt\.com|openai\.com)$/.test(url.hostname);
 export class ComputerTools {
+  private portals = new Map<string, WaylandSession>();
   private windows = new Map<string, BrowserWindow>();
   private previews = new Map<
     string,
@@ -56,6 +58,41 @@ export class ComputerTools {
   ) {}
   async selectDesktop(): Promise<Capabilities["desktop"] | null> {
     requireDesktopSupport();
+    if (desktopSupport().backend === "wayland") {
+      if (
+        !(await this.consent(
+          "Share a Wayland source with CHAI?",
+          "Your desktop will ask you to choose a window or screen and allow keyboard/pointer input. Screenshots of that source are sent to your ChatGPT task. A shared screen may include other apps and notifications. Stop sharing from your desktop, or revoke the task, to end access.",
+        ))
+      )
+        return null;
+      for (const [id, previous] of this.portals) {
+        if (
+          !this.store
+            .tasks()
+            .some((task) => task.capabilities?.desktop?.id === id)
+        ) {
+          previous.close();
+          this.portals.delete(id);
+        }
+      }
+      const portal = new WaylandSession();
+      try {
+        const frame = await portal.request({ operation: "connect" });
+        this.portals.set(portal.id, portal);
+        return {
+          id: portal.id,
+          title:
+            frame.sourceType === 2
+              ? "Wayland shared window"
+              : "Wayland shared screen",
+          backend: "wayland",
+        };
+      } catch (error) {
+        portal.close();
+        throw error;
+      }
+    }
     const sources = (
       await desktopCapturer.getSources({
         types: ["window"],
@@ -444,6 +481,8 @@ export class ComputerTools {
   ) {
     const grant = task.capabilities?.desktop;
     if (!grant) throw Error("No desktop window authorized.");
+    if (grant.backend === "wayland" || grant.id.startsWith("portal:"))
+      return this.wayland(task, action, signal);
     requireDesktopSupport();
     const xid = grant.id.split(":")[1];
     const run = (args: string[]) =>
@@ -587,13 +626,112 @@ except Exception as e:
       imageId: this.store.image(task.id, source.thumbnail.toJPEG(70)),
     };
   }
+  private async wayland(
+    task: Task,
+    action: Extract<ComputerAction, { tool: "desktop" }>,
+    signal: AbortSignal,
+  ) {
+    const grant = task.capabilities!.desktop!;
+    const portal = this.portals.get(grant.id);
+    if (!portal)
+      throw Error(
+        "Wayland sharing is no longer active. Choose the source again for a new task.",
+      );
+    if (action.operation === "accessibility")
+      return {
+        available: false,
+        nodes: [],
+        reason:
+          "This portal identifies the shared source without exposing a process-specific accessibility tree. Use observe and screenshot coordinates.",
+      };
+    let image: PortalFrame;
+    if (action.operation === "observe")
+      image = await portal.request({ operation: "observe" }, signal);
+    else {
+      const frame = this.frames.get(task.id);
+      if (
+        !frame ||
+        frame.id !== action.snapshot ||
+        Date.now() - frame.created > 600000
+      )
+        throw Error(
+          "Desktop observation is stale; observe the shared source again",
+        );
+      const current = await portal.request({ operation: "observe" }, signal);
+      if (
+        current.logicalWidth !== frame.targetWidth ||
+        current.logicalHeight !== frame.targetHeight ||
+        current.width !== frame.width ||
+        current.height !== frame.height
+      )
+        throw Error(
+          "Shared source dimensions changed; observe again before input",
+        );
+      if (
+        (action.operation === "key" && action.key === "Return") ||
+        (action.operation === "type" &&
+          /[\r\n]|\b(sudo|rm|shutdown|reboot|mkfs)\b/.test(action.text ?? ""))
+      ) {
+        if (
+          !(await this.consent(
+            "Confirm desktop input",
+            `${grant.title}\nInput can submit an action.\n${action.text ?? action.key}`,
+          ))
+        )
+          throw Error("Desktop input declined");
+      }
+      const request: Record<string, unknown> = {
+        operation: action.operation,
+        text: action.text,
+        key: action.key,
+        direction: action.direction,
+      };
+      if (action.operation === "click") {
+        if (
+          action.x === undefined ||
+          action.y === undefined ||
+          action.x >= frame.width ||
+          action.y >= frame.height
+        )
+          throw Error("Click is outside the shared source screenshot");
+        request.x = (action.x * frame.targetWidth) / frame.width;
+        request.y = (action.y * frame.targetHeight) / frame.height;
+      }
+      signal.throwIfAborted();
+      image = await portal.request(request, signal);
+    }
+    const id = randomUUID();
+    this.frames.set(task.id, {
+      id,
+      created: Date.now(),
+      width: image.width,
+      height: image.height,
+      targetWidth: image.logicalWidth,
+      targetHeight: image.logicalHeight,
+    });
+    return {
+      snapshot: id,
+      title: grant.title,
+      backend: "wayland",
+      width: image.width,
+      height: image.height,
+      imageId: this.store.image(task.id, Buffer.from(image.image, "base64")),
+    };
+  }
   closeTask(id: string) {
+    const grant = this.store.get(id).capabilities?.desktop;
+    if (grant) {
+      this.portals.get(grant.id)?.close();
+      this.portals.delete(grant.id);
+    }
     this.windows.get(id)?.close();
     this.frames.delete(id);
     this.previews.delete(id);
     this.errors.delete(id);
   }
   close() {
+    for (const portal of this.portals.values()) portal.close();
+    this.portals.clear();
     for (const win of this.windows.values()) win.close();
     this.frames.clear();
   }

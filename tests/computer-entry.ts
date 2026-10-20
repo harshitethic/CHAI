@@ -102,7 +102,8 @@ void app.whenReady().then(async () => {
             "document.querySelector('textarea').value",
           ),
       tamperPid: () => {
-        task.capabilities!.desktop!.pid += 10000;
+        task.capabilities!.desktop!.pid =
+          (task.capabilities!.desktop!.pid ?? 0) + 10000;
       },
       close: () => {
         computer.close();
