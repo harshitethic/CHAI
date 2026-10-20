@@ -36,6 +36,7 @@ import type {
 import "./style.css";
 import { Workbench, ConnectorSettings } from "./Workbench";
 import { TaskProgress, TaskActivity } from "./TaskProgress";
+import { Conversation } from "./Conversation";
 declare global {
   interface Window {
     chai: { request: (r: Request) => Promise<unknown> };
@@ -71,13 +72,14 @@ function App() {
     [goal, setGoal] = useState(""),
     [mode, setMode] = useState<Exclude<Mode, "local" | "chatgpt">>("browser"),
     [permission, setPermission] = useState<"review" | "workspace">("workspace"),
-    [projectAccess, setProjectAccess] = useState(false),
+    [projectAccess, setProjectAccess] = useState(true),
+    [newProject, setNewProject] = useState(true),
     [hostAccess, setHostAccess] = useState(false),
     [durableCommands, setDurableCommands] = useState(false),
     [extendedBudget, setExtendedBudget] = useState(false),
-    [networkAccess, setNetworkAccess] = useState(false),
+    [networkAccess, setNetworkAccess] = useState(true),
     [connectorAccess, setConnectorAccess] = useState<string[]>([]),
-    [browserAccess, setBrowserAccess] = useState(false),
+    [browserAccess, setBrowserAccess] = useState(true),
     [browserOrigins, setBrowserOrigins] = useState(""),
     [desktopTarget, setDesktopTarget] = useState<
       Capabilities["desktop"] | null
@@ -150,12 +152,17 @@ function App() {
   };
   const task = data.tasks.find((t) => t.id === id);
   const events = data.events.filter((e) => e.taskId === id);
+  const pendingJob = data.bridge.jobs.find(
+    (j) => j.taskId === id && j.status === "WAITING",
+  );
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!goal.trim()) return;
     setBusy(true);
     const result = await call({
       op: "create",
+      newProject,
       goal,
       mode,
       permission,
@@ -299,7 +306,10 @@ function App() {
         <div className="section-label">WORKSPACE</div>
         <button
           className="workspace"
-          onClick={() => void call({ op: "workspace" })}
+          onClick={() => {
+            setNewProject(false);
+            void call({ op: "workspace" });
+          }}
         >
           <Folder size={17} />
           <span>{data.workspace?.split("/").at(-1) ?? "Choose a folder"}</span>
@@ -427,10 +437,38 @@ function App() {
                   </select>
                   <span>
                     {permission === "workspace"
-                      ? "Starting authorizes file edits, Git inspection and isolated tests. Git commits require a separate confirmation. Stop or revoke anytime."
+                      ? "Starting authorizes file edits and the enabled tools shown below. Git commits require a separate confirmation. Stop or revoke anytime."
                       : "Preview and approve each round before it runs."}
                   </span>
                 </label>
+                <div className="project-choice">
+                  <label>
+                    Project
+                    <select
+                      aria-label="Project source"
+                      value={newProject ? "new" : "existing"}
+                      onChange={(e) => setNewProject(e.target.value === "new")}
+                    >
+                      <option value="new">New empty project</option>
+                      <option value="existing">Existing folder</option>
+                    </select>
+                  </label>
+                  <p>
+                    {newProject
+                      ? "Start clean in a dedicated folder. No files from previous tasks are copied."
+                      : (data.workspace ??
+                        "Choose the folder below before starting.")}
+                  </p>
+                  <p>
+                    Enabled:{" "}
+                    {projectAccess ? "project commands" : "file tools only"}
+                    {projectAccess && networkAccess ? " · network" : ""}
+                    {browserAccess ? " · browser previews" : ""}
+                    {hostAccess
+                      ? " · host commands (confirmation required)"
+                      : ""}
+                  </p>
+                </div>
                 <details className="tool-access">
                   <summary>Project, browser and app access</summary>
                   <label>
@@ -565,7 +603,10 @@ function App() {
                 <footer>
                   <button
                     type="button"
-                    onClick={() => void call({ op: "workspace" })}
+                    onClick={() => {
+                      setNewProject(false);
+                      void call({ op: "workspace" });
+                    }}
                   >
                     <Folder size={16} />
                     {data.workspace?.split("/").at(-1) ?? "Choose workspace"}
@@ -588,7 +629,7 @@ function App() {
                     aria-label="Create task"
                     disabled={
                       busy ||
-                      !data.workspace ||
+                      (!newProject && !data.workspace) ||
                       !goal.trim() ||
                       (mode === "browser" && !data.bridge.connected) ||
                       (mode === "assisted" && !plan.trim())
@@ -651,7 +692,7 @@ function App() {
             <>
               <div className="page-heading">
                 <div>
-                  <span className="eyebrow">COMMAND CENTER</span>
+                  <span className="eyebrow">WORK</span>
                   <h2 className="task-title">
                     {task
                       ? task.goal.split(/(?<=[.!?])\s/)[0].slice(0, 180)
@@ -665,6 +706,38 @@ function App() {
                 </div>
               </div>
               {task?.error && <div className="notice">{task.error}</div>}
+              {task &&
+                pendingJob &&
+                [
+                  "PLANNING",
+                  "VALIDATING",
+                  "RUNNING",
+                  "WAITING_PROVIDER",
+                ].includes(task.state) && (
+                  <div className="provider-wait" role="status">
+                    <span>
+                      Waiting for ChatGPT ·{" "}
+                      {Math.max(
+                        0,
+                        Math.floor(
+                          (Date.now() - Date.parse(pendingJob.created)) / 1000,
+                        ),
+                      )}
+                      s since this request was created. No reply received yet.
+                    </span>
+                    <button
+                      onClick={() =>
+                        void call({
+                          op: "provider",
+                          role: pendingJob.role as Role,
+                        })
+                      }
+                    >
+                      Open conversation
+                    </button>
+                  </div>
+                )}
+
               {task && (
                 <div className="toolbar">
                   <button
@@ -757,37 +830,31 @@ function App() {
                   </footer>
                 </section>
               )}
-              {task && (
-                <TaskProgress
-                  key={"progress-" + task.id}
-                  task={task}
-                  evidence={
-                    data.evidenceTaskId === task.id ? (data.effects ?? []) : []
-                  }
-                />
-              )}
-              {task && (
-                <details className="acceptance-card">
-                  <summary>Full request & success criteria</summary>
-                  <p>{task.goal}</p>
-                  <ul>
-                    {task.agent?.brief?.acceptance.map((criterion, i) => (
-                      <li key={i}>{criterion}</li>
-                    ))}
-                  </ul>
-                </details>
-              )}
-              {task?.state === "DONE" && task.agent?.report && (
-                <details className="result-card">
-                  <summary>Verified result · expand report</summary>
-                  <p>{task.agent.report.summary}</p>
-                  {task.agent.report.limitations.map((item, i) => (
-                    <p className="muted" key={i}>
-                      {item}
-                    </p>
-                  ))}
-                </details>
-              )}
+              <div className="work-layout">
+                {task && (
+                  <TaskProgress
+                    key={"progress-" + task.id}
+                    task={task}
+                    evidence={
+                      data.evidenceTaskId === task.id
+                        ? (data.effects ?? [])
+                        : []
+                    }
+                  />
+                )}
+                {task && (
+                  <details className="acceptance-card">
+                    <summary>Full request & success criteria</summary>
+                    <p>{task.goal}</p>
+                    <ul>
+                      {task.agent?.brief?.acceptance.map((criterion, i) => (
+                        <li key={i}>{criterion}</li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+                {task && <Conversation task={task} events={events} />}
+              </div>
               {task && (
                 <Workbench
                   key={"workspace-" + task.id}
@@ -797,7 +864,10 @@ function App() {
                 />
               )}
               {task && (
-                <TaskActivity key={"activity-" + task.id} events={events} />
+                <details className="raw-role-logs">
+                  <summary>Activity & evidence</summary>
+                  <TaskActivity key={"activity-" + task.id} events={events} />
+                </details>
               )}
               <details className="raw-role-logs">
                 <summary>Detailed role logs</summary>
@@ -833,7 +903,10 @@ function App() {
                 <h3>{data.workspace ?? "No workspace selected"}</h3>
                 <button
                   className="primary"
-                  onClick={() => void call({ op: "workspace" })}
+                  onClick={() => {
+                    setNewProject(false);
+                    void call({ op: "workspace" });
+                  }}
                 >
                   Choose workspace
                 </button>

@@ -16,7 +16,13 @@ import {
 } from "electron";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { writeFileSync, mkdirSync, existsSync, rmSync } from "node:fs";
+import {
+  writeFileSync,
+  mkdirSync,
+  mkdtempSync,
+  existsSync,
+  rmSync,
+} from "node:fs";
 import { ProjectRuntime, projectFile, projectWrite } from "../core/project";
 import { Connectors } from "../core/connectors";
 import { desktopSupport, requireDesktopSupport } from "../core/desktop-support";
@@ -755,10 +761,16 @@ app
           return path;
         }
         case "create": {
-          const root = store.setting("workspace");
-          if (!root) throw Error("Choose a workspace first");
           if (req.mode === "browser" && !bridge.connected)
             throw Error("Connect CHAI tools from ChatGPT Plugins first.");
+          let root = store.setting("workspace");
+          if (req.newProject) {
+            const parent = join(app.getPath("documents"), "CHAI Projects");
+            mkdirSync(parent, { recursive: true, mode: 0o700 });
+            root = mkdtempSync(join(parent, "project-"));
+          }
+          if (!root)
+            throw Error("Choose an existing folder or start a new project");
           return engine.create(
             req.goal,
             workspace(root),

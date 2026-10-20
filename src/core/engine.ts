@@ -197,7 +197,7 @@ export class Engine {
     if (
       t.state !== "WAITING_APPROVAL" ||
       !t.plan ||
-      !this.store.hasWorkspaceGrant(t)
+      (!this.store.hasWorkspaceGrant(t) && t.cursor !== t.plan.actions.length)
     )
       return;
     const allowed = new Set([
@@ -221,8 +221,12 @@ export class Engine {
     this.store.event(
       id,
       "manager",
-      "WORKSPACE_GRANT_USED",
-      "Continuing the exact recorded plan under the user's existing workspace authorization.",
+      t.cursor === t.plan.actions.length
+        ? "ANSWER_READY"
+        : "WORKSPACE_GRANT_USED",
+      t.cursor === t.plan.actions.length
+        ? "Preparing an answer without executing new tools."
+        : "Continuing the exact recorded plan under the user's existing workspace authorization.",
     );
     this.approve(id, true, true);
   }
@@ -265,9 +269,11 @@ export class Engine {
       id,
       "manager",
       "PLAN_APPROVED",
-      fromGrant
-        ? "Exact plan authorized by the user workspace grant (15-minute execution lease)."
-        : "User approved the exact plan once (15-minute expiry).",
+      t.cursor === t.plan.actions.length
+        ? "No new tool actions; continuing to answer review."
+        : fromGrant
+          ? "Exact plan authorized by the user workspace grant (15-minute execution lease)."
+          : "User approved the exact plan once (15-minute expiry).",
     );
     this.enqueue(id);
   }

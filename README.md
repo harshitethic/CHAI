@@ -9,18 +9,22 @@
     <img src="https://img.shields.io/badge/platform-Linux-aaa6a2" alt="Linux" />
     <img src="https://img.shields.io/badge/status-alpha-e59173" alt="Alpha" />
   </p>
-  <p><a href="https://github.com/harshitethic/CHAI/releases/tag/v0.8.1-alpha.1"><strong>Download 0.8 alpha</strong></a> · <a href="#get-started">Get started</a> · <a href="docs/PRIVACY.md">Privacy</a> · <a href="docs/IMPLEMENTATION.md">Architecture</a></p>
+  <p><a href="https://github.com/harshitethic/CHAI/releases/tag/v0.9.0-alpha.1"><strong>Download 0.9 alpha</strong></a> · <a href="#get-started">Get started</a> · <a href="docs/PRIVACY.md">Privacy</a> · <a href="docs/IMPLEMENTATION.md">Architecture</a></p>
 </div>
 
-![CHAI's actual progress view showing a completed ChatGPT task and its recorded actions](docs/qa/progress-workspace.jpg)
+![CHAI conversation view with a user request, tool receipt and visible result](docs/qa/conversation-workspace.png)
 
-*Actual CHAI interface displaying a completed live ChatGPT task. The original failed test remains visible beside the successful rerun. This is recorded execution evidence.*
+*Actual native CHAI 0.9 interface. This screenshot uses an explicit scripted conversation fixture to test rendering and persistence; it is not presented as a live model response.*
 
 ## Follow the work
 
-Give CHAI a goal and a dedicated project folder. Its Manager assigns work, the Builder proposes concrete actions, and the Reviewer checks captured evidence. You can see what is happening, what finished and what remains.
+Give CHAI a goal. Start a new empty project or explicitly select an existing folder. Its Manager assigns work, the Builder proposes concrete actions, and the Reviewer checks captured evidence. You can see what is happening, what finished and what remains.
 
-**New in 0.8:** opt-in host commands, OAuth app sign-in, Wayland portal sharing, durable terminal recovery and extended task budgets.
+**New in 0.9:** a chronological conversation with user follow-ups, readable assistant updates, visible final answers and expandable tool receipts. Informational questions can receive answers without unnecessary tool actions. New tasks start with an explicit project choice and show enabled tools before submission.
+
+Project commands, network and local browser previews start enabled in the new-task UI; you can turn each off before sending. Host commands remain a separate native grant. Existing tasks retain their original permissions. A waiting indicator shows when a ChatGPT reply has not arrived and opens the relevant conversation directly.
+
+The agent instructions now request concise, natural progress messages and review the user's full outcome rather than only a smaller implementation assignment. These are tested workflow changes, **not a claim of first-party Codex/Work parity**. Responses arrive through structured ChatGPT jobs, not token-by-token streaming.
 
 The workspace includes isolated writable projects, dependency installation, persistent command sessions, interactive local-app previews, follow-up steering, project diffs, document outputs and authenticated app tools. The Work screen keeps the current action, next step, check results and role updates alongside the actual working environment.
 
@@ -73,7 +77,7 @@ Automated tests cover the core workflows and boundaries. Native Electron tests c
 
 ### 1. Install on Linux
 
-Download the AppImage and `SHA256SUMS` from the [release](https://github.com/harshitethic/CHAI/releases/tag/v0.8.1-alpha.1). A Debian amd64 package is also available.
+Download the AppImage and `SHA256SUMS` from the [release](https://github.com/harshitethic/CHAI/releases/tag/v0.9.0-alpha.1). A Debian amd64 package is also available.
 
 Required: Python 3 with venv support, Bubblewrap, Git, Node and npm. X11 control requires `xdotool`, `x11-utils`, Python GI and the AT-SPI typelib. Wayland control requires a working RemoteDesktop/ScreenCast portal backend (GNOME or KDE), PipeWire, Python GI/GStreamer and the PipeWire/base/good GStreamer plugins. Document libraries install inside the task project when network access is authorized. GitHub publication additionally requires `gh auth login` on this machine.
 

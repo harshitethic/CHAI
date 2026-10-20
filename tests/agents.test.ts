@@ -79,6 +79,48 @@ async function create(s: ReturnType<typeof setup>) {
   await s.engine.idle();
   return id;
 }
+test("informational questions can be reviewed and answered without invented tools or granting workspace access", async () => {
+  const adapter = new TestAdapter((r) => {
+    if (r.phase === "proposal")
+      throw Error("An informational answer must not request a tool plan");
+    if (r.phase === "assignment")
+      return {
+        ...brief,
+        responseOnly: true,
+        summary: "No checks have run in this task.",
+      };
+    if (r.phase === "independent-review") {
+      assert.equal(
+        JSON.parse(r.input).proposedAnswer,
+        "No checks have run in this task.",
+      );
+      return {
+        ...passed,
+        summary: "The answer accurately describes the empty execution history.",
+      };
+    }
+    return { summary: "No checks have run in this task.", limitations: [] };
+  });
+  const s = setup(adapter);
+  const id = await s.engine.create(
+    "Have any checks run?",
+    s.root,
+    "browser",
+    "test-model",
+    undefined,
+    "review",
+  );
+  await s.engine.idle();
+  assert.equal(s.store.get(id).state, "DONE");
+  assert.equal(s.store.get(id).plan?.actions.length, 0);
+  assert.equal(s.store.actionEvidence(id).length, 0);
+  assert.equal(s.store.hasWorkspaceGrant(s.store.get(id)), false);
+  assert.deepEqual(
+    adapter.calls.map((c) => c.phase),
+    ["assignment", "independent-review", "final-report"],
+  );
+  s.store.db.close();
+});
 test("three model roles perform a real write, independent review, and manager report", async () => {
   const adapter = new TestAdapter((r) =>
     r.phase === "assignment"

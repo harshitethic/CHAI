@@ -1,3 +1,7 @@
+# Current work — 0.9.0-alpha.1, 2026-10-20
+
+Conversation UI, informational answers without tools, explicit fresh projects, provider waiting/recovery controls, and more natural agent summaries are implemented. User-facing defaults enable isolated project commands, network and browser previews, with visible controls before submission; existing permissions are not migrated. Validate and publish before claiming installation. See docs/RELEASE_BROWSER_ALPHA.md and the current git history. Older entries below are historical and may describe superseded limits.
+
 # BRAIN — CHAI's Long-Term Memory
 
 ## Current status — 0.7.0-alpha.1, 2026-10-19

@@ -365,6 +365,7 @@ export interface Task {
       "manager" | "builder" | "execute" | "reviewer" | "finalize" | "complete";
     brief: {
       summary: string;
+      responseOnly?: boolean;
       builderTask: string;
       acceptance: string[];
     } | null;
@@ -569,6 +570,7 @@ export const requestSchema = z.discriminatedUnion("op", [
   z
     .object({
       op: z.literal("create"),
+      newProject: z.boolean().optional(),
       goal: z.string().min(1).max(12000),
       mode: z.enum(["recipe", "assisted", "browser"]),
       model: z.string().max(100),

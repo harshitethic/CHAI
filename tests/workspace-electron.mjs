@@ -12,6 +12,7 @@ import { join, resolve } from "node:path";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import assert from "node:assert/strict";
+import { DatabaseSync } from "node:sqlite";
 const base = mkdtempSync(join(tmpdir(), "chai-workbench-")),
   root = join(base, "source");
 mkdirSync(root);
@@ -53,6 +54,72 @@ async function waitState(id, state) {
 try {
   page = await app.firstWindow();
   page.setDefaultTimeout(15000);
+  // New projects must not inherit the previously selected source folder.
+  const documents = join(base, "documents");
+  mkdirSync(documents);
+  await app.evaluate(
+    ({ app }, path) => app.setPath("documents", path),
+    documents,
+  );
+  const freshId = await page.evaluate(() =>
+    window.chai.request({
+      op: "create",
+      newProject: true,
+      mode: "recipe",
+      model: "fixture",
+      permission: "workspace",
+      capabilities: { project: true, browser: true },
+      goal: "write fresh.txt with content A clean project",
+    }),
+  );
+  const freshSnapshot = await waitState(freshId, "DONE");
+  const fresh = freshSnapshot.tasks.find((t) => t.id === freshId);
+  assert.equal(
+    readFileSync(join(fresh.root, "fresh.txt"), "utf8"),
+    "A clean project",
+  );
+  assert(!existsSync(join(fresh.root, "sum.cjs")));
+  assert.notEqual(fresh.sourceRoot, root);
+  // Fixture responses exercise persisted conversation rendering, not live model quality.
+  const fixtureDb = new DatabaseSync(
+    join(base, ".config", "chai-desktop", "chai.sqlite"),
+  );
+  fixtureDb
+    .prepare(
+      "INSERT INTO events(taskId,role,kind,detail,created) VALUES(?,?,?,?,?)",
+    )
+    .run(
+      freshId,
+      "manager",
+      "MODEL_RESPONSE",
+      JSON.stringify({
+        summary:
+          "Created **fresh.txt** in a clean project.\n\nThe existing folder was preserved.",
+        limitations: [],
+      }),
+      new Date().toISOString(),
+    );
+  fixtureDb.close();
+  await page
+    .getByRole("button", { name: /write fresh.txt with content/ })
+    .first()
+    .click();
+  await page
+    .getByRole("region", { name: "Task conversation" })
+    .getByText("Created", { exact: false })
+    .waitFor();
+  assert.equal(
+    await page.locator(".final-message strong").last().innerText(),
+    "fresh.txt",
+  );
+  await page.reload();
+  await page
+    .getByRole("button", { name: /write fresh.txt with content/ })
+    .first()
+    .click();
+  await page.locator(".final-message").waitFor();
+  await page.screenshot({ path: ".qa/conversation-workspace.png" });
+  await page.getByRole("button", { name: "New task", exact: true }).click();
   await page
     .getByRole("heading", { name: "Stop chatting. Start doing." })
     .waitFor();

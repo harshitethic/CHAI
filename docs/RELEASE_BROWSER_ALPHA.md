@@ -1,3 +1,16 @@
+# CHAI 0.9.0-alpha.1 — Conversations and clearer project setup
+
+- Chronological user/assistant conversation with readable text, bold/code formatting, visible final results and expandable execution receipts.
+- Informational questions can be answered and independently reviewed without fabricated tool actions or workspace grants.
+- Explicit new-project versus existing-folder selection; new tasks cannot silently inherit an old selected folder. Enabled commands/network/browser are visible before submission.
+- ChatGPT waiting status and direct conversation controls for stalled work.
+- Agent instructions favor short natural updates, continuing implementation and browser verification, and checking the full user outcome rather than accepting a reduced assignment.
+- Existing tasks, permissions, effects and reports remain intact. No provider credentials or private APIs are accessed.
+
+This does not reproduce proprietary Codex/Work infrastructure, stream model tokens, or establish equivalent task quality. The game investigation found a provider interruption after passing core tests, disabled project/browser capabilities, and a working 2D prototype that did not satisfy a realistic-game request. Browser interaction checks were performed separately; that is not a completed live CHAI task.
+
+---
+
 # CHAI 0.8.1-alpha.1 — Preserve refreshable ChatGPT pairing
 
 Fix restart status when the ChatGPT tool connection's short-lived access token has expired but its refresh grant is still valid. CHAI can dispatch the next job and let ChatGPT perform the normal refresh flow. Expired access tokens and refresh tokens remain invalid for tool access; explicit disconnect still revokes the grant.

@@ -172,11 +172,28 @@ export function Workbench({
           </button>
         </div>
       ) : null}
-      {task.state === "WAITING_PROVIDER" ? (
+      {task.mode === "browser" &&
+      (task.state === "WAITING_PROVIDER" ||
+        (task.state === "PAUSED" && task.error)) ? (
         <div className="work-status">
           <span className="status-dot WAITING_PROVIDER" />
           ChatGPT needs attention. Open the role conversation, resolve its
           prompt or connection issue, then resume.
+          <button
+            onClick={() =>
+              void run({
+                op: "provider",
+                role:
+                  task.agent?.phase === "reviewer"
+                    ? "reviewer"
+                    : task.agent?.phase === "builder"
+                      ? "builder"
+                      : "manager",
+              }).catch(() => {})
+            }
+          >
+            Open ChatGPT
+          </button>
           <button
             onClick={() =>
               void run({ op: "resume", id: task.id }).catch(() => {})

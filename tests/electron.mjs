@@ -29,6 +29,16 @@ try {
     .getByRole("heading", { name: "Stop chatting. Start doing." })
     .waitFor();
   await page.screenshot({ path: ".qa/home.png" });
+  assert.equal(
+    await page.getByRole("combobox", { name: "Project source" }).inputValue(),
+    "new",
+  );
+  await page
+    .getByRole("combobox", { name: "Project source" })
+    .selectOption("existing");
+  await page.locator(".tool-access summary").click();
+  await page.getByLabel("Build in an isolated project copy").uncheck();
+
   await page
     .getByRole("combobox", { name: "Provider mode" })
     .selectOption("recipe");
@@ -79,6 +89,12 @@ try {
   assert(invalid);
   // Exercise the visible one-time permission selector, without approving a plan.
   await page.getByRole("button", { name: "New task", exact: true }).click();
+  await page
+    .getByRole("combobox", { name: "Project source" })
+    .selectOption("existing");
+  await page.locator(".tool-access summary").click();
+  await page.getByLabel("Build in an isolated project copy").uncheck();
+
   await page
     .getByRole("combobox", { name: "Provider mode" })
     .selectOption("recipe");

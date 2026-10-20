@@ -64,8 +64,10 @@ export function progressView(task: Task, evidence: ActionEvidence[] = []) {
   let now = "Preparing the task";
   let next = "Manager will prepare an assignment.";
   if (task.state === "DONE") {
-    now = "Task completed";
-    next = "Read the result and inspect the recorded evidence.";
+    now = task.agent?.brief?.responseOnly ? "Reply ready" : "Task completed";
+    next = task.agent?.brief?.responseOnly
+      ? "This reply made no new tool changes. Send a follow-up to continue the work."
+      : "Read the result and inspect the recorded evidence.";
   } else if (task.state === "FAILED") {
     now = "Task stopped with an error";
     next = "Inspect the error and evidence before starting a fresh task.";
