@@ -3,7 +3,7 @@
 set -eu
 umask 077
 source_image=${1:?Usage: sh scripts/install-local.sh IMAGE [VERSION] [--upgrade]}
-version=${2:-0.8.0-alpha.1}
+version=${2:-0.8.1-alpha.1}
 upgrade=${3:-}
 case "$version" in ''|*[!a-zA-Z0-9.-]*) echo 'Invalid version' >&2; exit 1;; esac
 [ -f "$source_image" ] || { echo 'AppImage not found' >&2; exit 1; }

@@ -256,7 +256,7 @@ export class ToolConnectionAuth implements OAuthServerProvider {
   hasActiveGrant() {
     return !!this.store.db
       .prepare(
-        "SELECT 1 FROM bridge_tokens WHERE origin=? AND kind='access' AND expires>? LIMIT 1",
+        "SELECT 1 FROM bridge_tokens WHERE origin=? AND kind IN ('access','refresh') AND expires>? LIMIT 1",
       )
       .get(this.origin, Date.now());
   }

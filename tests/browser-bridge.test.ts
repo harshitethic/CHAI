@@ -355,3 +355,42 @@ test("normal tool-server shutdown preserves pairing; explicit disconnect revokes
     s.store.close();
   }
 });
+
+test("restart recognizes a valid refresh grant without accepting expired access tokens", async () => {
+  const s = await setup();
+  const grant = (await (await s.token(s.verifier)).json()) as {
+    access_token: string;
+    refresh_token: string;
+  };
+  s.store.db
+    .prepare("UPDATE bridge_tokens SET expires=0 WHERE kind='access'")
+    .run();
+  await s.server.close(false);
+  const resumed = new ToolServer(new BrowserBridge(s.store), async () => true);
+  try {
+    resumed.configure(origin);
+    assert.equal(resumed.bridge.connected, true);
+    await assert.rejects(resumed.auth!.verifyAccessToken(grant.access_token));
+    await assert.rejects(resumed.auth!.verifyAccessToken(grant.refresh_token));
+    const port = await resumed.listen();
+    const refreshed = await fetch(`http://127.0.0.1:${port}/token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "refresh_token",
+        client_id: s.client.client_id,
+        refresh_token: grant.refresh_token,
+        resource: origin + "/mcp",
+      }),
+    });
+    assert.equal(refreshed.status, 200);
+    const rotated = (await refreshed.json()) as { access_token: string };
+    await resumed.auth!.verifyAccessToken(rotated.access_token);
+    resumed.auth!.disconnectAll();
+    assert.equal(resumed.auth!.hasActiveGrant(), false);
+    await assert.rejects(resumed.auth!.verifyAccessToken(rotated.access_token));
+  } finally {
+    await resumed.close();
+    s.store.close();
+  }
+});

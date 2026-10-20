@@ -1,3 +1,11 @@
+# CHAI 0.8.1-alpha.1 — Preserve refreshable ChatGPT pairing
+
+Fix restart status when the ChatGPT tool connection's short-lived access token has expired but its refresh grant is still valid. CHAI can dispatch the next job and let ChatGPT perform the normal refresh flow. Expired access tokens and refresh tokens remain invalid for tool access; explicit disconnect still revokes the grant.
+
+Includes all 0.8 runtime and UI improvements below. The installed-profile check identified this issue in pairing records that predated the upgrade.
+
+---
+
 # CHAI 0.8.0-alpha.1 — Host commands, OAuth and durable work
 
 - Optional host terminal execution with a native task grant, real output, stdin, Stop and Revoke.

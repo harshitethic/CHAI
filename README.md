@@ -9,7 +9,7 @@
     <img src="https://img.shields.io/badge/platform-Linux-aaa6a2" alt="Linux" />
     <img src="https://img.shields.io/badge/status-alpha-e59173" alt="Alpha" />
   </p>
-  <p><a href="https://github.com/harshitethic/CHAI/releases/tag/v0.8.0-alpha.1"><strong>Download 0.8 alpha</strong></a> · <a href="#get-started">Get started</a> · <a href="docs/PRIVACY.md">Privacy</a> · <a href="docs/IMPLEMENTATION.md">Architecture</a></p>
+  <p><a href="https://github.com/harshitethic/CHAI/releases/tag/v0.8.1-alpha.1"><strong>Download 0.8 alpha</strong></a> · <a href="#get-started">Get started</a> · <a href="docs/PRIVACY.md">Privacy</a> · <a href="docs/IMPLEMENTATION.md">Architecture</a></p>
 </div>
 
 ![CHAI's actual progress view showing a completed ChatGPT task and its recorded actions](docs/qa/progress-workspace.jpg)
@@ -73,20 +73,20 @@ Automated tests cover the core workflows and boundaries. Native Electron tests c
 
 ### 1. Install on Linux
 
-Download the AppImage and `SHA256SUMS` from the [release](https://github.com/harshitethic/CHAI/releases/tag/v0.8.0-alpha.1). A Debian amd64 package is also available.
+Download the AppImage and `SHA256SUMS` from the [release](https://github.com/harshitethic/CHAI/releases/tag/v0.8.1-alpha.1). A Debian amd64 package is also available.
 
 Required: Python 3 with venv support, Bubblewrap, Git, Node and npm. X11 control requires `xdotool`, `x11-utils`, Python GI and the AT-SPI typelib. Wayland control requires a working RemoteDesktop/ScreenCast portal backend (GNOME or KDE), PipeWire, Python GI/GStreamer and the PipeWire/base/good GStreamer plugins. Document libraries install inside the task project when network access is authorized. GitHub publication additionally requires `gh auth login` on this machine.
 
 ```sh
 sha256sum --check --ignore-missing SHA256SUMS
-chmod +x CHAI-0.8.0-alpha.1.AppImage
-APPIMAGE_EXTRACT_AND_RUN=1 ./CHAI-0.8.0-alpha.1.AppImage
+chmod +x CHAI-0.8.1-alpha.1.AppImage
+APPIMAGE_EXTRACT_AND_RUN=1 ./CHAI-0.8.1-alpha.1.AppImage
 ```
 
 For a user-only installation from a source checkout:
 
 ```sh
-sh scripts/install-local.sh /path/to/CHAI-0.8.0-alpha.1.AppImage 0.8.0-alpha.1
+sh scripts/install-local.sh /path/to/CHAI-0.8.1-alpha.1.AppImage 0.8.1-alpha.1
 # Add --upgrade when replacing an existing CHAI installation.
 ```
 

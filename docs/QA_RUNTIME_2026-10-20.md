@@ -4,7 +4,7 @@ This release adds opt-in host execution, app OAuth, Wayland portal input and dur
 
 | Check | Observed result |
 | --- | --- |
-| Core suite | 67 tests pass on Kali, including host grants and durable command reconnect, stdin, Stop, duplicate-launch prevention, owner SIGKILL survival and descriptor isolation. |
+| Core suite | 68 tests pass on Kali, including host grants and durable command reconnect, stdin, Stop, duplicate-launch prevention, owner SIGKILL survival and descriptor isolation. |
 | OAuth TLS integration | Real HTTPS fixture verifies discovery, registration, PKCE S256, resource indicator, invalid callback state rejection, code exchange, expired-token refresh, credential redaction and local sign-out. No claim of testing every external provider. |
 | Bearer MCP integration | Authenticated tools and native consent checks pass. |
 | Native workbench | Real isolated test failure → patch → same test passes; interactive preview; file/diff/output panes; confirmed download; tray continuation; durable server survives app quit/relaunch; Stop All terminates it. |
@@ -19,3 +19,5 @@ The native quit/reopen check exposed inherited Chromium descriptors in the detac
 Durable commands survive application exit/crash, not an OS reboot. Only terminal effects with matching durable receipts can be reconciled automatically; uncertain external mutations remain paused. OAuth credentials use production OS-backed encryption; the isolated TLS fixture supplies a deterministic test codec. Provider sign-in, availability, approvals and service limits remain separate.
 
 Packaged CI and downloaded-release verification are recorded separately after publication.
+
+The installed-profile check found pre-existing expired access tokens alongside a valid refresh grant. Version 0.8.1 recognizes that pairing on restart; its regression test rejects expired access tokens and refresh tokens as bearer credentials, verifies the normal refresh exchange and verifies explicit revocation.
