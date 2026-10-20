@@ -21,3 +21,5 @@ Durable commands survive application exit/crash, not an OS reboot. Only terminal
 Packaged CI and downloaded-release verification are recorded separately after publication.
 
 The installed-profile check found pre-existing expired access tokens alongside a valid refresh grant. Version 0.8.1 recognizes that pairing on restart; its regression test rejects expired access tokens and refresh tokens as bearer credentials, verifies the normal refresh exchange and verifies explicit revocation.
+
+Version 0.8.1 release CI and packaged tests passed. The exact public AppImage was downloaded to Kali, checksum-verified, passed both native suites, and was installed. The normal profile retained eight tasks, the prior DONE live task, two outputs and its refreshable tool pairing. See [published verification](qa/published-0.8.1-verification.json).

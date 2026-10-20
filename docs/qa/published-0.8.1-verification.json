@@ -1,0 +1,22 @@
+{
+  "version": "0.8.1-alpha.1",
+  "verifiedAt": "2026-10-20T08:25:09.536Z",
+  "taskCount": 8,
+  "previousLiveTask": "DONE",
+  "retainedOutputs": 2,
+  "toolPairingRetained": true,
+  "x11Detected": true,
+  "oauthUI": true,
+  "hostAndDurableControls": true,
+  "sourceCommit": "01948fb0dc1643608b7b0003bbf0905c3d05eeaf",
+  "ci": "https://github.com/harshitethic/CHAI/actions/runs/39392552305",
+  "releaseWorkflow": "https://github.com/harshitethic/CHAI/actions/runs/39392554723",
+  "release": "https://github.com/harshitethic/CHAI/releases/tag/v0.8.1-alpha.1",
+  "coreTests": 68,
+  "appImageSha256": "08c121ed7962bc31269e8600c961cb2d7b49ec2207b3f6008783640bbc6a909b",
+  "publishedChecksumVerified": true,
+  "publishedNativeE2E": true,
+  "publishedNativeWorkbench": true,
+  "wholeMachineRebootTested": false,
+  "verificationType": "Native integration fixtures; existing live ChatGPT task retained"
+}
