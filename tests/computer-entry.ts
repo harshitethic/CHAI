@@ -44,6 +44,15 @@ void app.whenReady().then(async () => {
       task,
       execute: (action: Extract<Action, { tool: "browser" | "desktop" }>) =>
         computer.execute(task, action, new AbortController().signal),
+      executeCanceled: async (action: Extract<Action, { tool: "browser" }>) => {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 350);
+        try {
+          return await computer.execute(task, action, controller.signal);
+        } finally {
+          clearTimeout(timer);
+        }
+      },
       deny: () => {
         task.capabilities!.browser = false;
       },

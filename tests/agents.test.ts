@@ -493,3 +493,259 @@ test("queued follow-ups survive restart and wait for resume before replanning", 
     store.close();
   }
 });
+
+for (const phase of ["assignment", "independent-review"]) {
+  test(`queued steering is applied after ${phase}, before another stale role call`, async () => {
+    let began!: () => void, release!: () => void;
+    const started = new Promise<void>((r) => {
+      began = r;
+    });
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    let queued = false;
+    const adapter = new TestAdapter(async (r) => {
+      if (queued) assert.equal(r.revision, 1, "No additional stale role calls");
+      if (r.phase === phase && !r.revision) {
+        began();
+        await gate;
+        queued = true;
+      }
+      if (r.phase === "assignment") return brief;
+      if (r.phase === "proposal")
+        return r.revision
+          ? {
+              summary: "Add the requested follow-up",
+              actions: [
+                {
+                  tool: "write",
+                  path: "followup.txt",
+                  content: "preserved steering",
+                },
+              ],
+            }
+          : plan("hello");
+      if (r.phase === "independent-review") return passed;
+      return report;
+    });
+    const s = setup(adapter);
+    try {
+      const id = await s.engine.create(
+        "Original full goal",
+        s.root,
+        "browser",
+        "fixture",
+        undefined,
+        "workspace",
+      );
+      await started;
+      await s.engine.followup(id, "Add followup.txt too");
+      release();
+      await s.engine.idle();
+      assert.equal(s.store.get(id).state, "DONE");
+      assert.equal(s.store.get(id).revision, 1);
+      assert.equal(
+        readFileSync(join(s.root, "followup.txt"), "utf8"),
+        "preserved steering",
+      );
+    } finally {
+      release();
+      await s.engine.idle();
+      s.store.close();
+    }
+  });
+}
+
+// Scripted failure injection exercises orchestration, not model quality.
+test("browser input proposals require grounded targets and bounded holds", async () => {
+  const { actionSchema } = await import("../src/core/contracts");
+  const key = { tool: "browser", operation: "key", key: "ArrowUp" };
+  assert.equal(actionSchema.safeParse(key).success, false);
+  const observed = {
+    ...key,
+    snapshot: "00000000-0000-4000-8000-000000000000",
+    ref: "e0",
+    holdMs: 250,
+  };
+  assert.equal(actionSchema.safeParse(observed).success, true);
+  assert.equal(
+    actionSchema.safeParse({ ...observed, key: "Space" }).success,
+    true,
+  );
+  assert.equal(
+    actionSchema.safeParse({ ...observed, holdMs: 2001 }).success,
+    false,
+  );
+  assert.equal(
+    actionSchema.safeParse({ ...observed, operation: "click" }).success,
+    false,
+  );
+});
+test("rejected browser preconditions replan without replaying unstarted actions", async () => {
+  const { ToolPreconditionError } = await import("../src/core/tool-errors");
+  let proposals = 0,
+    inputs = 0,
+    observed = false;
+  const adapter = new TestAdapter((r) => {
+    if (r.phase === "assignment") {
+      if (proposals)
+        assert.match(
+          JSON.stringify(JSON.parse(r.input).previousReview),
+          /before dispatch/,
+        );
+      return brief;
+    }
+    if (r.phase === "proposal")
+      return ++proposals === 1
+        ? {
+            summary: "Test stale target",
+            actions: [
+              {
+                tool: "browser",
+                operation: "key",
+                key: "ArrowUp",
+                snapshot: "00000000-0000-4000-8000-000000000000",
+                ref: "e0",
+              },
+              { tool: "write", path: "obsolete.txt", content: "must not run" },
+            ],
+          }
+        : {
+            summary: "Refresh and finish",
+            actions: [
+              { tool: "browser", operation: "observe" },
+              ...plan("hello").actions,
+            ],
+          };
+    return r.phase === "independent-review" ? passed : report;
+  });
+  const s = setup(adapter);
+  s.gateway.computer = async (_task, action) => {
+    if (action.operation === "key") {
+      inputs++;
+      throw new ToolPreconditionError(
+        "Stale browser observation; observe again.",
+      );
+    }
+    observed = true;
+    return { text: "Fresh page", controls: [] };
+  };
+  try {
+    const id = await s.engine.create(
+      "Create notes.txt with exactly hello",
+      s.root,
+      "browser",
+      "fixture",
+      undefined,
+      "workspace",
+      { browser: true, origins: [] },
+    );
+    await s.engine.idle();
+    assert.equal(s.store.get(id).state, "DONE");
+    assert.equal(inputs, 1);
+    assert(observed);
+    assert.equal(readFileSync(join(s.root, "notes.txt"), "utf8"), "hello");
+    assert(!existsSync(join(s.root, "obsolete.txt")));
+    const rejectedEffect = s.store.db
+      .prepare("SELECT state,output FROM effects WHERE taskId=? AND idx=0")
+      .get(id)!;
+    assert.equal(rejectedEffect.state, "INTERRUPTED");
+    assert.equal(JSON.parse(String(rejectedEffect.output)).executed, false);
+    assert(s.store.events(id).some((e) => e.kind === "TOOL_REJECTED"));
+  } finally {
+    s.store.close();
+  }
+});
+test("unknown browser outcomes and declined confirmations are never automatically retried", async () => {
+  for (const message of [
+    "Website action declined.",
+    "Input timed out; outcome unknown.",
+  ]) {
+    let inputs = 0;
+    const adapter = new TestAdapter((r) =>
+      r.phase === "assignment"
+        ? brief
+        : {
+            summary: "Observed input",
+            actions: [
+              {
+                tool: "browser",
+                operation: "key",
+                key: "Enter",
+                snapshot: "00000000-0000-4000-8000-000000000000",
+                ref: "e0",
+              },
+            ],
+          },
+    );
+    const s = setup(adapter);
+    s.gateway.computer = async () => {
+      inputs++;
+      throw Error(message);
+    };
+    try {
+      const id = await s.engine.create(
+        "Use the observed page",
+        s.root,
+        "browser",
+        "fixture",
+        undefined,
+        "workspace",
+        { browser: true, origins: [] },
+      );
+      await s.engine.idle();
+      assert.equal(s.store.get(id).state, "FAILED");
+      assert.equal(inputs, 1);
+      assert.equal(adapter.calls.length, 2);
+      assert.equal(
+        s.store.db.prepare("SELECT state FROM effects WHERE taskId=?").get(id)!
+          .state,
+        "STARTED",
+      );
+    } finally {
+      s.store.close();
+    }
+  }
+});
+test("browser precondition recovery stops at the existing round budget", async () => {
+  const { ToolPreconditionError } = await import("../src/core/tool-errors");
+  let inputs = 0;
+  const adapter = new TestAdapter((r) =>
+    r.phase === "assignment"
+      ? brief
+      : {
+          summary: "Observe stale target",
+          actions: [
+            {
+              tool: "browser",
+              operation: "key",
+              key: "Enter",
+              snapshot: "00000000-0000-4000-8000-000000000000",
+              ref: "e0",
+            },
+          ],
+        },
+  );
+  const s = setup(adapter);
+  s.gateway.computer = async () => {
+    inputs++;
+    throw new ToolPreconditionError("Stale observation");
+  };
+  try {
+    const id = await s.engine.create(
+      "Use the observed page",
+      s.root,
+      "browser",
+      "fixture",
+      undefined,
+      "workspace",
+      { browser: true, origins: [] },
+    );
+    await s.engine.idle();
+    assert.equal(s.store.get(id).state, "FAILED");
+    assert.equal(inputs, 12);
+    assert.equal(s.store.get(id).agent!.round, 12);
+  } finally {
+    s.store.close();
+  }
+});

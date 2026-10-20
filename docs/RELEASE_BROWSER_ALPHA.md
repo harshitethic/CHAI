@@ -1,5 +1,7 @@
-# CHAI 0.10.0-alpha.1 — visible, steerable work
+# CHAI 0.10.1-alpha.1 — visible, steerable work
 
+- Fix browser input failures found in the game audit: require observed input targets, expose canvas controls, translate DOM arrow keys to Electron key codes, and support held keys up to two seconds with release on cancellation. Stale preconditions trigger bounded replanning; uncertain outcomes and declined confirmations are never retried automatically.
+- Follow the latest conversation updates automatically, retain your position while reading earlier messages, and jump to new updates with one click. Waiting text distinguishes progress from the final result.
 - Live public updates through `chai_report_progress`, alongside a durable milestone plan with completed, current, pending and blocked states.
 - Job/role scoping, monotonic progress sequences, idempotent retries and optimistic plan versions. Old jobs cannot update a superseded task revision.
 - Follow-ups queue at safe planning/action/review boundaries by default. Completed actions and running previews remain; choose Interrupt current work to stop immediately.

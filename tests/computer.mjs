@@ -13,7 +13,16 @@ writeFileSync(
 <label>Name <input aria-label="Name"></label><button id="apply">Apply greeting</button><p id="result">Waiting</p>
 <button id="remove">Delete record</button><a href="https://example.org/">Outside origin</a>
 <input type="password" aria-label="Password"><input type="file" aria-label="Upload fixture" onchange="this.nextElementSibling.textContent=this.files[0].name"><p>No upload</p>
+<canvas id="game" width="200" height="100" aria-label="Game input"></canvas>
 <script>
+window.gameInput = {held:false,ticks:0,releases:0,flight:false,events:[]};
+document.addEventListener('keydown', e => {gameInput.events.push({key:e.key,code:e.code,target:e.target.id});
+ if(e.target.id!=='game')return;
+ if(e.key==='ArrowUp')gameInput.held=true;
+ if(e.code==='Space')gameInput.flight=!gameInput.flight;
+});
+document.addEventListener('keyup', e => {if(e.key==='ArrowUp'){gameInput.held=false;gameInput.releases++;}});
+setInterval(()=>{if(gameInput.held)gameInput.ticks++;},16);
 apply.onclick=()=>result.textContent='Hello '+document.querySelector('input').value;
 remove.onclick=()=>result.textContent='Deleted';
 fetch('https://example.org/').then(()=>document.body.dataset.network='leaked').catch(()=>document.body.dataset.network='blocked');
@@ -173,6 +182,39 @@ try {
     }),
     /Protected/,
   );
+  obs = await execute({ tool: "browser", operation: "observe" });
+  const canvas = obs.controls.find(
+    (c) => c.tag === "canvas" && c.label === "Game input",
+  );
+  assert(canvas, "Canvas must be exposed as an observed target");
+  const key = {
+    tool: "browser",
+    operation: "key",
+    key: "ArrowUp",
+    snapshot: obs.snapshot,
+    ref: canvas.ref,
+    holdMs: 250,
+  };
+  await execute(key);
+  let input = await browser.evaluate(() => window.gameInput);
+  assert(input.ticks >= 3, "Held input must cross multiple animation frames");
+  assert.equal(input.held, false);
+  assert.equal(input.releases, 1);
+  await execute({ ...key, key: "Space", holdMs: 0 });
+  assert.equal(await browser.evaluate(() => window.gameInput.flight), true);
+  await assert.rejects(
+    app.evaluate(
+      (_e, action) => globalThis.computerTest.executeCanceled(action),
+      { ...key, holdMs: 2000 },
+    ),
+    /abort/i,
+  );
+  await new Promise((r) => setTimeout(r, 100));
+  input = await browser.evaluate(() => window.gameInput);
+  assert.equal(input.held, false, "Cancel must release held input");
+  assert.equal(input.releases, 2);
+  await browser.locator("#game").evaluate((e) => e.remove());
+  await assert.rejects(execute(key), /unavailable/);
   if (process.env.CHAI_TEST_DESKTOP === "1") {
     await app.evaluate(() => globalThis.computerTest.createDesktop());
     let frame = await execute({ tool: "desktop", operation: "observe" });
@@ -226,7 +268,7 @@ try {
     );
   }
   console.log(
-    "PASS isolated browser preview, capture, observed click/type, denied origin/network/secret/password, stale refs, sensitive-action consent and denied capability.",
+    "PASS isolated browser preview, held canvas keys, Space, cancellation release, capture, observed click/type, denied origin/network/secret/password, stale refs, sensitive-action consent and denied capability.",
   );
 } finally {
   await app.close().catch(() => {});

@@ -85,7 +85,7 @@ const boundary =
   "Tools: relative-path read/list/write, fixed commands pwd, git-status, git-diff (stat only), node-version; run executes Python, Node or Bash in an isolated offline Linux sandbox. " +
   "For run, explicitly list required relative file paths in files; only those files are copied to read-only /workspace. Use /tmp for temporary outputs. Host home, secrets, browser sessions and network are unavailable. " +
   "Example: {tool:'run',program:'python3',args:['check.py'],files:['check.py'],timeoutSeconds:20}. Python isolated mode: add /workspace to sys.path inside scripts that import sibling modules. Node uses jitless mode. " +
-  "mkdir creates workspace directories; search finds literal text in scoped files. browser and desktop tools require the task capabilities shown in input. browser preview opens local HTML; open accepts authorized HTTPS origins. observe returns current text, controls and screenshot. click/type/key require snapshot and ref from a recent observation. Browser refs may be reused for a short batch of clicks when the document and targets remain unchanged (last eight observations, ten-minute expiry); every input returns a new observation. Desktop actions require its current screenshot snapshot and window-relative coordinates. Never invent refs or coordinates. Make a new observe step if context is stale. Screenshots are returned by chai_get_job. " +
+  "mkdir creates workspace directories; search finds literal text in scoped files. browser and desktop tools require the task capabilities shown in input. browser preview opens local HTML; open accepts authorized HTTPS origins. observe returns current text, controls and screenshot. click/type/key require snapshot and ref from a recent observation. Browser refs may be reused for a short batch of clicks when the document and targets remain unchanged (last eight observations, ten-minute expiry); every input returns a new observation. Desktop actions require its current screenshot snapshot and window-relative coordinates. Never invent refs or coordinates. Make a new observe step if context is stale. Canvas elements are observed targets too. For held movement, key accepts holdMs from 0 to 2000 and releases the key even on cancellation. Use Space or movement keys only when the actual page supports them. Refresh stale observations and correct the plan while preserving the original goal. Screenshots are returned by chai_get_job. " +
   "git status/diff inspect selected existing text file snapshots against HEAD. git commit requires paths and message; CHAI shows the exact diff for local confirmation and creates a dedicated local review branch without changing the current branch or staging area. No push or deletion; initial commits and linked worktrees are unsupported. Do not claim a commit without its returned branch and hash. " +
   "When capabilities.project is enabled, terminal start executes real commands inside the isolated writable project: npm/node/python3/bash/pip3. Network only when capabilities.network is enabled. Install Python dependencies into .venv (python3 -m venv .venv). Use background:true and port for a dev server; bind it to 127.0.0.1, then browser open http://127.0.0.1:PORT. terminal poll/input/stop use the returned sessionId. A running server is not a passed test. " +
   "When capabilities.host is explicitly authorized, terminal start with target:'host' runs outside Bubblewrap as the user's OS account, with host network and installed tools. Its cwd may be an absolute path; default is the original source folder. Prefer target:'project' for project builds. Host commands can modify this computer; respect the user's scope, never infer permission to access unrelated credentials or projects, and do not escalate privileges without the user's OS approval. Stop and Revoke remain available. " +
@@ -441,6 +441,9 @@ export class Coordinator {
         "WORK_ASSIGNED",
         agent.brief.builderTask,
       );
+      // Return to the engine at a role boundary before spending another call
+      // on an assignment the user has already steered.
+      if (this.store.pendingFollowups(task.id).length) return;
     }
     if (agent.phase !== "builder" || !agent.brief)
       throw Error("Invalid coordinator planning phase");
@@ -601,6 +604,10 @@ export class Coordinator {
         reviewSchema,
         signal,
       );
+      if (this.store.pendingFollowups(task.id).length) {
+        this.store.put(task);
+        return false;
+      }
       if (agent.review.verdict !== "pass") {
         this.store.event(
           task.id,

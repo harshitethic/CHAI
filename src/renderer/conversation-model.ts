@@ -66,6 +66,7 @@ export function conversation(task: Task, events: Event[]): Message[] {
         "PROVIDER_ERROR",
         "TASK_PAUSED",
         "RECOVERED",
+        "TOOL_REJECTED",
       ].includes(event.kind)
     ) {
       messages.push({

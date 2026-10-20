@@ -1708,3 +1708,27 @@ details.result-card > summary {
 .milestone small {
   display: block;
 }
+.conversation-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.conversation-heading strong {
+  font-size: 13px;
+  color: var(--muted);
+}
+.conversation-heading button {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.conversation-stream {
+  max-height: min(70vh, 760px);
+  overflow: auto;
+  padding-right: 12px;
+  scrollbar-gutter: stable;
+}
+.work-layout .milestones ol {
+  max-height: none;
+}

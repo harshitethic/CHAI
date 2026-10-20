@@ -723,7 +723,8 @@ function App() {
                           (Date.now() - Date.parse(pendingJob.created)) / 1000,
                         ),
                       )}
-                      s since this request was created. No reply received yet.
+                      s since this request was created. Awaiting the final
+                      result; progress updates appear below.
                     </span>
                     <button
                       onClick={() =>

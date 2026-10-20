@@ -6,6 +6,8 @@ import {
   session,
 } from "electron";
 import { randomUUID } from "node:crypto";
+import { setTimeout as delay } from "node:timers/promises";
+import { ToolPreconditionError } from "../core/tool-errors";
 import { extname } from "node:path";
 
 import { projectFile, projectWrite } from "../core/project";
@@ -304,12 +306,12 @@ export class ComputerTools {
     const data = await this.isolated(
       win,
       `(() => {
-      const nodes = [...document.querySelectorAll('a,button,input,textarea,select,[role=button],[contenteditable=true]')].filter(e => e.getClientRects().length).slice(0,100);
+      const nodes = [...document.querySelectorAll('a,button,input,textarea,select,canvas,[role=button],[contenteditable=true]')].filter(e => e.getClientRects().length).slice(0,100);
       globalThis.__chaiObservations ??= new Map();
       globalThis.__chaiObservation = {id: ${JSON.stringify(id)}, url: location.href, created: Date.now(), nodes};
       globalThis.__chaiObservations.set(globalThis.__chaiObservation.id, globalThis.__chaiObservation);
       if(globalThis.__chaiObservations.size>8)globalThis.__chaiObservations.delete(globalThis.__chaiObservations.keys().next().value);
-      return {url:location.href,title:document.title,text:document.body?.innerText.slice(0,9000) || '',controls:nodes.map((e,i) => ({ref:'e'+i,tag:e.tagName.toLowerCase(),type:e.getAttribute('type'),label:(e.getAttribute('aria-label') || e.getAttribute('placeholder') || e.innerText || '').slice(0,160),disabled:!!e.disabled}))};
+      return {url:location.href,title:document.title,text:document.body?.innerText.slice(0,9000) || '',controls:nodes.map((e,i) => ({ref:'e'+i,tag:e.tagName.toLowerCase(),type:e.getAttribute('type'),label:(e.getAttribute('aria-label') || e.getAttribute('placeholder') || e.innerText || e.id || e.tagName.toLowerCase()).slice(0,160),disabled:!!e.disabled}))};
     })()`,
     );
     if (!this.allowed(task, data.url))
@@ -372,16 +374,16 @@ export class ComputerTools {
       await new Promise((r) => setTimeout(r, 500));
     } else if (action.operation !== "observe") {
       if (!action.snapshot || !action.ref)
-        throw Error(
+        throw new ToolPreconditionError(
           "Browser input requires an observed snapshot and target ref.",
         );
       const info = await this.isolated(
         win,
         `(() => {
         const s=globalThis.__chaiObservations?.get(${JSON.stringify(action.snapshot)});
-        if(!s || s.id!==${JSON.stringify(action.snapshot)} || s.url!==location.href || Date.now()-s.created>600000)throw Error('Stale browser observation; observe again.');
+        if(!s || s.id!==${JSON.stringify(action.snapshot)} || s.url!==location.href || Date.now()-s.created>600000)return {retry:'Stale browser observation; observe again.'};
         const i=Number(${JSON.stringify(action.ref ?? "")}.slice(1)), e=s.nodes[i];
-        if(!e || !e.isConnected || !e.getClientRects().length || e.disabled)throw Error('Observed target is unavailable.');
+        if(!e || !e.isConnected || !e.getClientRects().length || e.disabled)return {retry:'Observed target is unavailable; observe again.'};
         const type=e.getAttribute('type')||'';
         if(type==='password' || (type==='file' && ${JSON.stringify(action.operation)}!=='upload') || /password|credit.?card|card.?number|otp|one.?time|security.?code/i.test(e.getAttribute('autocomplete')||''))throw Error('Credential entry requires the user.');
         e.scrollIntoView({block:'center'});
@@ -389,6 +391,7 @@ export class ComputerTools {
         return {x:Math.round(r.x+r.width/2),y:Math.round(r.y+r.height/2),tag:e.tagName,type,label:(e.getAttribute('aria-label')||e.innerText||'').slice(0,200),form:!!e.closest('form'),editable:e.matches('input,textarea,[contenteditable=true]')};
       })()`,
       );
+      if (info.retry) throw new ToolPreconditionError(info.retry);
       const sensitive =
         /delete|remove|purchase|buy|pay|checkout|send|publish|transfer|confirm|sign.?out|log.?out/i.test(
           info.label,
@@ -396,7 +399,9 @@ export class ComputerTools {
         (action.operation === "click" &&
           info.form &&
           (info.tag === "BUTTON" || info.type === "submit")) ||
-        (action.operation === "key" && action.key === "Enter" && info.form);
+        (action.operation === "key" &&
+          (action.key === "Enter" || action.key === "Space") &&
+          info.form);
       if (
         sensitive &&
         !(await this.consent(
@@ -459,16 +464,36 @@ export class ComputerTools {
         );
         await win.webContents.insertText(action.text);
       } else if (action.operation === "key") {
-        if (!action.key) throw Error("Key is required.");
+        if (!action.key) throw new ToolPreconditionError("Key is required.");
+        if (
+          action.holdMs !== undefined &&
+          (!Number.isInteger(action.holdMs) ||
+            action.holdMs < 0 ||
+            action.holdMs > 2000)
+        )
+          throw new ToolPreconditionError("holdMs must be between 0 and 2000.");
         await this.isolated(
           win,
-          `globalThis.__chaiObservations.get(${JSON.stringify(action.snapshot)}).nodes[Number(${JSON.stringify(action.ref)}.slice(1))].focus()`,
+          `(()=>{const e=globalThis.__chaiObservations.get(${JSON.stringify(action.snapshot)}).nodes[Number(${JSON.stringify(action.ref)}.slice(1))];if(e.tagName==='CANVAS'&&!e.hasAttribute('tabindex'))e.tabIndex=-1;e.focus();})()`,
         );
-        win.webContents.sendInputEvent({
-          type: "keyDown",
-          keyCode: action.key,
-        });
-        win.webContents.sendInputEvent({ type: "keyUp", keyCode: action.key });
+        signal.throwIfAborted();
+        // Electron uses accelerator names, while observations and plans use DOM keys.
+        const keyCode = action.key.startsWith("Arrow")
+          ? action.key.slice(5)
+          : action.key;
+        try {
+          win.webContents.sendInputEvent({
+            type: "keyDown",
+            keyCode,
+          });
+          if (action.holdMs) await delay(action.holdMs, undefined, { signal });
+        } finally {
+          if (!win.isDestroyed() && !win.webContents.isDestroyed())
+            win.webContents.sendInputEvent({
+              type: "keyUp",
+              keyCode,
+            });
+        }
       }
       await new Promise((r) => setTimeout(r, 250));
     }

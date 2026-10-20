@@ -148,10 +148,49 @@ export const actionSchema = z.discriminatedUnion("tool", [
           "ArrowLeft",
           "ArrowRight",
           "Backspace",
+          "Space",
+          "w",
+          "a",
+          "s",
+          "d",
+          "f",
+          "r",
+          "p",
+          "Shift",
         ])
         .optional(),
+      holdMs: z.number().int().min(0).max(2000).optional(),
     })
-    .strict(),
+    .strict()
+    .superRefine((action, ctx) => {
+      if (
+        ["click", "type", "key", "upload"].includes(action.operation) &&
+        (!action.snapshot || !action.ref)
+      )
+        ctx.addIssue({
+          code: "custom",
+          message:
+            "Browser input requires an observed snapshot and target ref.",
+        });
+      if (action.operation === "key" && !action.key)
+        ctx.addIssue({
+          code: "custom",
+          path: ["key"],
+          message: "Key is required.",
+        });
+      if (action.operation === "type" && action.text === undefined)
+        ctx.addIssue({
+          code: "custom",
+          path: ["text"],
+          message: "Text is required.",
+        });
+      if (action.holdMs !== undefined && action.operation !== "key")
+        ctx.addIssue({
+          code: "custom",
+          path: ["holdMs"],
+          message: "holdMs is only valid for key input.",
+        });
+    }),
   z
     .object({
       tool: z.literal("desktop"),

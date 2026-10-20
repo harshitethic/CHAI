@@ -163,6 +163,51 @@ try {
     .click();
   await page.locator(".final-message").waitFor();
   await page.screenshot({ path: ".qa/conversation-workspace.png" });
+  // Real scrolling behavior: follow new events, but never pull the reader away.
+  const scrollDb = new DatabaseSync(
+    join(base, ".config", "chai-desktop", "chai.sqlite"),
+  );
+  const addProgress = (text) =>
+    scrollDb
+      .prepare(
+        "INSERT INTO events(taskId,role,kind,detail,created) VALUES(?,?,?,?,?)",
+      )
+      .run(
+        freshId,
+        "builder",
+        "ASSISTANT_PROGRESS",
+        text,
+        new Date().toISOString(),
+      );
+  for (let i = 0; i < 25; i++)
+    addProgress(`Scripted scroll verification update ${i}`);
+  const stream = page.getByRole("log", { name: "Conversation messages" });
+  await stream
+    .getByText("Scripted scroll verification update 24", { exact: true })
+    .waitFor();
+  assert(
+    await stream.evaluate(
+      (n) => n.scrollHeight - n.scrollTop - n.clientHeight < 72,
+    ),
+  );
+  await stream.evaluate((n) => {
+    n.scrollTop = 0;
+    n.dispatchEvent(new Event("scroll", { bubbles: true }));
+  });
+  addProgress("A new update while reading earlier messages");
+  await page
+    .getByRole("button", { name: "Jump to latest update" })
+    .filter({ hasText: /new/ })
+    .waitFor();
+  assert.equal(await stream.evaluate((n) => n.scrollTop), 0);
+  await page.getByRole("button", { name: "Jump to latest update" }).click();
+  assert(
+    await stream.evaluate(
+      (n) => n.scrollHeight - n.scrollTop - n.clientHeight < 72,
+    ),
+  );
+  scrollDb.close();
+
   await page.getByRole("button", { name: "New task", exact: true }).click();
   await page
     .getByRole("heading", { name: "Stop chatting. Start doing." })

@@ -1,3 +1,11 @@
+## Current continuation — 0.10.1-alpha.1
+
+Browser input repair is implemented: grounded targets, canvas observation, bounded held keys, Electron arrow translation, cancellation release and typed pre-dispatch recovery. Verified 83 tests, typecheck/lint/build, native computer and workbench. The actual GhostSprint audit is running again with its original goal and prior evidence preserved; original game task stays paused. Publication/install and live audit outcome are pending. Do not claim completion until their evidence is recorded.
+
+## Live workflow polish — 0.10.1-alpha.1
+
+Added conversation following, preserved reader scroll position, jump-to-latest updates and truthful waiting text. Queued steering now returns to the engine after each role response, before spending another stale role call. Verified: 79 tests, typecheck/lint/build and native scrolling/workbench tests. Live game audit verified new MCP progress after refreshing the existing ChatGPT tool catalog; ongoing run and public-binary results are recorded in QA separately.
+
 ## Workflow update — 2026-10-20, 0.10.0-alpha.1
 
 Implemented authenticated live progress and revision-scoped milestone plans, durable queued follow-ups at action/planning/review boundaries, explicit interrupt, original-goal continuity, and less repeated review chatter. Progress never grants permissions or marks execution complete. Native follow-up queue survives restart and waits for resume.

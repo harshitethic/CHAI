@@ -1,9 +1,11 @@
 import { Store } from "./store";
+import { ToolPreconditionError } from "./tool-errors";
 import { workspace, Gateway } from "./gateway";
 import { recipe } from "./providers";
 import { Coordinator, ProviderUnavailable, type AgentAdapter } from "./agents";
 import {
   planSchema,
+  taskLimits,
   redact,
   type Task,
   type Plan,
@@ -581,6 +583,11 @@ export class Engine {
       );
     } catch (e) {
       if (!signal.aborted) {
+        if (
+          e instanceof ToolPreconditionError &&
+          this.replanRejectedAction(id, e)
+        )
+          return;
         this.store.state(
           id,
           e instanceof ProviderUnavailable ? "WAITING_PROVIDER" : "FAILED",
@@ -596,6 +603,61 @@ export class Engine {
     } finally {
       if (this.active.get(id) === controller) this.active.delete(id);
     }
+  }
+  private replanRejectedAction(id: string, error: ToolPreconditionError) {
+    const task = this.store.get(id);
+    if (
+      task.mode !== "browser" ||
+      !task.agent ||
+      !task.plan ||
+      task.agent.round >= taskLimits(task).rounds
+    )
+      return false;
+    const key = `${id}:${task.cursor}`;
+    const effect = this.store.db
+      .prepare("SELECT state FROM effects WHERE id=?")
+      .get(key);
+    if (
+      task.plan.actions[task.cursor]?.tool !== "browser" ||
+      effect?.state !== "STARTED"
+    )
+      return false;
+    const detail = redact(String(error));
+    this.store.db.exec("BEGIN IMMEDIATE");
+    try {
+      this.store.db
+        .prepare("UPDATE effects SET state='INTERRUPTED',output=? WHERE id=?")
+        .run(JSON.stringify({ executed: false, error: detail }), key);
+      task.cursor++;
+      task.plan.actions = task.plan.actions.slice(0, task.cursor);
+      task.approved = false;
+      task.error = null;
+      task.agent.round++;
+      task.agent.phase = "manager";
+      task.agent.review = {
+        verdict: "revise",
+        summary:
+          "Browser input was rejected before dispatch. Refresh the observation and continue the original goal.",
+        issues: [
+          detail,
+          "Observe the current page, use its actual target ref, and replace only the unstarted work. No input was dispatched for the rejected action.",
+        ],
+      };
+      this.store.put(task);
+      this.store.db.prepare("DELETE FROM approvals WHERE taskId=?").run(id);
+      this.store.event(
+        id,
+        "manager",
+        "TOOL_REJECTED",
+        detail + " No input was dispatched; preparing a corrected plan.",
+      );
+      this.store.db.exec("COMMIT");
+    } catch (failure) {
+      this.store.db.exec("ROLLBACK");
+      throw failure;
+    }
+    this.schedulePlan(id);
+    return true;
   }
   pause(id: string) {
     const t = this.store.get(id);

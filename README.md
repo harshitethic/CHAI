@@ -9,12 +9,12 @@
     <img src="https://img.shields.io/badge/platform-Linux-aaa6a2" alt="Linux" />
     <img src="https://img.shields.io/badge/status-alpha-e59173" alt="Alpha" />
   </p>
-  <p><a href="https://github.com/harshitethic/CHAI/releases/tag/v0.10.0-alpha.1"><strong>Download 0.10 alpha</strong></a> · <a href="#get-started">Get started</a> · <a href="docs/PRIVACY.md">Privacy</a> · <a href="docs/IMPLEMENTATION.md">Architecture</a></p>
+  <p><a href="https://github.com/harshitethic/CHAI/releases/tag/v0.10.1-alpha.1"><strong>Download 0.10.1 alpha</strong></a> · <a href="#get-started">Get started</a> · <a href="docs/PRIVACY.md">Privacy</a> · <a href="docs/IMPLEMENTATION.md">Architecture</a></p>
 </div>
 
-![CHAI conversation view with a user request, tool receipt and visible result](docs/qa/conversation-workspace.png)
+![CHAI conversation view with a user request, tool receipt and visible result](docs/qa/workflow-workspace.png)
 
-*Actual native CHAI 0.9 interface. This screenshot uses an explicit scripted conversation fixture to test rendering and persistence; it is not presented as a live model response.*
+*Actual native CHAI 0.10 interface. This screenshot uses an explicit scripted conversation fixture to test rendering and persistence; it is not presented as a live model response.*
 
 ## Follow the work
 
@@ -22,13 +22,15 @@ Give CHAI a goal. Start a new empty project or explicitly select an existing fol
 
 **New in 0.10:** live public updates and a persistent milestone plan from the active ChatGPT job. Follow-ups queue at safe execution boundaries by default, preserving the current action and running preview. Choose **Interrupt current work** when you need an immediate stop. Original requirements stay primary when you say “continue.”
 
+**0.10.1 fixes a failure found in the game audit:** browser key actions now require observed targets, canvases can receive bounded held keys, and rejected stale targets trigger a corrected plan. Unknown outcomes and declined confirmations still stop. Conversation updates follow the latest message while preserving your place when you scroll back.
+
 The milestone plan tells you what CHAI reports as done, active, pending or blocked. The action history independently records what tools actually did. Plans cannot grant permissions or mark a task complete. Stale role jobs cannot overwrite progress after a follow-up; repeated delivery of the same update is idempotent.
 
 See the [workflow acceptance contract](docs/WORKFLOW.md) for the behavior we are building, the tests behind it, and the remaining gaps.
 
 Project commands, network and local browser previews start enabled in the new-task UI; you can turn each off before sending. Host commands remain a separate native grant. Existing tasks retain their original permissions. A waiting indicator shows when a ChatGPT reply has not arrived and opens the relevant conversation directly.
 
-The agent instructions now request concise, natural progress messages and review the user's full outcome rather than only a smaller implementation assignment. These are tested workflow changes, **not a claim of first-party Codex/Work parity**. Progress arrives when ChatGPT calls the progress tool; it is not token-by-token streaming. Older conversations may need their CHAI plugin tool list refreshed to expose the new tool.
+The agent instructions now request concise, natural progress messages and review the user's full outcome rather than only a smaller implementation assignment. These are tested workflow changes, **not a claim of first-party Codex/Work parity**. Progress arrives when ChatGPT calls the progress tool; it is not token-by-token streaming. For an existing connection, open **ChatGPT Settings → Plugins → CHAI Desktop → Refresh tools** once after upgrading to expose the new progress tool.
 
 The workspace includes isolated writable projects, dependency installation, persistent command sessions, interactive local-app previews, follow-up steering, project diffs, document outputs and authenticated app tools. The Work screen keeps the current action, next step, check results and role updates alongside the actual working environment.
 
@@ -52,7 +54,7 @@ The workspace includes isolated writable projects, dependency installation, pers
 | --- | --- |
 | Project execution | Copy a dedicated project into a private, independent Git checkout; run Node, Python, Bash and package managers in Bubblewrap. Optional network access enables dependencies and local servers. |
 | Terminals | Run manual or agent commands, stream output, send stdin and stop processes. Opt-in durable sessions survive app exit/crash and reconnect without replay. |
-| Browser verification | Open an owned local server or authorized website, inspect controls/screenshots/errors and act on observed targets. Local apps have an interactive embedded preview. |
+| Browser verification | Open an owned local server or authorized website, inspect controls/screenshots/errors and act on observed targets, including canvas controls and held keys. Local apps have an interactive embedded preview. |
 | Task steering | Queue a follow-up after the current planning/action/review step, or explicitly interrupt. Supersede unstarted actions, preserve completed evidence and keep previews running when queued. |
 | Repository context | Paginated file discovery and reads, scoped source search, exact-match patches with SHA256 conflict checks, project instructions and bounded context compaction. |
 | Git workflow | Inspect changes side by side, create branches and confirmed commits in the working copy, inspect GitHub CI and publish a confirmed draft PR when GitHub CLI is authenticated. The original checkout and index remain separate. |
@@ -85,20 +87,20 @@ Automated tests cover the core workflows and boundaries. Native Electron tests c
 
 ### 1. Install on Linux
 
-Download the AppImage and `SHA256SUMS` from the [release](https://github.com/harshitethic/CHAI/releases/tag/v0.10.0-alpha.1). A Debian amd64 package is also available.
+Download the AppImage and `SHA256SUMS` from the [release](https://github.com/harshitethic/CHAI/releases/tag/v0.10.1-alpha.1). A Debian amd64 package is also available.
 
 Required: Python 3 with venv support, Bubblewrap, Git, Node and npm. X11 control requires `xdotool`, `x11-utils`, Python GI and the AT-SPI typelib. Wayland control requires a working RemoteDesktop/ScreenCast portal backend (GNOME or KDE), PipeWire, Python GI/GStreamer and the PipeWire/base/good GStreamer plugins. Document libraries install inside the task project when network access is authorized. GitHub publication additionally requires `gh auth login` on this machine.
 
 ```sh
 sha256sum --check --ignore-missing SHA256SUMS
-chmod +x CHAI-0.10.0-alpha.1.AppImage
-APPIMAGE_EXTRACT_AND_RUN=1 ./CHAI-0.10.0-alpha.1.AppImage
+chmod +x CHAI-0.10.1-alpha.1.AppImage
+APPIMAGE_EXTRACT_AND_RUN=1 ./CHAI-0.10.1-alpha.1.AppImage
 ```
 
 For a user-only installation from a source checkout:
 
 ```sh
-sh scripts/install-local.sh /path/to/CHAI-0.10.0-alpha.1.AppImage 0.10.0-alpha.1
+sh scripts/install-local.sh /path/to/CHAI-0.10.1-alpha.1.AppImage 0.10.1-alpha.1
 # Add --upgrade when replacing an existing CHAI installation.
 ```
 
