@@ -152,15 +152,15 @@ export function progressView(task: Task, evidence: ActionEvidence[] = []) {
               ? action.tool === "terminal" && action.background
                 ? "Started · see terminal status"
                 : "Finished"
-            : state === "running"
-              ? "In progress"
-              : state === "error"
-                ? "Stopped here"
-                : state === "waiting"
-                  ? "Waiting"
-                  : state === "not-run"
-                    ? "Not run"
-                    : "Pending";
+              : state === "running"
+                ? "In progress"
+                : state === "error"
+                  ? "Stopped here"
+                  : state === "waiting"
+                    ? "Waiting"
+                    : state === "not-run"
+                      ? "Not run"
+                      : "Pending";
       return {
         action,
         index,
