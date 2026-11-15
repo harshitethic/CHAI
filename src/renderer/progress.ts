@@ -133,19 +133,23 @@ export function progressView(task: Task, evidence: ActionEvidence[] = []) {
         (action.tool === "terminal" &&
           action.operation === "start" &&
           !action.background);
+      // An interrupted action has no verified outcome, even if a stale
+      // exit code was recorded before the interruption.
+      const interrupted = finished && effect?.state === "INTERRUPTED";
       const checkFailed =
         finished &&
+        !interrupted &&
         isCheck &&
         effect != null &&
         (effect.exitCode !== 0 || !!effect.termination);
-      const detail = checkFailed
-        ? "Finished · check failed"
-        : finished && isCheck && effect?.exitCode === 0
-          ? "Finished · exit 0"
-          : finished
-            ? effect?.state === "INTERRUPTED"
-              ? "Interrupted · outcome unverified"
-              : action.tool === "terminal" && action.background
+      const detail = interrupted
+        ? "Interrupted · outcome unverified"
+        : checkFailed
+          ? "Finished · check failed"
+          : finished && isCheck && effect?.exitCode === 0
+            ? "Finished · exit 0"
+            : finished
+              ? action.tool === "terminal" && action.background
                 ? "Started · see terminal status"
                 : "Finished"
             : state === "running"
