@@ -127,3 +127,23 @@ test("selected task events survive a noisy global feed; progress metadata omits 
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("interrupted actions cannot be reported as successful checks", () => {
+  const t = task();
+  const interrupted = progressView(t, [
+    { idx: 0, state: "INTERRUPTED", exitCode: 0, termination: null },
+  ]);
+  assert.equal(interrupted.steps[0].checkFailed, false);
+  assert.equal(interrupted.steps[0].detail, "Interrupted · outcome unverified");
+
+  const terminated = progressView(t, [
+    { idx: 0, state: "INTERRUPTED", exitCode: 0, termination: "timeout" },
+  ]);
+  assert.equal(terminated.steps[0].detail, "Interrupted · outcome unverified");
+
+  const finished = progressView(t, [
+    { idx: 0, state: "SUCCEEDED", exitCode: 0, termination: null },
+  ]);
+  assert.equal(finished.steps[0].detail, "Finished · exit 0");
+});
+
