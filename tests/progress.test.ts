@@ -103,21 +103,19 @@ test("selected task events survive a noisy global feed; progress metadata omits 
     );
     assert(store.events(a.id).every((e) => e.taskId === a.id));
     assert.equal(store.events(a.id).length, 2);
-    store.db
-      .prepare("INSERT INTO effects VALUES(?,?,?,?,?,?,?)")
-      .run(
-        a.id + ":0",
-        a.id,
-        0,
-        "SUCCEEDED",
-        "source before",
-        "source after",
-        JSON.stringify({
-          exitCode: 1,
-          termination: null,
-          stdout: "private output",
-        }),
-      );
+    store.db.prepare("INSERT INTO effects VALUES(?,?,?,?,?,?,?)").run(
+      a.id + ":0",
+      a.id,
+      0,
+      "SUCCEEDED",
+      "source before",
+      "source after",
+      JSON.stringify({
+        exitCode: 1,
+        termination: null,
+        stdout: "private output",
+      }),
+    );
     assert.deepEqual(store.actionEvidence(a.id), [
       { idx: 0, state: "SUCCEEDED", exitCode: 1, termination: null },
     ]);
@@ -146,4 +144,3 @@ test("interrupted actions cannot be reported as successful checks", () => {
   ]);
   assert.equal(finished.steps[0].detail, "Finished · exit 0");
 });
-
